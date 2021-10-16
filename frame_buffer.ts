@@ -22,7 +22,7 @@ const chars = {
 };
 
 export async function watchFrameBuffer(instance: FrameBufferInstance) {
-  for await (const _ of Deno.signals.windowChange()) {
+  for await (const _ of Deno.signal("SIGWINCH")) {
     const { columns, rows } = Deno.consoleSize(instance.writer.rid);
     instance.columns = columns;
     instance.rows = rows;
