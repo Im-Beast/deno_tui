@@ -48,7 +48,10 @@ export function getStyle<S = void, F = void, O = void>(
   }
 
   if (style[0] === "#") {
-    return crayon()[background ? "bgHex" : "hex"](style, true) as Crayon<
+    return crayon()[background ? "bgHex" : "hex"](
+      style,
+      true,
+    ) as unknown as Crayon<
       S,
       F,
       O
@@ -59,11 +62,13 @@ export function getStyle<S = void, F = void, O = void>(
       Number(r),
       Number(g),
       Number(b),
-    ) as Crayon<S, F, O>;
+    ) as unknown as Crayon<S, F, O>;
   }
 
   const bgStyle = `bg${style[0].toUpperCase()}${style.slice(1)}`;
-  return crayon()[(background ? bgStyle : style) as CrayonStyle] as Crayon<
+  return crayon()[
+    (background ? bgStyle : style) as CrayonStyle
+  ] as unknown as Crayon<
     S,
     F,
     O
