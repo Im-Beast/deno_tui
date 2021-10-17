@@ -10,6 +10,7 @@ import type {
 } from "./tui.ts";
 
 export type CreateFrameOptions = {
+  focusingItems?: AnyComponent[];
   rectangle: TuiRectangle;
   styler: TuiStyler;
 };
@@ -29,6 +30,7 @@ export function createFrame(
     object,
     {
       id: "frame",
+      interactive: false,
       canvas: object.canvas,
       styler: options.styler,
       rectangle: options.rectangle,
@@ -36,7 +38,8 @@ export function createFrame(
   );
 
   frame.draw = () => {
-    const focused = instance.components.focused === frame;
+    const items = [...options.focusingItems || [], frame];
+    const focused = items.some((item) => instance.components.focused === item);
     const active = focused && instance.components.active;
 
     const currentStyler =

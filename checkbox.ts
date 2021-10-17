@@ -31,6 +31,7 @@ export function createCheckbox(
       object,
       {
         id: "checkbox",
+        interactive: true,
         canvas: object.canvas,
         rectangle: {
           column: options.column,

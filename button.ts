@@ -30,6 +30,7 @@ export function createButton(
     object,
     {
       id: "button",
+      interactive: true,
       canvas: object.canvas,
       rectangle: options.rectangle,
       styler: options.styler,
@@ -41,6 +42,7 @@ export function createButton(
   const box = createBox(button, {
     rectangle: options.rectangle,
     styler: options.styler,
+    focusingItems: [button],
   });
 
   funcs.push(box.draw);

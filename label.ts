@@ -67,6 +67,7 @@ export function createLabel(
     object,
     {
       id: "label",
+      interactive: false,
       canvas: object.canvas,
       rectangle: options.rectangle,
       styler: options.styler,

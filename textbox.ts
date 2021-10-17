@@ -38,6 +38,7 @@ export function createTextbox(
       object,
       {
         id: "textbox",
+        interactive: true,
         canvas: object.canvas,
         rectangle: {
           column,
@@ -56,6 +57,7 @@ export function createTextbox(
   const box = createBox(textbox, {
     rectangle: options.rectangle,
     styler: options.styler,
+    focusingItems: [textbox],
   });
 
   funcs.push(box.draw);
@@ -131,18 +133,25 @@ export function createTextbox(
     }
   }
 
+  const pushCharacter = (character: string) => {
+    textbox.value = textbox.value.slice(0, keyPosition.x) + character +
+      textbox.value.slice(keyPosition.x);
+
+    moveKey("right");
+  };
+
   textbox.on("keyPress", (keyPress) => {
     if (typeof keyPress === "object") {
       const key = keyPress.key as Key;
 
       if (!keyPress.ctrl && !keyPress.meta && key.length === 1) {
-        textbox.value = textbox.value.slice(0, keyPosition.x) + key +
-          textbox.value.slice(keyPosition.x);
-
-        moveKey("right");
+        pushCharacter(key);
       }
 
       switch (key) {
+        case "space":
+          pushCharacter(" ");
+          break;
         case "left":
         case "right":
         case "up":

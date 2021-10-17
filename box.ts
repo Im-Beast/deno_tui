@@ -9,6 +9,7 @@ import type {
 } from "./tui.ts";
 
 export type CreateBoxOptions = {
+  focusingItems?: AnyComponent[];
   rectangle: TuiRectangle;
   styler: TuiStyler;
 };
@@ -27,6 +28,7 @@ export function createBox(
     object,
     {
       id: "box",
+      interactive: false,
       canvas: object.canvas,
       styler: options.styler,
       rectangle: options.rectangle,
@@ -34,7 +36,9 @@ export function createBox(
   );
 
   box.draw = () => {
-    const focused = instance.components.focused === box;
+    const items = [...options.focusingItems || [], box];
+
+    const focused = items.some((item) => instance.components.focused === item);
     const active = focused && instance.components.active;
 
     const currentStyler =
