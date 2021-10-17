@@ -1,7 +1,7 @@
 import * as Canvas from "./canvas.ts";
 import * as Emitter from "./event_emitter.ts";
 
-import type { CanvasInstance, CanvasStyler } from "./canvas.ts";
+import { CanvasInstance, CanvasStyler } from "./canvas.ts";
 import type { EventEmitter } from "./event_emitter.ts";
 import { KeyPress, readKeypresses } from "./key_reader.ts";
 import type { Reader, Writer } from "./types.ts";
@@ -25,6 +25,7 @@ export type TuiStyler<T = void> = CanvasStyler<T> & {
 export type TuiComponent<Events = void, Attributes = void> = {
   id: string;
   canvas: CanvasInstance;
+  interactive: boolean;
   instance: TuiInstance;
   rectangle: TuiRectangle;
   emitter: EventEmitter<
@@ -32,6 +33,11 @@ export type TuiComponent<Events = void, Attributes = void> = {
     KeyPress | undefined | (Attributes extends void ? undefined : Attributes)
   >;
   components: {
+    father: {
+      components: {
+        tree: AnyComponent[];
+      };
+    };
     tree: AnyComponent[];
   };
   styler: TuiStyler;
@@ -49,10 +55,11 @@ export type CreateComponentOptions = {
   canvas: CanvasInstance;
   styler: TuiStyler;
   rectangle: TuiRectangle;
+  interactive: boolean;
 };
 
 export function createComponent<Events = void, Attributes = void>(
-  object: TuiInstance | TuiComponent,
+  object: TuiInstance | AnyComponent,
   options: CreateComponentOptions,
 ): TuiComponent<Events, Attributes> {
   const emitter: TuiComponent<Events, Attributes>["emitter"] = Emitter
@@ -64,6 +71,7 @@ export function createComponent<Events = void, Attributes = void>(
 
   const component: TuiComponent<Events, Attributes> = {
     instance: instance,
+    interactive: options.interactive,
     id: options.id,
     canvas: options.canvas,
     styler: options.styler,
@@ -73,12 +81,20 @@ export function createComponent<Events = void, Attributes = void>(
     once: emitter.once,
     off: emitter.off,
     components: {
+      father: object,
       tree: [],
     },
     draw: () => {},
   };
 
-  instance.components.tree.push(component);
+  if (component.interactive) {
+    const { column, row } = component.rectangle;
+    instance.components.focusMap[row] ||= {};
+    instance.components.focusMap[row][column] ||= [];
+    instance.components.focusMap[row][column].push(component);
+  }
+
+  object.components.tree.push(component);
 
   return component;
 }
@@ -92,8 +108,9 @@ export type TuiInstance = {
         [col: number]: AnyComponent[];
       };
     };
-    tree: AnyComponent[];
+    focusMap: { [row: number]: { [column: number]: AnyComponent[] } };
     focused: AnyComponent | null;
+    tree: AnyComponent[];
     active: boolean;
   };
   canvas: CanvasInstance;
@@ -117,6 +134,7 @@ export function createTui(
     reader,
     writer,
     components: {
+      focusMap: {},
       reactiveMap: {},
       focused: null,
       active: false,

@@ -125,17 +125,37 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
           case "OA":
             keyPress.key = "up";
             break;
+          case "[2A":
+          case "2A":
+            keyPress.key = "up";
+            keyPress.shift = true;
+            break;
           case "[B":
           case "OB":
             keyPress.key = "down";
+            break;
+          case "[2B":
+          case "2B":
+            keyPress.key = "down";
+            keyPress.shift = true;
             break;
           case "[D":
           case "OD":
             keyPress.key = "left";
             break;
+          case "[2D":
+          case "2D":
+            keyPress.key = "left";
+            keyPress.shift = true;
+            break;
           case "[C":
           case "OC":
             keyPress.key = "right";
+            break;
+          case "[2C":
+          case "2C":
+            keyPress.key = "right";
+            keyPress.shift = true;
             break;
           case "[E":
           case "OE":
