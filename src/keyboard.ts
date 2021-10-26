@@ -5,13 +5,13 @@ import { TuiInstance } from "./tui.ts";
 export const positions: { [instanceId: number]: { x: number; y: number } } = {};
 
 export async function handleKeypresses(instance: TuiInstance) {
-  function emit(keyPress: KeyPress) {
+  const emit = (keyPress: KeyPress) => {
     instance.emitter.emit("keyPress", keyPress);
     const { component } = instance.components.focused;
     if (component) {
       component.emitter.emit("keyPress", keyPress);
     }
-  }
+  };
 
   for await (const keyPresses of readKeypresses(instance.reader)) {
     keyPresses.forEach(emit);
