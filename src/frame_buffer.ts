@@ -22,6 +22,7 @@ const chars = {
 };
 
 export async function watchFrameBuffer(instance: FrameBufferInstance) {
+  // TODO(https://github.com/denoland/deno/commit/a9b34118a9338323532c3b6b2e0336c343a0e834): new callback based Signal API
   for await (const _ of Deno.signal("SIGWINCH")) {
     const { columns, rows } = Deno.consoleSize(instance.writer.rid);
     instance.columns = columns;

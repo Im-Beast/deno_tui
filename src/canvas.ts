@@ -111,6 +111,7 @@ export function createCanvas(
 }
 
 export async function watch(instance: CanvasInstance) {
+  // TODO(https://github.com/denoland/deno/commit/a9b34118a9338323532c3b6b2e0336c343a0e834): new callback based Signal API
   for await (const _ of Deno.signal("SIGWINCH")) {
     draw(instance);
   }
