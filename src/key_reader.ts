@@ -30,7 +30,7 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
   const decodedBuffer = decoder.decode(buffer);
   let keys = [decodedBuffer];
 
-  // Splitting seems fine, i'm expecting bugs though
+  // Splitting seems fine, I'm expecting bugs though
   if (decodedBuffer.split("\x1b").length > 1) {
     // deno-lint-ignore no-control-regex
     keys = decodedBuffer.split(/(?=\x1b)/);
@@ -54,7 +54,7 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
         keyPress.key = "return";
         break;
       case "\n":
-        keyPress.key = "enter";
+        keyPress.key = "return";
         break;
       case "\t":
         keyPress.key = "tab";

@@ -40,39 +40,22 @@ const rgbRegex = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)/;
 
 export function getStyle<S = void, F = void, O = void>(
   style: CanvasStyle,
-  background: boolean,
+  bg: boolean,
 ): Crayon<S, F, O> {
-  if (typeof style !== "string") {
-    throw crayon
-      `{blue style} property is supposed to be string! Got {bold.red ${typeof style}} instead`;
-  }
+  let crayonInstance = crayon;
 
-  if (style[0] === "#") {
-    return crayon()[background ? "bgHex" : "hex"](
-      style,
-      true,
-    ) as unknown as Crayon<
-      S,
-      F,
-      O
-    >;
+  if (style.startsWith("#")) {
+    crayonInstance = crayon()[bg ? "bgHex" : "hex"](style, true);
   } else if (rgbRegex.test(style)) {
-    const [, r, g, b] = style.match(rgbRegex) || [];
-    return crayon()[background ? "bgRgb" : "rgb"](
-      Number(r),
-      Number(g),
-      Number(b),
-    ) as unknown as Crayon<S, F, O>;
+    const [, r, g, b] = style.match(rgbRegex)?.map(Number) || [];
+    crayonInstance = crayon()[bg ? "bgRgb" : "rgb"](r, g, b);
   }
 
-  const bgStyle = `bg${style[0].toUpperCase()}${style.slice(1)}`;
-  return crayon()[
-    (background ? bgStyle : style) as CrayonStyle
-  ] as unknown as Crayon<
-    S,
-    F,
-    O
-  >;
+  crayonInstance = bg
+    ? crayon()[`bg${style[0].toUpperCase()}${style.slice(1)}` as CrayonStyle]
+    : crayon()[style as CrayonStyle];
+
+  return crayonInstance as unknown as Crayon<S, F, O>;
 }
 
 export function styleTextFromStyler(
@@ -103,6 +86,10 @@ export function styleText(
   return getStyle(style, background)(text);
 }
 
+export function draw(instance: CanvasInstance) {
+  writeBufferSync(instance.frameBuffer);
+}
+
 export function createCanvas(
   writer: Writer,
   styler: CanvasStyler,
@@ -118,7 +105,15 @@ export function createCanvas(
     styler,
   };
 
+  watch(canvas);
+
   return canvas;
+}
+
+export async function watch(instance: CanvasInstance) {
+  for await (const _ of Deno.signal("SIGWINCH")) {
+    draw(instance);
+  }
 }
 
 export function loop(
