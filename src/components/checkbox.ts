@@ -43,7 +43,7 @@ export function createCheckbox(
       interactive: true,
       rectangle,
       draw() {
-        checkbox.components.tree.forEach((component) => component.draw);
+        checkbox.components.tree.forEach((component) => component.draw());
 
         const styler = getCurrentStyler(checkbox, {
           active: {

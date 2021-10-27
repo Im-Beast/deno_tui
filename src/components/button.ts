@@ -7,14 +7,17 @@ import { createLabel, TextAlign } from "./label.ts";
 export type CreateButtonOptions = CreateBoxOptions & {
   text?: string;
   textAlign?: TextAlign;
+  interactive?: boolean;
 };
 
 export function createButton(object: TuiObject, options: CreateButtonOptions) {
   const button = createComponent(object, {
     name: "button",
-    interactive: true,
+    interactive: typeof options.interactive === "boolean"
+      ? options.interactive
+      : true,
     draw() {
-      button.components.tree.forEach((component) => component.draw);
+      button.components.tree.forEach((component) => component.draw());
     },
     ...options,
   });
