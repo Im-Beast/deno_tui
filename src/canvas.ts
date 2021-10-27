@@ -49,11 +49,11 @@ export function getStyle<S = void, F = void, O = void>(
   } else if (rgbRegex.test(style)) {
     const [, r, g, b] = style.match(rgbRegex)?.map(Number) || [];
     crayonInstance = crayon()[bg ? "bgRgb" : "rgb"](r, g, b);
+  } else {
+    crayonInstance = bg
+      ? crayon()[`bg${style[0].toUpperCase()}${style.slice(1)}` as CrayonStyle]
+      : crayon()[style as CrayonStyle];
   }
-
-  crayonInstance = bg
-    ? crayon()[`bg${style[0].toUpperCase()}${style.slice(1)}` as CrayonStyle]
-    : crayon()[style as CrayonStyle];
 
   return crayonInstance as unknown as Crayon<S, F, O>;
 }
@@ -79,10 +79,6 @@ export function styleText(
   background: boolean,
   text: string,
 ): string {
-  const stylerrr = getStyle(style, background);
-  if (typeof stylerrr !== "function") {
-    throw `${stylerrr} ${style} ${background}`;
-  }
   return getStyle(style, background)(text);
 }
 
