@@ -2,12 +2,13 @@ import { CanvasInstance, createCanvas, draw } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress } from "./key_reader.ts";
 import { AnyComponent } from "./tui_component.ts";
-import { Reader, TuiStyler, Writer } from "./types.ts";
+import { Reader, TuiRectangle, TuiStyler, Writer } from "./types.ts";
 
 export type TuiInstance = {
   readonly id: number;
   reader: Reader;
   writer: Writer;
+  rectangle: TuiRectangle;
   components: {
     focusMap: {
       mapping: AnyComponent[][];
@@ -43,6 +44,14 @@ export function createTui(
     id: instanceId++,
     reader,
     writer,
+    get rectangle() {
+      return {
+        column: 0,
+        row: 0,
+        width: canvas.frameBuffer.columns,
+        height: canvas.frameBuffer.rows,
+      };
+    },
     components: {
       focusMap: { mapping: [] },
       focused: {
