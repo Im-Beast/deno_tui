@@ -41,7 +41,7 @@ export function getCurrentStyler(
 
 export type TuiComponent<Events = void, Attributes = void> = {
   readonly id: number;
-  name: string;
+  readonly name: string;
   canvas: CanvasInstance;
   interactive: boolean;
   instance: TuiInstance;
