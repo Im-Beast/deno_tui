@@ -12,3 +12,5 @@ export * from "./src/components/label.ts";
 export * from "./src/components/frame.ts";
 export * from "./src/components/checkbox.ts";
 export * from "./src/components/button.ts";
+export * from "./src/components/menu.ts";
+export * from "./src/components/menuItem.ts";

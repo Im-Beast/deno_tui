@@ -122,3 +122,130 @@ Tui.createCheckbox(tui, {
     },
   },
 });
+
+const box = Tui.createBox(tui, {
+  focusedWithin: [],
+  rectangle: {
+    width: 15,
+    height: 10,
+    row: 10,
+    column: 30,
+  },
+  styler: {
+    foreground: "yellow",
+    background: "lightRed",
+  },
+});
+
+const menu = Tui.createMenu(box, {
+  focusedWithin: [],
+  styler: {
+    foreground: "yellow",
+    background: "#00FF23",
+  },
+});
+
+Tui.createMenuItem(menu, {
+  focusedWithin: [],
+  styler: {
+    background: "red",
+    foreground: "white",
+    active: {
+      background: "green",
+      foreground: "white",
+    },
+    border: {
+      background: "yellow",
+      foreground: "green",
+      focused: {
+        background: "magenta",
+        foreground: "lightBlue",
+      },
+    },
+  },
+  text: "hello",
+});
+
+Tui.createMenuItem(menu, {
+  focusedWithin: [],
+  styler: {
+    background: "red",
+    foreground: "white",
+    active: {
+      background: "green",
+      foreground: "white",
+    },
+    border: {
+      background: "green",
+      foreground: "green",
+      focused: {
+        background: "magenta",
+        foreground: "lightBlue",
+      },
+    },
+  },
+  text: "second",
+});
+
+Tui.createMenuItem(menu, {
+  focusedWithin: [],
+  styler: {
+    background: "red",
+    foreground: "white",
+    active: {
+      background: "green",
+      foreground: "white",
+    },
+    border: {
+      background: "green",
+      foreground: "green",
+      focused: {
+        background: "magenta",
+        foreground: "lightBlue",
+      },
+    },
+  },
+  text: "third",
+});
+
+Tui.createMenuItem(menu, {
+  focusedWithin: [],
+  styler: {
+    background: "red",
+    foreground: "white",
+    active: {
+      background: "green",
+      foreground: "white",
+    },
+    border: {
+      background: "green",
+      foreground: "green",
+      focused: {
+        background: "magenta",
+        foreground: "lightBlue",
+      },
+    },
+  },
+  text: "fourth",
+});
+
+Tui.createMenuItem(menu, {
+  focusedWithin: [],
+  styler: {
+    background: "red",
+    foreground: "white",
+    active: {
+      background: "green",
+      foreground: "white",
+    },
+    border: {
+      background: "green",
+      foreground: "green",
+      focused: {
+        background: "magenta",
+        foreground: "lightBlue",
+      },
+    },
+  },
+  text: "fifth",
+});
