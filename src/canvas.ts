@@ -23,8 +23,8 @@ export type CanvasInstance = {
 };
 
 export type CanvasStyler<T = void> = {
-  foreground: CanvasStyle<T>;
-  background: CanvasStyle<T>;
+  foreground?: CanvasStyle<T>;
+  background?: CanvasStyle<T>;
   attributes?: Attribute[];
 };
 
@@ -62,12 +62,16 @@ export function styleTextFromStyler(
   styler: CanvasStyler,
   text: string,
 ): string {
-  text = styleText(styler.foreground, false, text);
-  text = styleText(styler.background, true, text);
+  if (styler.foreground) {
+    text = styleText(styler.foreground, false, text);
+  }
+  if (styler.background) {
+    text = styleText(styler.background, true, text);
+  }
 
   if (styler.attributes) {
     styler.attributes.forEach((attribute) => {
-      text = styleText(attribute, true, text);
+      text = styleText(attribute, false, text);
     });
   }
 
