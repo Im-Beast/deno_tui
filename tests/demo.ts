@@ -1,251 +1,146 @@
-import * as Tui from "../mod.ts";
-import type { TuiStyler } from "../mod.ts";
-import { handleKeyboardControls, handleKeypresses } from "../mod.ts";
+import {
+  createBox,
+  createButton,
+  createCheckbox,
+  createLabel,
+  createMenu,
+  createMenuItem,
+  createTextbox,
+  createTui,
+  handleKeyboardControls,
+  handleKeypresses,
+  TuiStyler,
+} from "../mod.ts";
 
-const styler: TuiStyler = {
+const mainStyler: TuiStyler = {
   foreground: "white",
+  background: "black",
+  focused: {
+    attributes: ["bold"],
+    background: "lightBlue",
+  },
+  active: {
+    attributes: ["bold", "italic"],
+    foreground: "black",
+    background: "lightCyan",
+  },
+  border: {},
+};
+
+const componentStyler: TuiStyler = {
+  ...mainStyler,
   background: "blue",
 };
 
-const tui = Tui.createTui(Deno.stdin, Deno.stdout, styler);
+const tui = createTui(Deno.stdin, Deno.stdout, mainStyler);
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 
-Tui.createTextbox(tui, {
-  focusedWithin: [],
+createButton(tui, {
   rectangle: {
-    column: 40,
-    row: 1,
-    height: 1,
-    width: 10,
-  },
-  hidden: false,
-  multiline: false,
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "yellow",
-      foreground: "cyan",
-      active: {
-        background: "black",
-        foreground: "white",
-      },
-      focused: {
-        background: "magenta",
-        foreground: "lightMagenta",
-      },
-    },
-    focused: {
-      foreground: "green",
-      background: "lightWhite",
-    },
-  },
-});
-
-Tui.createTextbox(tui, {
-  focusedWithin: [],
-
-  rectangle: {
-    column: 10,
-    row: 1,
-    height: 1,
-    width: 10,
-  },
-  hidden: false,
-  multiline: false,
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "yellow",
-      foreground: "cyan",
-    },
-    focused: {
-      foreground: "green",
-      background: "lightWhite",
-    },
-  },
-});
-
-Tui.createButton(tui, {
-  focusedWithin: [],
-
-  rectangle: {
-    column: 5,
-    row: 5,
+    column: 3,
+    row: 2,
     width: 10,
     height: 5,
   },
-  text: "hello",
-  styler: {
-    background: "red",
-    foreground: "white",
-    focused: {
-      background: "green",
-      foreground: "white",
-    },
-    active: {
-      background: "lightGreen",
-      foreground: "white",
-    },
+  styler: componentStyler,
+  text: "Click me",
+  textAlign: {
+    vertical: "center",
+    horizontal: "center",
   },
 });
 
-Tui.createCheckbox(tui, {
-  focusedWithin: [],
-  default: false,
-  column: 2,
-  row: 2,
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "yellow",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-});
-
-const box = Tui.createBox(tui, {
-  focusedWithin: [],
+const box = createBox(tui, {
   rectangle: {
-    width: 15,
-    height: 10,
+    column: 16,
+    row: 2,
+    width: 12,
+    height: 3,
+  },
+  styler: componentStyler,
+});
+
+createLabel(box, "Test label", {
+  rectangle: {
+    column: 17,
+    row: 3,
+    width: 10,
+    height: 2,
+  },
+  textAlign: {
+    horizontal: "right",
+    vertical: "center",
+  },
+  styler: componentStyler,
+});
+
+createCheckbox(tui, {
+  column: 3,
+  row: 10,
+  default: false,
+  styler: componentStyler,
+});
+
+createCheckbox(tui, {
+  column: 7,
+  row: 10,
+  default: true,
+  styler: componentStyler,
+});
+
+createCheckbox(tui, {
+  column: 11,
+  row: 10,
+  default: false,
+  styler: {
+    ...componentStyler,
+    active: {
+      background: "green",
+      foreground: "black",
+    },
+  },
+});
+
+createTextbox(tui, {
+  hidden: false,
+  multiline: false,
+  rectangle: {
+    column: 17,
+    row: 7,
+    width: 10,
+    height: 1,
+  },
+  styler: componentStyler,
+});
+
+createTextbox(tui, {
+  hidden: true,
+  multiline: false,
+  rectangle: {
+    column: 17,
     row: 10,
-    column: 30,
+    width: 10,
+    height: 1,
   },
-  styler: {
-    foreground: "yellow",
-    background: "lightRed",
-  },
+  styler: componentStyler,
 });
 
-const menu = Tui.createMenu(box, {
-  focusedWithin: [],
-  styler: {
-    foreground: "yellow",
-    background: "#00FF23",
-  },
+const menu = createMenu(tui, {
+  styler: componentStyler,
 });
 
-Tui.createMenuItem(menu, {
-  focusedWithin: [],
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "yellow",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-  text: "hello",
+createMenuItem(menu, {
+  styler: componentStyler,
+  text: "Uno",
 });
 
-Tui.createMenuItem(menu, {
-  focusedWithin: [],
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "green",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-  text: "second",
+createMenuItem(menu, {
+  styler: componentStyler,
+  text: "Dos",
 });
 
-Tui.createMenuItem(menu, {
-  focusedWithin: [],
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "green",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-  text: "third",
-});
-
-Tui.createMenuItem(menu, {
-  focusedWithin: [],
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "green",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-  text: "fourth",
-});
-
-Tui.createMenuItem(menu, {
-  focusedWithin: [],
-  styler: {
-    background: "red",
-    foreground: "white",
-    active: {
-      background: "green",
-      foreground: "white",
-    },
-    border: {
-      background: "green",
-      foreground: "green",
-      focused: {
-        background: "magenta",
-        foreground: "lightBlue",
-      },
-    },
-  },
-  text: "fifth",
+createMenuItem(menu, {
+  styler: componentStyler,
+  text: "Tres",
 });
