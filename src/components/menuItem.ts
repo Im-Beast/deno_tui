@@ -9,28 +9,39 @@ export type CreateMenuItemOptions = Omit<CreateBoxOptions, "rectangle"> & {
   text: string;
 };
 
-// TODO: Make them stack instead of overflowing
 export function createMenuItem(
   object: MenuComponent,
   options: CreateMenuItemOptions,
 ) {
-  const widths = [
-    0,
-    ...object.components.tree.map((component) => component.rectangle.width),
-  ];
-  const cols = [
-    0,
-    ...object.components.tree.map((component) => component.rectangle.column),
-  ];
+  let currentRow = object.components.tree.length
+    ? object.components.tree.sort((a, b) =>
+      b.rectangle.row - a.rectangle.row
+    )[0]
+      .rectangle.row
+    : object.rectangle.row;
+
+  let w = object.rectangle.column;
+  let c = 0;
+  for (const component of object.components.tree) {
+    const { row, column, width } = component.rectangle;
+    if (row !== currentRow) continue;
+    w += width + 1;
+    c = Math.max(column, c);
+  }
+  let column = Math.max(w, c);
+
+  const width = textPixelWidth(options.text);
+
+  if (column + width > object.rectangle.column + object.rectangle.width) {
+    column = object.rectangle.column;
+    currentRow += 1;
+    object.rectangle.height += 1;
+  }
 
   const rectangle: TuiRectangle = {
-    column: Math.max(
-      object.rectangle.column +
-        widths.reduce((a, b) => a + b + 1),
-      Math.max(...cols),
-    ),
-    row: object.rectangle.row,
-    width: textPixelWidth(options.text),
+    column,
+    row: currentRow,
+    width,
     height: 1,
   };
 
