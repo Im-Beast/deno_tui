@@ -22,7 +22,7 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
     ...options,
   });
 
-  const focusedWithin = [button, ...options.focusedWithin];
+  const focusedWithin = [button, ...(options.focusedWithin || [])];
 
   createBox(button, {
     ...options,
@@ -48,7 +48,7 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
   if (options.text) {
     createLabel(button, options.text, {
       rectangle: options.rectangle,
-      align: options.textAlign || {
+      textAlign: options.textAlign || {
         horizontal: "center",
         vertical: "center",
       },

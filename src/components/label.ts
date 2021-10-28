@@ -42,7 +42,7 @@ export type TextAlign = {
 };
 
 export type CreateLabelOptions = CreateBoxOptions & {
-  align: TextAlign;
+  textAlign: TextAlign;
 };
 
 export function createLabel(
@@ -74,7 +74,7 @@ export function createLabel(
     let c = column;
     let r = row;
 
-    switch (options.align.horizontal) {
+    switch (options.textAlign.horizontal) {
       case "center":
         c = Math.floor(column + (width / 2 - textWidth / 2));
         break;
@@ -83,7 +83,7 @@ export function createLabel(
         break;
     }
 
-    switch (options.align.vertical) {
+    switch (options.textAlign.vertical) {
       case "center":
         r = Math.floor(row + height / 2 - lines.length / 2);
         break;
