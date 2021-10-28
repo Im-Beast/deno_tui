@@ -63,7 +63,7 @@ export function createCheckbox(
     }),
   };
 
-  const focusedWithin = [checkbox, ...options.focusedWithin];
+  const focusedWithin = [checkbox, ...(options.focusedWithin || [])];
 
   if (options.styler.border) {
     createFrame(checkbox, {

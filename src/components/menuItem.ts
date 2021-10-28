@@ -60,7 +60,7 @@ export function createMenuItem(
       ...options.styler,
       border: undefined,
     },
-    focusedWithin: [menuItem, ...options.focusedWithin],
+    focusedWithin: [menuItem, ...(options.focusedWithin || [])],
   });
 
   return menuItem;

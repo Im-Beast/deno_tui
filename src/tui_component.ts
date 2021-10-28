@@ -74,7 +74,7 @@ export type CreateComponentOptions = {
   styler: TuiStyler;
   rectangle: TuiRectangle;
   interactive: boolean;
-  focusedWithin: AnyComponent[];
+  focusedWithin?: AnyComponent[];
   draw?: () => void;
 };
 

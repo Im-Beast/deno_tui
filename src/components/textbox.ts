@@ -55,7 +55,7 @@ export function createTextbox(
     }),
   };
 
-  const focusedWithin = [textbox, ...options.focusedWithin];
+  const focusedWithin = [textbox, ...(options.focusedWithin || [])];
 
   createBox(textbox, {
     ...options,
