@@ -1,4 +1,3 @@
-import { drawText } from "./canvas.ts";
 import { KeyPress, readKeypresses } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
 
@@ -77,10 +76,4 @@ export function focusItem(
   focused.component = mapping[position.y][position.x];
 
   focused.component.emitter.emit("focus");
-
-  drawText(instance.canvas, {
-    column: 1,
-    row: 10,
-    text: `focused: ${focused.component?.name} pos:${position.x}/${position.y}`,
-  });
 }
