@@ -24,15 +24,23 @@ export function getCurrentStyler(
   component: AnyComponent,
   override?: GetCurrentStylerOptions,
 ) {
-  const { styler } = component;
-  const { focused, isActive } = component.instance.components;
+  const { styler, components } = component;
+  const { focused, isActive: currActive } = component.instance.components;
 
-  const isFocused = override?.focused ||
-    !override?.focused?.force && (focused.id === component.id ||
-        component.components.focusedWithin.some((c) => c.id === focused.id));
+  const isFocused = override?.focused || (
+    !override?.focused?.force && (
+      focused.id === component.id ||
+      components.focusedWithin.some(({ id }) => focused.id === id)
+    )
+  );
 
-  return (isFocused &&
-      (override?.active?.value || !override?.active?.force && isActive)
+  const isActive = override?.active?.value || (
+    isFocused && (
+      !override?.active?.force && currActive
+    )
+  );
+
+  return (isActive
     ? styler.active || styler.focused
     : isFocused
     ? styler.focused
