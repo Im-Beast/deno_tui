@@ -52,61 +52,70 @@ export function createLabel(
 ) {
   const { row, column, width, height } = options.rectangle;
 
-  const drawFuncs: (() => void)[] = [];
-
+  let drawFuncs: (() => void)[] = [];
+  let lastText = "";
   const label = createComponent(object, {
     name: "label",
     interactive: false,
     ...options,
     draw() {
+      const currentText = typeof options.text === "function"
+        ? options.text()
+        : options.text;
+
+      if (currentText !== lastText) {
+        updateDrawFuncs(currentText);
+        lastText = currentText;
+      }
+
       for (const draw of drawFuncs) {
         draw();
       }
     },
   });
 
-  const text = typeof options.text === "function"
-    ? options.text()
-    : options.text;
+  const updateDrawFuncs = (text: string) => {
+    drawFuncs = [];
 
-  const lines = text.split("\n");
-  for (let [i, line] of lines.entries()) {
-    let textWidth = textPixelWidth(line);
-    while (textWidth > width) {
-      line = line.slice(0, width);
-      textWidth = textPixelWidth(line);
+    const lines = text.split("\n");
+    for (let [i, line] of lines.entries()) {
+      let textWidth = textPixelWidth(line);
+      while (textWidth > width) {
+        line = line.slice(0, width);
+        textWidth = textPixelWidth(line);
+      }
+
+      let c = column;
+      let r = row;
+
+      switch (options.textAlign.horizontal) {
+        case "center":
+          c = Math.floor(column + (width / 2 - textWidth / 2));
+          break;
+        case "right":
+          r = column + width;
+          break;
+      }
+
+      switch (options.textAlign.vertical) {
+        case "center":
+          r = Math.floor(row + height / 2 - lines.length / 2);
+          break;
+        case "bottom":
+          r = row + height;
+          break;
+      }
+
+      drawFuncs.push(() =>
+        drawText(object.canvas, {
+          column: c,
+          row: r + i,
+          text: line,
+          styler: getCurrentStyler(label),
+        })
+      );
     }
-
-    let c = column;
-    let r = row;
-
-    switch (options.textAlign.horizontal) {
-      case "center":
-        c = Math.floor(column + (width / 2 - textWidth / 2));
-        break;
-      case "right":
-        r = column + width;
-        break;
-    }
-
-    switch (options.textAlign.vertical) {
-      case "center":
-        r = Math.floor(row + height / 2 - lines.length / 2);
-        break;
-      case "bottom":
-        r = row + height;
-        break;
-    }
-
-    drawFuncs.push(() =>
-      drawText(object.canvas, {
-        column: c,
-        row: r + i,
-        text: line,
-        styler: getCurrentStyler(label),
-      })
-    );
-  }
+  };
 
   return label;
 }
