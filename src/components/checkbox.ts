@@ -8,20 +8,20 @@ import {
 import { TuiObject, TuiRectangle } from "../types.ts";
 import { createFrame } from "./frame.ts";
 
-export type CreateCheckboxOptions =
-  & Omit<
+export interface CreateCheckboxOptions extends
+  Omit<
     CreateComponentOptions,
     "interactive" | "name" | "rectangle"
-  >
-  & {
-    default: boolean;
-    column: number;
-    row: number;
-  };
+  > {
+  default: boolean;
+  column: number;
+  row: number;
+}
 
-export type CheckboxComponent = TuiComponent<"valueChange", boolean> & {
+export interface CheckboxComponent
+  extends TuiComponent<"valueChange", boolean> {
   value: boolean;
-};
+}
 
 export function createCheckbox(
   object: TuiObject,
@@ -43,7 +43,9 @@ export function createCheckbox(
       interactive: true,
       rectangle,
       draw() {
-        checkbox.components.tree.forEach((component) => component.draw());
+        for (const { draw } of checkbox.children) {
+          draw();
+        }
 
         const styler = getCurrentStyler(checkbox, {
           active: {

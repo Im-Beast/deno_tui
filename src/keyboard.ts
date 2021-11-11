@@ -1,79 +1,103 @@
-import { KeyPress, readKeypresses } from "./key_reader.ts";
+import { readKeypressesEmitter } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
+import { AnyComponent } from "./tui_component.ts";
 
-export const positions: { [instanceId: number]: { x: number; y: number } } = {};
+export function handleKeypresses(instance: TuiInstance) {
+  instance.emitter.on("key", (keyPress) => {
+    instance.selected.item?.emitter.emit("key", keyPress);
+  });
 
-export async function handleKeypresses(instance: TuiInstance) {
-  const emit = (keyPress: KeyPress) => {
-    instance.emitter.emit("keyPress", keyPress);
-    const { component } = instance.components.focused;
-    if (component) {
-      component.emitter.emit("keyPress", keyPress);
-    }
+  instance.emitter.on("multiKey", (keyPress) => {
+    instance.selected.item?.emitter.emit("key", keyPress);
+  });
+
+  readKeypressesEmitter(instance.reader, instance.emitter);
+}
+
+export const controlsPosition: { [id: number]: { x: number; y: number } } = {};
+
+// TODO: Make it actually good
+export function handleKeyboardControls(instance: TuiInstance) {
+  controlsPosition[instance.id] ||= {
+    x: 0,
+    y: 0,
   };
 
-  for await (const keyPresses of readKeypresses(instance.reader)) {
-    keyPresses.forEach(emit);
+  const position = controlsPosition[instance.id];
+  let { item } = instance.selected;
 
-    if (keyPresses.length > 1) {
-      emit({
-        key: keyPresses.join("+"),
-        buffer: keyPresses[0].buffer,
-        ctrl: keyPresses.some((kp) => kp.ctrl),
-        meta: keyPresses.some((kp) => kp.meta),
-        shift: keyPresses.some((kp) => kp.shift),
-      });
+  instance.on("key", ({ key }) => {
+    const vector = { x: 0, y: 0 };
+    switch (key) {
+      case "return":
+        if (item) {
+          instance.selected.active = true;
+          item.emitter.emit("active");
+          instance.emitter.emit("draw");
+
+          setTimeout(() => {
+            instance.selected.active = false;
+            instance.emitter.emit("draw");
+          }, 100);
+        }
+        return;
+      case "up":
+        vector.y -= 1;
+        break;
+      case "down":
+        vector.y += 1;
+        break;
+      case "left":
+        vector.x -= 1;
+        break;
+      case "right":
+        vector.x += 1;
+        break;
     }
-  }
-}
 
-export function handleKeyboardControls(instance: TuiInstance) {
-  instance.on("keyPress", (keyPress) => {
-    if (!keyPress) return;
+    if (vector.x === 0 && vector.y === 0) return;
 
-    const { focused } = instance.components;
+    position.x += vector.x;
+    position.y += vector.y;
 
-    instance.components.isActive = keyPress.key.includes("return");
-    if (instance.components.isActive && focused.component) {
-      focused.component.emitter.emit("active");
-      instance.emitter.emit("draw");
+    position.x = Math.max(0, position.x);
+    position.y = Math.max(0, position.y);
+
+    item ||= instance.interactiveComponents[0];
+
+    const _mapping: AnyComponent[][] = [];
+    for (
+      const component of instance.interactiveComponents.sort((a, b) =>
+        a.rectangle.row - b.rectangle.row
+      )
+    ) {
+      _mapping[component.rectangle.row] ||= [];
+      _mapping[component.rectangle.row].push(component);
     }
 
-    if (keyPress.shift) {
-      switch (keyPress.key) {
-        case "up":
-          focusItem(instance, { x: 0, y: -1 });
-          break;
-        case "down":
-          focusItem(instance, { x: 0, y: 1 });
-          break;
-        case "left":
-          focusItem(instance, { x: -1, y: 0 });
-          break;
-        case "right":
-          focusItem(instance, { x: 1, y: 0 });
-          break;
-      }
+    for (const row in _mapping) {
+      _mapping[row] = _mapping[row].sort((a, b) =>
+        a.rectangle.column - b.rectangle.column
+      );
     }
+
+    const mapping: AnyComponent[][] = [];
+
+    let i = 0;
+    for (const components of _mapping) {
+      if (!components) continue;
+      mapping[i++] = components;
+    }
+
+    item ||= mapping[0][0];
+    if (!item) return;
+
+    const y = mapping[position.y % mapping.length];
+    item = y[position.x % y.length];
+
+    instance.selected.item = item;
+    instance.selected.focused = true;
+    instance.selected.item.emitter.emit("focus");
+    instance.emitter.emit("draw");
   });
-}
-
-export function focusItem(
-  instance: TuiInstance,
-  vector: { x: -1 | 0 | 1; y: -1 | 0 | 1 },
-) {
-  const { mapping } = instance.components.focusMap;
-  const { focused } = instance.components;
-
-  positions[instance.id] ||= { x: 0, y: 0 };
-  const position = positions[instance.id];
-  position.y = Math.abs((position.y + vector.y) % mapping.length);
-  position.x = Math.abs((position.x + vector.x) % mapping[position.y].length);
-
-  instance.emitter.emit("draw");
-
-  focused.id = mapping[position.y][position.x].id;
-  focused.component = mapping[position.y][position.x];
-
-  focused.component.emitter.emit("focus");
 }

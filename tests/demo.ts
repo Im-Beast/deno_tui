@@ -24,7 +24,10 @@ const mainStyler: TuiStyler = {
     foreground: "black",
     background: "lightCyan",
   },
-  border: {},
+  border: {
+    foreground: "white",
+    background: "black",
+  },
 };
 
 const componentStyler: TuiStyler = {
@@ -36,7 +39,7 @@ const tui = createTui(Deno.stdin, Deno.stdout, mainStyler);
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 
-createButton(tui, {
+const button = createButton(tui, {
   rectangle: {
     column: 3,
     row: 2,
@@ -51,6 +54,8 @@ createButton(tui, {
   },
 });
 
+tui.selected.item = button;
+
 const box = createBox(tui, {
   rectangle: {
     column: 16,
@@ -61,7 +66,8 @@ const box = createBox(tui, {
   styler: componentStyler,
 });
 
-createLabel(box, "Test label", {
+createLabel(box, {
+  text: "Test label",
   rectangle: {
     column: 17,
     row: 3,

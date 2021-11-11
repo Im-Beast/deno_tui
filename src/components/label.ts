@@ -36,18 +36,18 @@ export function textPixelWidth(text: string): number {
   return width;
 }
 
-export type TextAlign = {
+export interface TextAlign {
   horizontal: "left" | "center" | "right";
   vertical: "top" | "center" | "bottom";
-};
+}
 
-export type CreateLabelOptions = CreateBoxOptions & {
+export interface CreateLabelOptions extends CreateBoxOptions {
+  text: string | (() => string);
   textAlign: TextAlign;
-};
+}
 
 export function createLabel(
   object: TuiObject,
-  text: string,
   options: CreateLabelOptions,
 ) {
   const { row, column, width, height } = options.rectangle;
@@ -59,9 +59,15 @@ export function createLabel(
     interactive: false,
     ...options,
     draw() {
-      drawFuncs.forEach((func) => func());
+      for (const draw of drawFuncs) {
+        draw();
+      }
     },
   });
+
+  const text = typeof options.text === "function"
+    ? options.text()
+    : options.text;
 
   const lines = text.split("\n");
   for (let [i, line] of lines.entries()) {

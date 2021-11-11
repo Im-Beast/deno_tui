@@ -5,24 +5,23 @@ import { createButton } from "./button.ts";
 import { textPixelWidth } from "./label.ts";
 import { MenuComponent } from "./menu.ts";
 
-export type CreateMenuItemOptions = Omit<CreateBoxOptions, "rectangle"> & {
+export interface CreateMenuItemOptions
+  extends Omit<CreateBoxOptions, "rectangle"> {
   text: string;
-};
+}
 
 export function createMenuItem(
   object: MenuComponent,
   options: CreateMenuItemOptions,
 ) {
-  let currentRow = object.components.tree.length
-    ? object.components.tree.sort((a, b) =>
-      b.rectangle.row - a.rectangle.row
-    )[0]
+  let currentRow = object.children.length
+    ? object.children.sort((a, b) => b.rectangle.row - a.rectangle.row)[0]
       .rectangle.row
     : object.rectangle.row;
 
   let w = object.rectangle.column;
   let c = 0;
-  for (const component of object.components.tree) {
+  for (const component of object.children) {
     const { row, column, width } = component.rectangle;
     if (row !== currentRow) continue;
     w += width + 1;

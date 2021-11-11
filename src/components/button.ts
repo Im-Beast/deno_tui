@@ -4,11 +4,11 @@ import { createBox, CreateBoxOptions } from "./box.ts";
 import { createFrame } from "./frame.ts";
 import { createLabel, TextAlign } from "./label.ts";
 
-export type CreateButtonOptions = CreateBoxOptions & {
-  text?: string;
+export interface CreateButtonOptions extends CreateBoxOptions {
+  text?: string | (() => string);
   textAlign?: TextAlign;
   interactive?: boolean;
-};
+}
 
 export function createButton(object: TuiObject, options: CreateButtonOptions) {
   const button = createComponent(object, {
@@ -17,7 +17,9 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
       ? options.interactive
       : true,
     draw() {
-      button.components.tree.forEach((component) => component.draw());
+      for (const { draw } of button.children) {
+        draw();
+      }
     },
     ...options,
   });
@@ -46,7 +48,8 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
   }
 
   if (options.text) {
-    createLabel(button, options.text, {
+    createLabel(button, {
+      text: options.text,
       rectangle: options.rectangle,
       textAlign: options.textAlign || {
         horizontal: "center",

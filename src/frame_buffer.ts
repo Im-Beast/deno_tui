@@ -21,16 +21,6 @@ const chars = {
   hideCursor: textEncoder.encode("\x1b[?25l"),
 };
 
-export async function watchFrameBuffer(instance: FrameBufferInstance) {
-  // TODO(https://github.com/denoland/deno/commit/a9b34118a9338323532c3b6b2e0336c343a0e834): new callback based Signal API
-  for await (const _ of Deno.signal("SIGWINCH")) {
-    const { columns, rows } = Deno.consoleSize(instance.writer.rid);
-    instance.columns = columns;
-    instance.rows = rows;
-    fillBuffer(instance, instance.filler);
-  }
-}
-
 export function writeSync(
   writer: Writer,
   value: string | Uint8Array,
@@ -136,7 +126,12 @@ export function createFrameBuffer(writer: Writer): FrameBufferInstance {
     filler: " ",
   };
 
-  watchFrameBuffer(frameBuffer);
+  Deno.addSignalListener("SIGWINCH", () => {
+    const { columns, rows } = Deno.consoleSize(frameBuffer.writer.rid);
+    frameBuffer.columns = columns;
+    frameBuffer.rows = rows;
+    fillBuffer(frameBuffer, frameBuffer.filler);
+  });
 
   return frameBuffer;
 }

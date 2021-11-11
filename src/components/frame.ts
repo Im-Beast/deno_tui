@@ -7,7 +7,6 @@ export type CreateFrameOptions = CreateBoxOptions;
 
 export function createFrame(object: TuiObject, options: CreateFrameOptions) {
   const { row, column, width, height } = options.rectangle;
-  const { canvas } = object;
 
   const frame = createComponent(object, {
     name: "frame",
@@ -16,15 +15,17 @@ export function createFrame(object: TuiObject, options: CreateFrameOptions) {
     draw() {
       const styler = getCurrentStyler(frame);
 
+      if (!styler.background && !styler.foreground) return;
+
       for (let w = 0; w < width; ++w) {
-        drawPixel(canvas, {
+        drawPixel(frame.canvas, {
           column: column + w,
           row: row,
           value: "─",
           styler,
         });
 
-        drawPixel(canvas, {
+        drawPixel(frame.canvas, {
           column: column + w,
           row: row + height,
           value: "─",
@@ -33,14 +34,14 @@ export function createFrame(object: TuiObject, options: CreateFrameOptions) {
       }
 
       for (let h = 0; h < height; ++h) {
-        drawPixel(canvas, {
+        drawPixel(frame.canvas, {
           column: column,
           row: row + h,
           value: "│",
           styler,
         });
 
-        drawPixel(canvas, {
+        drawPixel(frame.canvas, {
           column: column + width,
           row: row + h,
           value: "│",
@@ -48,28 +49,28 @@ export function createFrame(object: TuiObject, options: CreateFrameOptions) {
         });
       }
 
-      drawPixel(canvas, {
+      drawPixel(frame.canvas, {
         column,
         row,
         value: "┌",
         styler,
       });
 
-      drawPixel(canvas, {
+      drawPixel(frame.canvas, {
         column,
         row: row + height,
         value: "└",
         styler,
       });
 
-      drawPixel(canvas, {
+      drawPixel(frame.canvas, {
         column: column + width,
         row,
         value: "┐",
         styler,
       });
 
-      drawPixel(canvas, {
+      drawPixel(frame.canvas, {
         column: column + width,
         row: row + height,
         value: "┘",

@@ -9,14 +9,14 @@ import { createBox, CreateBoxOptions } from "./box.ts";
 import { createFrame } from "./frame.ts";
 import { textPixelWidth } from "./label.ts";
 
-export type CreateTextboxOptions = CreateBoxOptions & {
+export interface CreateTextboxOptions extends CreateBoxOptions {
   hidden: boolean;
   multiline: boolean;
-};
+}
 
-export type TextboxComponent = TuiComponent<"valueChange", string> & {
+export interface TextboxComponent extends TuiComponent<"valueChange", string> {
   value: string;
-};
+}
 
 export function createTextbox(
   object: TuiObject,
@@ -30,7 +30,9 @@ export function createTextbox(
       name: "textbox",
       interactive: true,
       draw() {
-        textbox.components.tree.forEach((component) => component.draw());
+        for (const { draw } of textbox.children) {
+          draw();
+        }
 
         const styler = getCurrentStyler(textbox);
 
@@ -51,6 +53,7 @@ export function createTextbox(
           styler,
         });
       },
+      drawPriority: 1,
       ...options,
     }),
   };
@@ -107,9 +110,10 @@ export function createTextbox(
     moveKey("right");
   };
 
-  textbox.on("keyPress", ({ key, ctrl, meta }) => {
+  textbox.on("key", ({ key, ctrl, meta }) => {
     const startValue = textbox.value;
 
+    if (!key) return;
     if (!ctrl && !meta && key.length === 1) {
       pushCharacter(key);
     }
@@ -141,14 +145,9 @@ export function createTextbox(
         break;
     }
 
-    if (startValue !== textbox.value) {
-      textbox.emitter.emit("valueChange", startValue);
-      textbox.emitter.emit("redraw");
-      textbox.instance.emitter.emit("draw");
-    }
+    textbox.emitter.emit("valueChange", startValue);
+    textbox.instance.emitter.emit("draw");
   });
-
-  textbox.instance.on("draw", textbox.draw);
 
   return textbox;
 }

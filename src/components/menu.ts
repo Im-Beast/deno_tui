@@ -12,10 +12,10 @@ export type CreateMenuOptions = Omit<
   "interactive" | "name" | "rectangle"
 >;
 
-export type MenuComponent = TuiComponent<never, void> & {
+export interface MenuComponent extends TuiComponent {
   readonly name: "menu";
   offset: number;
-};
+}
 
 export function createMenu(
   object: TuiObject,
@@ -31,7 +31,9 @@ export function createMenu(
     interactive: false,
     rectangle,
     draw() {
-      menu.components.tree.forEach((component) => component.draw());
+      for (const { draw } of menu.children) {
+        draw();
+      }
 
       const { row, column, width, height } = rectangle;
       const styler = getCurrentStyler(menu);

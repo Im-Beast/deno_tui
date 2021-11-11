@@ -1,4 +1,4 @@
-import { drawPixel } from "../canvas.ts";
+import { drawRectangle } from "../canvas.ts";
 import {
   createComponent,
   CreateComponentOptions,
@@ -18,19 +18,15 @@ export function createBox(object: TuiObject, options: CreateBoxOptions) {
     ...options,
     draw() {
       const styler = getCurrentStyler(box);
-
       const { row, column, width, height } = options.rectangle;
 
-      for (let r = row; r < row + height; ++r) {
-        for (let c = column; c < column + width; ++c) {
-          drawPixel(object.canvas, {
-            column: c,
-            row: r,
-            value: " ",
-            styler,
-          });
-        }
-      }
+      drawRectangle(object.canvas, {
+        row,
+        column,
+        width,
+        height,
+        styler,
+      });
     },
   });
 

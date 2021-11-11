@@ -1,6 +1,6 @@
 import { CanvasInstance } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
-import { KeyPress } from "./key_reader.ts";
+import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
 import { TuiRectangle, TuiStyler } from "./types.ts";
 
@@ -10,7 +10,7 @@ export function getInstance(object: TuiInstance | AnyComponent) {
     : object as TuiInstance;
 }
 
-export type GetCurrentStylerOptions = {
+export interface GetCurrentStylerOptions {
   focused?: {
     value: boolean;
     force?: boolean;
@@ -19,26 +19,21 @@ export type GetCurrentStylerOptions = {
     value: boolean;
     force?: boolean;
   };
-};
+}
+
 export function getCurrentStyler(
   component: AnyComponent,
   override?: GetCurrentStylerOptions,
 ) {
-  const { styler, components } = component;
-  const { focused, isActive: currActive } = component.instance.components;
+  const { styler, focusedWithin } = component;
+  const { item, focused, active } = component.instance.selected;
 
-  const isFocused = override?.focused || (
-    !override?.focused?.force && (
-      focused.id === component.id ||
-      components.focusedWithin.some(({ id }) => focused.id === id)
-    )
-  );
-
-  const isActive = override?.active?.value || (
-    isFocused && (
-      !override?.active?.force && currActive
-    )
-  );
+  const isSelected = (item?.id == component.id) ||
+    focusedWithin.some(({ id }) => item?.id === id);
+  const isFocused = override?.focused?.value ||
+    (!override?.focused?.force && isSelected && focused);
+  const isActive = override?.active?.value ||
+    (!override?.active?.force && isSelected && active);
 
   return (isActive
     ? styler.active || styler.focused
@@ -47,121 +42,102 @@ export function getCurrentStyler(
     : styler) || styler;
 }
 
-export type TuiComponent<Events = void, Attributes = void> = {
+export interface TuiComponent<Events = void, Attributes = void> {
   readonly id: number;
   readonly name: string;
+  readonly emitter:
+    & EventEmitter<"key", KeyPress>
+    & EventEmitter<"multiKey", MultiKeyPress>
+    & EventEmitter<"focus" | "active", undefined>
+    & EventEmitter<Events extends string ? Events : never, Attributes>;
+  readonly remove: () => void;
   canvas: CanvasInstance;
   interactive: boolean;
   instance: TuiInstance;
   rectangle: TuiRectangle;
-  emitter:
-    & EventEmitter<"keyPress", KeyPress>
-    & EventEmitter<"redraw" | "focus" | "active", undefined>
-    & EventEmitter<Events extends string ? Events : never, Attributes>;
-  components: {
-    focusedWithin: AnyComponent[];
-    father: {
-      components: {
-        tree: AnyComponent[];
-      };
-    };
-    tree: AnyComponent[];
-  };
+  children: AnyComponent[];
+  focusedWithin: AnyComponent[];
   styler: TuiStyler;
   on: TuiComponent<Events, Attributes>["emitter"]["on"];
   off: TuiComponent<Events, Attributes>["emitter"]["off"];
   once: TuiComponent<Events, Attributes>["emitter"]["once"];
   draw: () => void;
-};
+}
 
 // deno-lint-ignore no-explicit-any
 export type AnyComponent = TuiComponent<any, any>;
 
-export type CreateComponentOptions = {
+export interface CreateComponentOptions {
   name: string;
   styler: TuiStyler;
   rectangle: TuiRectangle;
   interactive: boolean;
   focusedWithin?: AnyComponent[];
   draw?: () => void;
-};
+  drawPriority?: number;
+}
 
 let componentId = 0;
-export function createComponent<Events = void, Attributes = void>(
+export function createComponent<Events = void, DataTypes = void>(
   object: TuiInstance | AnyComponent,
-  { name, interactive, styler, rectangle, focusedWithin, draw }:
+  { name, interactive, styler, rectangle, focusedWithin, draw, drawPriority }:
     CreateComponentOptions,
-): TuiComponent<Events, Attributes> {
+): TuiComponent<Events, DataTypes> {
   const emitter = createEventEmitter() as TuiComponent<
     Events,
-    Attributes
+    DataTypes
   >["emitter"];
 
   const instance = getInstance(object);
 
-  const component: TuiComponent<Events, Attributes> = {
+  const id = componentId++;
+  draw ||= () => {};
+
+  const component: TuiComponent<Events, DataTypes> = {
     name,
     instance,
     interactive,
-    id: componentId++,
+    id,
     canvas: instance.canvas,
     styler,
     rectangle,
     emitter,
+    draw,
     on: emitter.on,
     once: emitter.once,
     off: emitter.off,
-    components: {
-      focusedWithin: focusedWithin || [],
-      father: object,
-      tree: [],
+    children: [],
+    focusedWithin: focusedWithin || [],
+    remove: () => {
+      console.log(Date.now(), component.name);
+
+      component.off("*");
+      instance.off("draw", () => component.draw());
+
+      object.children = object.children.filter((comp) => comp !== component);
+
+      instance.interactiveComponents.filter((comp) => comp !== component);
+
+      for (const child of component.children) {
+        child.remove();
+      }
+
+      instance.emitter.emit("draw");
     },
-    draw: draw || (() => {}),
   };
 
   if (component.interactive) {
-    const { column, row } = component.rectangle;
-    const { focusMap } = instance.components;
-    focusMap[row] ||= [];
-    focusMap[row][column] ||= [];
-    focusMap[row][column].push(component);
-
-    const mapping: AnyComponent[][] = [];
-
-    const isNotNaN = (n: unknown) => !Number.isNaN(n);
-
-    const rows = (Object.getOwnPropertyNames(focusMap).map(Number))
-      .sort((a, b) => a - b).filter(isNotNaN);
-
-    rows.forEach((row, r) => {
-      mapping[r] ||= [];
-
-      const columns = (Object.getOwnPropertyNames(focusMap[row]).map(Number))
-        .sort((a, b) => a - b).filter(isNotNaN);
-
-      columns.forEach((column) => {
-        const components = focusMap[row][column];
-        mapping[r].push(...components);
-      });
-    });
-
-    focusMap.mapping = mapping;
+    instance.interactiveComponents.push(component);
   }
 
-  object.components.tree.push(component);
+  object.children.push(component);
 
-  instance.on("draw", component.draw);
-  component.on("redraw", component.draw);
+  instance.on("draw", () => component.draw(), drawPriority);
 
-  const redrawCanvas = () => {
-    component.emitter.emit("redraw");
-    instance.emitter.emit("draw");
-  };
-
-  component.on("focus", redrawCanvas);
-  component.on("active", redrawCanvas);
-
-  redrawCanvas();
+  const redrawCanvas = () => instance.emitter.emit("draw");
+  instance.on("focus", redrawCanvas);
+  instance.on("active", redrawCanvas);
+  instance.emitter.emit("draw");
 
   return component;
 }

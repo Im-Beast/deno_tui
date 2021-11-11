@@ -1,34 +1,30 @@
-import { CanvasInstance, createCanvas, draw } from "./canvas.ts";
+import { CanvasInstance, createCanvas, draw, drawRectangle } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
-import { KeyPress } from "./key_reader.ts";
+import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent } from "./tui_component.ts";
 import { Reader, TuiRectangle, TuiStyler, Writer } from "./types.ts";
 
-export type TuiInstance = {
+export interface TuiInstance {
   readonly id: number;
+  readonly emitter:
+    & EventEmitter<"key", KeyPress>
+    & EventEmitter<"multiKey", MultiKeyPress>
+    & EventEmitter<"draw" | "focus" | "active", undefined>;
   reader: Reader;
   writer: Writer;
   rectangle: TuiRectangle;
-  components: {
-    focusMap: {
-      mapping: AnyComponent[][];
-      [row: number]: {
-        [col: number]: AnyComponent[];
-      };
-    };
-    focused: {
-      id: number;
-      component: AnyComponent | null;
-    };
-    tree: AnyComponent[];
-    isActive: boolean;
+  children: AnyComponent[];
+  interactiveComponents: AnyComponent[];
+  selected: {
+    item?: AnyComponent;
+    focused: boolean;
+    active: boolean;
   };
   canvas: CanvasInstance;
-  emitter: EventEmitter<"keyPress", KeyPress> & EventEmitter<"draw", undefined>;
   on: TuiInstance["emitter"]["on"];
   off: TuiInstance["emitter"]["off"];
   once: TuiInstance["emitter"]["once"];
-};
+}
 
 let instanceId = 0;
 export function createTui(
@@ -52,14 +48,12 @@ export function createTui(
         height: canvas.frameBuffer.rows,
       };
     },
-    components: {
-      focusMap: { mapping: [] },
-      focused: {
-        id: -1,
-        component: null,
-      },
-      isActive: false,
-      tree: [],
+    children: [],
+    interactiveComponents: [],
+    selected: {
+      active: false,
+      focused: false,
+      item: undefined,
     },
     canvas,
     emitter,
@@ -68,7 +62,12 @@ export function createTui(
     off: emitter.off,
   };
 
-  tui.on("draw", () => draw(canvas));
+  tui.on("draw", () =>
+    drawRectangle(tui.canvas, {
+      ...tui.rectangle,
+      styler,
+    }), -Infinity);
+  tui.on("draw", () => draw(canvas), Infinity);
   tui.emitter.emit("draw");
 
   return tui;

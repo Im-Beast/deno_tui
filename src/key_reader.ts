@@ -1,13 +1,51 @@
-import { Reader } from "./types.ts";
+import { EventEmitter } from "./event_emitter.ts";
+import { Key, Reader } from "./types.ts";
 
 const decoder = new TextDecoder();
 
 export interface KeyPress {
   buffer: Uint8Array;
-  key: string;
+  key: Key;
   meta: boolean;
   shift: boolean;
   ctrl: boolean;
+}
+
+export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
+  buffer: Uint8Array[];
+  keys: Key[];
+}
+
+export function readKeypressesEmitter(
+  reader: Reader,
+  // deno-lint-ignore no-explicit-any
+  emitter: EventEmitter<any, any>,
+) {
+  void async function () {
+    for await (const keyPresses of readKeypresses(reader)) {
+      const multiKey: MultiKeyPress = {
+        keys: [],
+        buffer: [],
+        ctrl: false,
+        meta: false,
+        shift: false,
+      };
+
+      for (const keyPress of keyPresses) {
+        emitter.emit("key", keyPress);
+
+        multiKey.keys.push(keyPress.key);
+        multiKey.buffer.push(keyPress.buffer);
+        multiKey.shift ||= keyPress.shift;
+        multiKey.meta ||= keyPress.meta;
+        multiKey.ctrl ||= keyPress.ctrl;
+      }
+
+      if (keyPresses.length > 1) {
+        emitter.emit("multiKey", multiKey);
+      }
+    }
+  }();
 }
 
 export async function* readKeypresses(
@@ -40,7 +78,7 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
   const keyPresses = keys.map((key) => {
     const keyPress: KeyPress = {
       buffer,
-      key: key,
+      key: <Key> key,
       meta: false,
       shift: false,
       ctrl: false,
@@ -48,7 +86,7 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
 
     const code = keyPress.key.replace("\x1b", "").replace("1;", "");
 
-    switch (keyPress.key) {
+    switch (key) {
       case "\r":
         keyPress.key = "return";
         break;
