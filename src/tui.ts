@@ -8,7 +8,7 @@ import {
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent } from "./tui_component.ts";
-import { Reader, TuiRectangle, TuiStyler, Writer } from "./types.ts";
+import { Reader, StaticTuiRectangle, TuiStyler, Writer } from "./types.ts";
 
 export interface TuiInstance {
   readonly id: number;
@@ -19,7 +19,7 @@ export interface TuiInstance {
   draw: () => void;
   reader: Reader;
   writer: Writer;
-  rectangle: TuiRectangle;
+  rectangle: StaticTuiRectangle;
   children: AnyComponent[];
   interactiveComponents: AnyComponent[];
   allComponents: AnyComponent[];

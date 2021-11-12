@@ -3,6 +3,7 @@ import {
   createComponent,
   CreateComponentOptions,
   getCurrentStyler,
+  getStaticRectangle,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
 
@@ -18,7 +19,7 @@ export function createBox(object: TuiObject, options: CreateBoxOptions) {
     ...options,
     draw() {
       const styler = getCurrentStyler(box);
-      const { row, column, width, height } = options.rectangle;
+      const { row, column, width, height } = getStaticRectangle(box.rectangle);
 
       drawRectangle(object.canvas, {
         row,

@@ -2,7 +2,7 @@ import { CanvasInstance } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
-import { TuiRectangle, TuiStyler } from "./types.ts";
+import { StaticTuiRectangle, TuiRectangle, TuiStyler } from "./types.ts";
 
 export function getInstance(object: TuiInstance | AnyComponent) {
   return Object.hasOwn(object, "instance")
@@ -56,6 +56,7 @@ export interface TuiComponent<Events = void, Attributes = void> {
   interactive: boolean;
   instance: TuiInstance;
   rectangle: TuiRectangle;
+  staticRectangle: StaticTuiRectangle;
   children: AnyComponent[];
   focusedWithin: AnyComponent[];
   styler: TuiStyler;
@@ -72,10 +73,14 @@ export interface CreateComponentOptions {
   name: string;
   styler: TuiStyler;
   rectangle: TuiRectangle;
-  interactive: boolean;
+  interactive?: boolean;
   focusedWithin?: AnyComponent[];
   draw?: () => void;
   drawPriority?: number;
+}
+
+export function getStaticRectangle(rect: TuiRectangle): StaticTuiRectangle {
+  return typeof rect === "function" ? rect() : rect;
 }
 
 let componentId = 0;
@@ -83,10 +88,10 @@ export function createComponent<Events = void, DataTypes = void>(
   object: TuiInstance | AnyComponent,
   {
     name,
-    interactive,
+    interactive = false,
     styler,
     rectangle,
-    focusedWithin,
+    focusedWithin = [],
     draw = (() => {}),
     drawPriority = 0,
   }: CreateComponentOptions,
@@ -114,7 +119,10 @@ export function createComponent<Events = void, DataTypes = void>(
     once: emitter.once,
     off: emitter.off,
     children: [],
-    focusedWithin: focusedWithin || [],
+    focusedWithin: focusedWithin,
+    get staticRectangle() {
+      return getStaticRectangle(component.rectangle);
+    },
     remove: () => {
       component.off("*");
 

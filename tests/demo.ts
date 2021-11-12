@@ -18,7 +18,7 @@ const mainStyler: TuiStyler = {
   background: "black",
   focused: {
     attributes: ["bold"],
-    background: "lightBlue",
+    background: "green",
   },
   active: {
     attributes: ["bold", "italic"],
@@ -83,22 +83,34 @@ createLabel(box, {
 });
 
 createCheckbox(tui, {
-  column: 3,
-  row: 10,
+  rectangle: {
+    column: 3,
+    row: 10,
+    width: 1,
+    height: 1,
+  },
   default: false,
   styler: componentStyler,
 });
 
 createCheckbox(tui, {
-  column: 7,
-  row: 10,
+  rectangle: {
+    column: 7,
+    row: 10,
+    width: 1,
+    height: 1,
+  },
   default: true,
   styler: componentStyler,
 });
 
 createCheckbox(tui, {
-  column: 11,
-  row: 10,
+  rectangle: {
+    column: 11,
+    row: 10,
+    width: 1,
+    height: 1,
+  },
   default: false,
   styler: {
     ...componentStyler,
@@ -162,4 +174,53 @@ createMenuItem(menu, {
 createMenuItem(menu, {
   styler: componentStyler,
   text: "Tres",
+});
+
+const pos = { col: 0, row: 0 };
+const dir = { col: 1, row: 1 };
+const dynamicButton = createButton(tui, {
+  drawPriority: 50,
+  rectangle: () => ({
+    column: 30 + pos.col,
+    row: 10 + pos.row,
+    height: 3,
+    width: 6,
+  }),
+  text: () => `${(Math.round(Math.random() * 1e5)).toString(32)}`,
+  styler: componentStyler,
+});
+
+setInterval(() => {
+  pos.col += 1 * dir.col;
+  pos.row += 1 * dir.row;
+
+  const { row, column, width, height } = dynamicButton.staticRectangle;
+
+  if (row >= tui.rectangle.height - height || row <= 0) {
+    dir.row *= -1;
+  }
+
+  if (column >= tui.rectangle.width - width || column <= 0) {
+    dir.col *= -1;
+  }
+}, 100);
+
+let last = Date.now();
+let avg = 60;
+createLabel(tui, {
+  rectangle: () => ({
+    ...tui.rectangle,
+    height: 0,
+    column: tui.rectangle.width - 15,
+  }),
+  styler: componentStyler,
+  text: () => {
+    avg = ((avg * 6) + Date.now() - last) / 7;
+    last = Date.now();
+    return `AVG FPS: ${(1000 / avg).toFixed(2)}`;
+  },
+  textAlign: {
+    horizontal: "left",
+    vertical: "top",
+  },
 });

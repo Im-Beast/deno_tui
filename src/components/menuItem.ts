@@ -15,14 +15,16 @@ export function createMenuItem(
   options: CreateMenuItemOptions,
 ) {
   let currentRow = object.children.length
-    ? object.children.sort((a, b) => b.rectangle.row - a.rectangle.row)[0]
-      .rectangle.row
-    : object.rectangle.row;
+    ? object.children.sort((a, b) =>
+      b.staticRectangle.row - a.staticRectangle.row
+    )[0]
+      .staticRectangle.row
+    : object.staticRectangle.row;
 
-  let w = object.rectangle.column;
+  let w = object.staticRectangle.column;
   let c = 0;
   for (const component of object.children) {
-    const { row, column, width } = component.rectangle;
+    const { row, column, width } = component.staticRectangle;
     if (row !== currentRow) continue;
     w += width + 1;
     c = Math.max(column, c);
@@ -31,10 +33,13 @@ export function createMenuItem(
 
   const width = textPixelWidth(options.text);
 
-  if (column + width > object.rectangle.column + object.rectangle.width) {
-    column = object.rectangle.column;
+  if (
+    column + width >
+      object.staticRectangle.column + object.staticRectangle.width
+  ) {
+    column = object.staticRectangle.column;
     currentRow += 1;
-    object.rectangle.height += 1;
+    object.staticRectangle.height += 1;
   }
 
   const rectangle: TuiRectangle = {

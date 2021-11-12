@@ -26,7 +26,9 @@ export function handleKeyboardControls(instance: TuiInstance) {
   const position = controlsPosition[instance.id];
   let { item } = instance.selected;
 
-  instance.on("key", ({ key }) => {
+  instance.on("key", ({ key, ctrl, shift, meta }) => {
+    if (!shift || ctrl || meta) return;
+
     const vector = { x: 0, y: 0 };
     switch (key) {
       case "return":
@@ -66,16 +68,16 @@ export function handleKeyboardControls(instance: TuiInstance) {
     const _mapping: AnyComponent[][] = [];
     for (
       const component of instance.interactiveComponents.sort((a, b) =>
-        a.rectangle.row - b.rectangle.row
+        a.staticRectangle.row - b.staticRectangle.row
       )
     ) {
-      _mapping[component.rectangle.row] ||= [];
-      _mapping[component.rectangle.row].push(component);
+      _mapping[component.staticRectangle.row] ||= [];
+      _mapping[component.staticRectangle.row].push(component);
     }
 
     for (const row in _mapping) {
       _mapping[row] = _mapping[row].sort((a, b) =>
-        a.rectangle.column - b.rectangle.column
+        a.staticRectangle.column - b.staticRectangle.column
       );
     }
 

@@ -22,7 +22,9 @@ export function createTextbox(
   object: TuiObject,
   options: CreateTextboxOptions,
 ): TextboxComponent {
-  const { row, column, width, height } = options.rectangle;
+  const { row, column, width, height } = typeof options.rectangle === "function"
+    ? options.rectangle()
+    : options.rectangle;
 
   const textbox = {
     value: "",

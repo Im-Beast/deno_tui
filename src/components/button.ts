@@ -13,9 +13,7 @@ export interface CreateButtonOptions extends CreateBoxOptions {
 export function createButton(object: TuiObject, options: CreateButtonOptions) {
   const button = createComponent(object, {
     name: "button",
-    interactive: typeof options.interactive === "boolean"
-      ? options.interactive
-      : true,
+    interactive: options.interactive,
     draw() {
       for (const { draw } of button.children) {
         draw();
@@ -29,19 +27,19 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
   createBox(button, {
     ...options,
     focusedWithin,
+    drawPriority: options.drawPriority,
   });
 
   if (options.styler.border) {
-    const { row, column, width, height } = options.rectangle;
-
     createFrame(button, {
       ...options,
-      rectangle: {
-        column: column - 1,
-        row: row - 1,
-        width: width + 1,
-        height: height + 1,
-      },
+      drawPriority: options.drawPriority,
+      rectangle: () => ({
+        column: button.staticRectangle.column - 1,
+        row: button.staticRectangle.row - 1,
+        width: button.staticRectangle.width + 1,
+        height: button.staticRectangle.height + 1,
+      }),
       styler: options.styler.border,
       focusedWithin,
     });
@@ -49,8 +47,9 @@ export function createButton(object: TuiObject, options: CreateButtonOptions) {
 
   if (options.text) {
     createLabel(button, {
+      drawPriority: (options.drawPriority || 0) + 1,
       text: options.text,
-      rectangle: options.rectangle,
+      rectangle: button.rectangle,
       textAlign: options.textAlign || {
         horizontal: "center",
         vertical: "center",

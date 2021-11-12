@@ -5,17 +5,15 @@ import {
   getCurrentStyler,
   TuiComponent,
 } from "../tui_component.ts";
-import { TuiObject, TuiRectangle } from "../types.ts";
+import { TuiObject } from "../types.ts";
 import { createFrame } from "./frame.ts";
 
 export interface CreateCheckboxOptions extends
   Omit<
     CreateComponentOptions,
-    "interactive" | "name" | "rectangle"
+    "interactive" | "name"
   > {
   default: boolean;
-  column: number;
-  row: number;
 }
 
 export interface CheckboxComponent
@@ -27,21 +25,11 @@ export function createCheckbox(
   object: TuiObject,
   options: CreateCheckboxOptions,
 ): CheckboxComponent {
-  const { row, column } = options;
-
-  const rectangle: TuiRectangle = {
-    column,
-    row,
-    width: 1,
-    height: 1,
-  };
-
   const checkbox = {
     value: options.default,
     ...createComponent<"valueChange", boolean>(object, {
       name: "checkbox",
       interactive: true,
-      rectangle,
       draw() {
         for (const { draw } of checkbox.children) {
           draw();
@@ -54,6 +42,8 @@ export function createCheckbox(
           },
         });
 
+        const { column, row } = checkbox.staticRectangle;
+
         drawPixel(object.canvas, {
           column,
           row,
@@ -65,19 +55,17 @@ export function createCheckbox(
     }),
   };
 
-  const focusedWithin = [checkbox, ...(options.focusedWithin || [])];
-
   if (options.styler.border) {
     createFrame(checkbox, {
       ...options,
-      rectangle: {
-        column: column - 1,
-        row: row - 1,
-        width: 2,
-        height: 2,
-      },
+      rectangle: () => ({
+        column: checkbox.staticRectangle.column - 1,
+        row: checkbox.staticRectangle.row - 1,
+        width: checkbox.staticRectangle.width + 1,
+        height: checkbox.staticRectangle.height + 1,
+      }),
       styler: options.styler.border,
-      focusedWithin,
+      focusedWithin: [checkbox, ...(options.focusedWithin || [])],
     });
   }
 

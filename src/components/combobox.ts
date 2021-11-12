@@ -77,8 +77,8 @@ export function createCombobox(
           border: undefined,
         },
         rectangle: {
-          ...options.rectangle,
-          row: options.rectangle.row + 1 + i,
+          ...combobox.staticRectangle,
+          row: combobox.staticRectangle.row + 1 + i,
         },
       });
 

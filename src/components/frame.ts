@@ -6,16 +6,14 @@ import { CreateBoxOptions } from "./box.ts";
 export type CreateFrameOptions = CreateBoxOptions;
 
 export function createFrame(object: TuiObject, options: CreateFrameOptions) {
-  const { row, column, width, height } = options.rectangle;
-
   const frame = createComponent(object, {
     name: "frame",
     interactive: false,
     ...options,
     draw() {
       const styler = getCurrentStyler(frame);
-
       if (!styler.background && !styler.foreground) return;
+      const { row, column, width, height } = frame.staticRectangle;
 
       for (let w = 0; w < width; ++w) {
         drawPixel(frame.canvas, {

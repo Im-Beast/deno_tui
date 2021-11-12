@@ -108,12 +108,14 @@ export interface Reader extends Deno.Reader {
   readonly rid: number;
 }
 
-export interface TuiRectangle {
+export interface StaticTuiRectangle {
   column: number;
   row: number;
   width: number;
   height: number;
 }
+
+export type TuiRectangle = StaticTuiRectangle | (() => StaticTuiRectangle);
 
 export interface TuiStyler extends CanvasStyler {
   active?: CanvasStyler;

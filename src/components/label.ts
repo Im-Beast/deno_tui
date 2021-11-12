@@ -50,8 +50,6 @@ export function createLabel(
   object: TuiObject,
   options: CreateLabelOptions,
 ) {
-  const { row, column, width, height } = options.rectangle;
-
   let drawFuncs: (() => void)[] = [];
   let lastText = "";
   const label = createComponent(object, {
@@ -75,6 +73,7 @@ export function createLabel(
   });
 
   const updateDrawFuncs = (text: string) => {
+    const { column, row, width, height } = label.staticRectangle;
     drawFuncs = [];
 
     const lines = text.split("\n");
