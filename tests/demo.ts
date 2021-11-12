@@ -2,6 +2,7 @@ import {
   createBox,
   createButton,
   createCheckbox,
+  createCombobox,
   createLabel,
   createMenu,
   createMenuItem,
@@ -127,6 +128,18 @@ createTextbox(tui, {
     column: 17,
     row: 10,
     width: 10,
+    height: 1,
+  },
+  styler: componentStyler,
+});
+
+createCombobox(tui, {
+  items: ["uno", "dos", "tres", { label: "quatro", value: 4 }],
+  defaultValue: 2,
+  rectangle: {
+    column: 40,
+    row: 3,
+    width: 6,
     height: 1,
   },
   styler: componentStyler,

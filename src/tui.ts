@@ -1,4 +1,10 @@
-import { CanvasInstance, createCanvas, draw, drawRectangle } from "./canvas.ts";
+import {
+  CanvasInstance,
+  createCanvas,
+  draw,
+  drawRectangle,
+  loop,
+} from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent } from "./tui_component.ts";
@@ -9,12 +15,14 @@ export interface TuiInstance {
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"multiKey", MultiKeyPress>
-    & EventEmitter<"draw" | "focus" | "active", undefined>;
+    & EventEmitter<"focus" | "active", undefined>;
+  draw: () => void;
   reader: Reader;
   writer: Writer;
   rectangle: TuiRectangle;
   children: AnyComponent[];
   interactiveComponents: AnyComponent[];
+  allComponents: AnyComponent[];
   selected: {
     item?: AnyComponent;
     focused: boolean;
@@ -50,6 +58,7 @@ export function createTui(
     },
     children: [],
     interactiveComponents: [],
+    allComponents: [],
     selected: {
       active: false,
       focused: false,
@@ -57,18 +66,26 @@ export function createTui(
     },
     canvas,
     emitter,
+    draw: () => draw(canvas),
     on: emitter.on,
     once: emitter.once,
     off: emitter.off,
   };
 
-  tui.on("draw", () =>
+  loop(tui.canvas, 16, () => {
     drawRectangle(tui.canvas, {
       ...tui.rectangle,
       styler,
-    }), -Infinity);
-  tui.on("draw", () => draw(canvas), Infinity);
-  tui.emitter.emit("draw");
+    });
+
+    const drawComps = tui.allComponents.sort((b, a) =>
+      b.drawPriority - a.drawPriority
+    );
+
+    for (const { draw } of drawComps) {
+      draw();
+    }
+  });
 
   return tui;
 }

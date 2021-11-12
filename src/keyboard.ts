@@ -33,11 +33,9 @@ export function handleKeyboardControls(instance: TuiInstance) {
         if (item) {
           instance.selected.active = true;
           item.emitter.emit("active");
-          instance.emitter.emit("draw");
 
           setTimeout(() => {
             instance.selected.active = false;
-            instance.emitter.emit("draw");
           }, 100);
         }
         return;
@@ -98,6 +96,5 @@ export function handleKeyboardControls(instance: TuiInstance) {
     instance.selected.item = item;
     instance.selected.focused = true;
     instance.selected.item.emitter.emit("focus");
-    instance.emitter.emit("draw");
   });
 }

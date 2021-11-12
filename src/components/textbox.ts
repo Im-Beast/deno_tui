@@ -146,7 +146,6 @@ export function createTextbox(
     }
 
     textbox.emitter.emit("valueChange", startValue);
-    textbox.instance.emitter.emit("draw");
   });
 
   return textbox;

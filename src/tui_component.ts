@@ -51,6 +51,7 @@ export interface TuiComponent<Events = void, Attributes = void> {
     & EventEmitter<"focus" | "active", undefined>
     & EventEmitter<Events extends string ? Events : never, Attributes>;
   readonly remove: () => void;
+  drawPriority: number;
   canvas: CanvasInstance;
   interactive: boolean;
   instance: TuiInstance;
@@ -80,8 +81,15 @@ export interface CreateComponentOptions {
 let componentId = 0;
 export function createComponent<Events = void, DataTypes = void>(
   object: TuiInstance | AnyComponent,
-  { name, interactive, styler, rectangle, focusedWithin, draw, drawPriority }:
-    CreateComponentOptions,
+  {
+    name,
+    interactive,
+    styler,
+    rectangle,
+    focusedWithin,
+    draw = (() => {}),
+    drawPriority = 0,
+  }: CreateComponentOptions,
 ): TuiComponent<Events, DataTypes> {
   const emitter = createEventEmitter() as TuiComponent<
     Events,
@@ -89,14 +97,13 @@ export function createComponent<Events = void, DataTypes = void>(
   >["emitter"];
 
   const instance = getInstance(object);
-
   const id = componentId++;
-  draw ||= () => {};
 
   const component: TuiComponent<Events, DataTypes> = {
     name,
     instance,
     interactive,
+    drawPriority,
     id,
     canvas: instance.canvas,
     styler,
@@ -109,35 +116,31 @@ export function createComponent<Events = void, DataTypes = void>(
     children: [],
     focusedWithin: focusedWithin || [],
     remove: () => {
-      console.log(Date.now(), component.name);
-
       component.off("*");
-      instance.off("draw", () => component.draw());
 
       object.children = object.children.filter((comp) => comp !== component);
+      const compFilter = (
+        comp: AnyComponent,
+      ) => comp !== component;
 
-      instance.interactiveComponents.filter((comp) => comp !== component);
+      instance.interactiveComponents = instance.interactiveComponents.filter(
+        compFilter,
+      );
+
+      instance.allComponents = instance.allComponents.filter(compFilter);
 
       for (const child of component.children) {
         child.remove();
       }
-
-      instance.emitter.emit("draw");
     },
   };
 
   if (component.interactive) {
     instance.interactiveComponents.push(component);
   }
+  instance.allComponents.push(component);
 
   object.children.push(component);
-
-  instance.on("draw", () => component.draw(), drawPriority);
-
-  const redrawCanvas = () => instance.emitter.emit("draw");
-  instance.on("focus", redrawCanvas);
-  instance.on("active", redrawCanvas);
-  instance.emitter.emit("draw");
 
   return component;
 }
