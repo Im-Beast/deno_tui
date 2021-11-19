@@ -1,7 +1,94 @@
 import { EventEmitter } from "./event_emitter.ts";
-import { Key, Reader } from "./types.ts";
+import { Range, Reader } from "./types.ts";
 
 const decoder = new TextDecoder();
+
+export type Key =
+  | Alphabet
+  | Chars
+  | SpecialKeys
+  | `f${Range<1, 12>}`
+  | `${Range<0, 10>}`;
+
+export type SpecialKeys =
+  | "return"
+  | "tab"
+  | "backspace"
+  | "escape"
+  | "space"
+  | "up"
+  | "down"
+  | "left"
+  | "right"
+  | "clear"
+  | "insert"
+  | "delete"
+  | `page${"up" | "down"}`
+  | "home"
+  | "end"
+  | "tab";
+
+export type Chars =
+  | "!"
+  | "@"
+  | "#"
+  | "$"
+  | "%"
+  | "^"
+  | "&"
+  | "*"
+  | "("
+  | ")"
+  | "-"
+  | "_"
+  | "="
+  | "+"
+  | "["
+  | "{"
+  | "]"
+  | "}"
+  | "'"
+  | '"'
+  | ";"
+  | ":"
+  | ","
+  | "<"
+  | "."
+  | ">"
+  | "/"
+  | "?"
+  | "\\"
+  | "|";
+
+export type Alphabet = aToZ | Uppercase<aToZ>;
+
+type aToZ =
+  | "a"
+  | "b"
+  | "c"
+  | "d"
+  | "e"
+  | "f"
+  | "g"
+  | "h"
+  | "i"
+  | "j"
+  | "k"
+  | "l"
+  | "m"
+  | "n"
+  | "o"
+  | "p"
+  | "q"
+  | "r"
+  | "s"
+  | "t"
+  | "u"
+  | "v"
+  | "w"
+  | "x"
+  | "y"
+  | "z";
 
 export interface KeyPress {
   buffer: Uint8Array;
@@ -20,7 +107,7 @@ export function readKeypressesEmitter(
   reader: Reader,
   // deno-lint-ignore no-explicit-any
   emitter: EventEmitter<any, any>,
-) {
+): void {
   void async function () {
     for await (const keyPresses of readKeypresses(reader)) {
       const multiKey: MultiKeyPress = {
@@ -53,12 +140,12 @@ export async function* readKeypresses(
 ): AsyncIterableIterator<KeyPress[]> {
   while (true) {
     const buffer = new Uint8Array(1024);
-    Deno.setRaw(reader.rid, true, { cbreak: true });
+    // Deno.setRaw(reader.rid, true, { cbreak: true });
 
     const byteLength = await reader.read(buffer);
     if (typeof byteLength !== "number") continue;
 
-    Deno.setRaw(reader.rid, false, { cbreak: true });
+    // Deno.setRaw(reader.rid, false, { cbreak: true });
     yield decodeBuffer(buffer.subarray(0, byteLength));
   }
 }
@@ -67,7 +154,6 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
   const decodedBuffer = decoder.decode(buffer);
   let keys = [decodedBuffer];
 
-  // Splitting seems fine, I'm expecting bugs though
   if (decodedBuffer.split("\x1b").length > 1) {
     // deno-lint-ignore no-control-regex
     keys = decodedBuffer.split(/(?=\x1b)/);

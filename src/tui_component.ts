@@ -2,7 +2,13 @@ import { CanvasInstance } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
-import { StaticTuiRectangle, TuiRectangle, TuiStyler } from "./types.ts";
+import {
+  AnyComponent,
+  Dynamic,
+  TuiObject,
+  TuiRectangle,
+  TuiStyler,
+} from "./types.ts";
 
 export function getInstance(object: TuiInstance | AnyComponent) {
   return Object.hasOwn(object, "instance")
@@ -23,17 +29,17 @@ export interface GetCurrentStylerOptions {
 
 export function getCurrentStyler(
   component: AnyComponent,
-  override?: GetCurrentStylerOptions,
+  options?: GetCurrentStylerOptions,
 ) {
   const { styler, focusedWithin } = component;
   const { item, focused, active } = component.instance.selected;
 
   const isSelected = (item?.id == component.id) ||
     focusedWithin.some(({ id }) => item?.id === id);
-  const isFocused = override?.focused?.value ||
-    (!override?.focused?.force && isSelected && focused);
-  const isActive = override?.active?.value ||
-    (!override?.active?.force && isSelected && active);
+  const isFocused = options?.focused?.value ||
+    (!options?.focused?.force && isSelected && focused);
+  const isActive = options?.active?.value ||
+    (!options?.active?.force && isSelected && active);
 
   return (isActive
     ? styler.active || styler.focused
@@ -42,50 +48,74 @@ export function getCurrentStyler(
     : styler) || styler;
 }
 
-export interface TuiComponent<Events = void, Attributes = void> {
+export type ExtendedTuiComponent<
+  Name extends string = string,
+  Extension = void,
+  Events = void,
+  Attributes = void,
+> = TuiComponent<Name, Events, Attributes> & Extension;
+
+export type TuiComponent<
+  Name extends string = string,
+  Events = void,
+  Attributes = void,
+> = {
   readonly id: number;
-  readonly name: string;
+  readonly name: Name;
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>
     & EventEmitter<Events extends string ? Events : never, Attributes>;
-  readonly remove: () => void;
-  drawPriority: number;
-  canvas: CanvasInstance;
-  interactive: boolean;
+  readonly on: TuiComponent<Name, Events, Attributes>["emitter"]["on"];
+  readonly once: TuiComponent<Name, Events, Attributes>["emitter"]["once"];
+  readonly off: TuiComponent<Name, Events, Attributes>["emitter"]["off"];
+  draw: () => void;
   instance: TuiInstance;
-  rectangle: TuiRectangle;
-  staticRectangle: StaticTuiRectangle;
+  rectangle: Dynamic<TuiRectangle>;
+  parent: TuiObject;
   children: AnyComponent[];
   focusedWithin: AnyComponent[];
+  canvas: CanvasInstance;
   styler: TuiStyler;
-  on: TuiComponent<Events, Attributes>["emitter"]["on"];
-  off: TuiComponent<Events, Attributes>["emitter"]["off"];
-  once: TuiComponent<Events, Attributes>["emitter"]["once"];
-  draw: () => void;
-}
+  drawPriority: number;
+  interactive: boolean;
+};
 
-// deno-lint-ignore no-explicit-any
-export type AnyComponent = TuiComponent<any, any>;
-
-export interface CreateComponentOptions {
-  name: string;
+export interface CreateComponentOptions<Name extends string = string> {
+  name: Name;
   styler: TuiStyler;
-  rectangle: TuiRectangle;
+  rectangle: Dynamic<TuiRectangle>;
   interactive?: boolean;
   focusedWithin?: AnyComponent[];
   draw?: () => void;
   drawPriority?: number;
 }
 
-export function getStaticRectangle(rect: TuiRectangle): StaticTuiRectangle {
-  return typeof rect === "function" ? rect() : rect;
+export function removeComponent(component: AnyComponent) {
+  const { parent, instance } = component;
+  component.off("*");
+
+  const filter = (
+    comp: AnyComponent,
+  ) => comp !== component;
+
+  parent.children = parent.children.filter(filter);
+  instance.components = instance.components.filter(filter);
+
+  for (const child of component.children) {
+    removeComponent(child);
+  }
 }
 
 let componentId = 0;
-export function createComponent<Events = void, DataTypes = void>(
-  object: TuiInstance | AnyComponent,
+export function createComponent<
+  Name extends string = string,
+  Extension = void,
+  Events = void,
+  DataTypes = void,
+>(
+  object: TuiObject,
   {
     name,
     interactive = false,
@@ -94,61 +124,42 @@ export function createComponent<Events = void, DataTypes = void>(
     focusedWithin = [],
     draw = (() => {}),
     drawPriority = 0,
-  }: CreateComponentOptions,
-): TuiComponent<Events, DataTypes> {
+  }: CreateComponentOptions<Name>,
+  extension?: Extension,
+): Extension extends void ? TuiComponent<Name, Events, DataTypes>
+  : ExtendedTuiComponent<Name, Extension, Events, DataTypes> {
   const emitter = createEventEmitter() as TuiComponent<
+    Name,
     Events,
     DataTypes
   >["emitter"];
 
   const instance = getInstance(object);
-  const id = componentId++;
 
-  const component: TuiComponent<Events, DataTypes> = {
+  const component: TuiComponent<Name, Events, DataTypes> = {
+    id: componentId++,
     name,
-    instance,
-    interactive,
-    drawPriority,
-    id,
-    canvas: instance.canvas,
-    styler,
-    rectangle,
     emitter,
-    draw,
     on: emitter.on,
     once: emitter.once,
     off: emitter.off,
+    instance,
+    rectangle,
+    parent: object,
     children: [],
-    focusedWithin: focusedWithin,
-    get staticRectangle() {
-      return getStaticRectangle(component.rectangle);
-    },
-    remove: () => {
-      component.off("*");
-
-      object.children = object.children.filter((comp) => comp !== component);
-      const compFilter = (
-        comp: AnyComponent,
-      ) => comp !== component;
-
-      instance.interactiveComponents = instance.interactiveComponents.filter(
-        compFilter,
-      );
-
-      instance.allComponents = instance.allComponents.filter(compFilter);
-
-      for (const child of component.children) {
-        child.remove();
-      }
-    },
+    focusedWithin,
+    canvas: instance.canvas,
+    styler,
+    drawPriority,
+    interactive,
+    draw,
+    ...extension,
   };
 
-  if (component.interactive) {
-    instance.interactiveComponents.push(component);
-  }
-  instance.allComponents.push(component);
-
+  instance.components.push(component);
   object.children.push(component);
 
-  return component;
+  return component as Extension extends void
+    ? TuiComponent<Name, Events, DataTypes>
+    : ExtendedTuiComponent<Name, Extension, Events, DataTypes>;
 }

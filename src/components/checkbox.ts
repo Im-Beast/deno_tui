@@ -2,11 +2,21 @@ import { drawPixel } from "../canvas.ts";
 import {
   createComponent,
   CreateComponentOptions,
+  ExtendedTuiComponent,
   getCurrentStyler,
-  TuiComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
+import { getStaticValue } from "../util.ts";
 import { createFrame } from "./frame.ts";
+
+export type CheckboxComponent = ExtendedTuiComponent<
+  "checkbox",
+  {
+    value: boolean;
+  },
+  "valueChange",
+  boolean
+>;
 
 export interface CreateCheckboxOptions extends
   Omit<
@@ -16,56 +26,44 @@ export interface CreateCheckboxOptions extends
   default: boolean;
 }
 
-export interface CheckboxComponent
-  extends TuiComponent<"valueChange", boolean> {
-  value: boolean;
-}
-
 export function createCheckbox(
   object: TuiObject,
   options: CreateCheckboxOptions,
 ): CheckboxComponent {
-  const checkbox = {
-    value: options.default,
-    ...createComponent<"valueChange", boolean>(object, {
-      name: "checkbox",
-      interactive: true,
-      draw() {
-        for (const { draw } of checkbox.children) {
-          draw();
-        }
-
-        const styler = getCurrentStyler(checkbox, {
+  const checkbox: CheckboxComponent = createComponent(object, {
+    name: "checkbox",
+    interactive: true,
+    draw() {
+      drawPixel(object.canvas, {
+        ...getStaticValue(checkbox.rectangle),
+        value: checkbox.value ? "✓" : "✗",
+        styler: getCurrentStyler(checkbox, {
           active: {
             value: checkbox.value,
             force: true,
           },
-        });
+        }),
+      });
+    },
+    ...options,
+  }, {
+    value: options.default,
+  });
 
-        const { column, row } = checkbox.staticRectangle;
-
-        drawPixel(object.canvas, {
-          column,
-          row,
-          value: checkbox.value ? "✓" : "✗",
-          styler,
-        });
-      },
-      ...options,
-    }),
-  };
-
-  if (options.styler.border) {
+  if (checkbox.styler.frame) {
     createFrame(checkbox, {
       ...options,
-      rectangle: () => ({
-        column: checkbox.staticRectangle.column - 1,
-        row: checkbox.staticRectangle.row - 1,
-        width: checkbox.staticRectangle.width + 1,
-        height: checkbox.staticRectangle.height + 1,
-      }),
-      styler: options.styler.border,
-      focusedWithin: [checkbox, ...(options.focusedWithin || [])],
+      rectangle() {
+        const rectangle = getStaticValue(checkbox.rectangle);
+        return {
+          column: rectangle.column - 1,
+          row: rectangle.row - 1,
+          width: rectangle.width + 1,
+          height: rectangle.height + 1,
+        };
+      },
+      styler: checkbox.styler.frame,
+      focusedWithin: [checkbox, ...checkbox.focusedWithin],
     });
   }
 

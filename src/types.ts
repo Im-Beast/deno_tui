@@ -1,6 +1,6 @@
 import { CanvasStyler } from "./canvas.ts";
 import { TuiInstance } from "./tui.ts";
-import { AnyComponent } from "./tui_component.ts";
+import { ExtendedTuiComponent } from "./tui_component.ts";
 
 export type Range<From extends number, To extends number> = number extends From
   ? number
@@ -15,90 +15,12 @@ type _Range<
     | (R["length"] extends Range<0, From> ? From : R["length"])
     | _Range<From, To, [To, ...R]>;
 
-export type Key =
-  | Alphabet
-  | Chars
-  | "return"
-  | "enter"
-  | "tab"
-  | "backspace"
-  | "escape"
-  | "space"
-  | `f${Range<1, 12>}`
-  | `${Range<0, 10>}`
-  | "up"
-  | "down"
-  | "left"
-  | "right"
-  | "clear"
-  | "insert"
-  | "delete"
-  | `page${"up" | "down"}`
-  | "home"
-  | "end"
-  | "tab";
+// deno-lint-ignore no-explicit-any
+type _any = any;
+// deno-fmt-ignore
+export type AnyComponent = ExtendedTuiComponent< _any,  { [x: string | number | symbol]: unknown;  },  _any, _any >;
 
-export type Chars =
-  | "!"
-  | "@"
-  | "#"
-  | "$"
-  | "%"
-  | "^"
-  | "&"
-  | "*"
-  | "("
-  | ")"
-  | "-"
-  | "_"
-  | "="
-  | "+"
-  | "["
-  | "{"
-  | "]"
-  | "}"
-  | "'"
-  | '"'
-  | ";"
-  | ":"
-  | ","
-  | "<"
-  | "."
-  | ">"
-  | "/"
-  | "?"
-  | "\\"
-  | "|";
-
-export type Alphabet = aToZ | Uppercase<aToZ>;
-
-type aToZ =
-  | "a"
-  | "b"
-  | "c"
-  | "d"
-  | "e"
-  | "f"
-  | "g"
-  | "h"
-  | "i"
-  | "j"
-  | "k"
-  | "l"
-  | "m"
-  | "n"
-  | "o"
-  | "p"
-  | "q"
-  | "r"
-  | "s"
-  | "t"
-  | "u"
-  | "v"
-  | "w"
-  | "x"
-  | "y"
-  | "z";
+export type TuiObject = TuiInstance | AnyComponent;
 
 export interface Writer extends Deno.Writer {
   readonly rid: number;
@@ -108,22 +30,30 @@ export interface Reader extends Deno.Reader {
   readonly rid: number;
 }
 
-export interface StaticTuiRectangle {
+export interface TuiStyler extends CanvasStyler {
+  active?: CanvasStyler;
+  focused?: CanvasStyler;
+  frame?: CanvasStyler & {
+    active?: CanvasStyler;
+    focused?: CanvasStyler;
+  };
+}
+
+export interface TextAlign {
+  horizontal: "left" | "center" | "right";
+  vertical: "top" | "center" | "bottom";
+}
+
+export interface TuiRectangle {
   column: number;
   row: number;
   width: number;
   height: number;
 }
 
-export type TuiRectangle = StaticTuiRectangle | (() => StaticTuiRectangle);
-
-export interface TuiStyler extends CanvasStyler {
-  active?: CanvasStyler;
-  focused?: CanvasStyler;
-  border?: CanvasStyler & {
-    active?: CanvasStyler;
-    focused?: CanvasStyler;
-  };
+export interface ConsoleSize {
+  columns: number;
+  rows: number;
 }
 
-export type TuiObject = TuiInstance | AnyComponent;
+export type Dynamic<T> = T | (() => T);

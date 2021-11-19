@@ -1,90 +1,116 @@
-import { drawText } from "../canvas.ts";
+import { CanvasStyler, drawPixel, drawText } from "../canvas.ts";
 import {
   createComponent,
+  ExtendedTuiComponent,
   getCurrentStyler,
-  TuiComponent,
 } from "../tui_component.ts";
+import { TuiStyler } from "../types.ts";
 import { TuiObject } from "../types.ts";
+import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { createFrame } from "./frame.ts";
-import { textPixelWidth } from "./label.ts";
+import { textPixelWidth } from "../util.ts";
+
+export type TextboxComponent = ExtendedTuiComponent<
+  "textbox",
+  {
+    value: string;
+    hidden: boolean;
+    multiline: boolean;
+    styler: TuiStyler & {
+      cursor?: CanvasStyler;
+    };
+  },
+  "valueChange",
+  string
+>;
 
 export interface CreateTextboxOptions extends CreateBoxOptions {
   hidden: boolean;
   multiline: boolean;
-}
-
-export interface TextboxComponent extends TuiComponent<"valueChange", string> {
-  value: string;
+  styler: TuiStyler & {
+    cursor?: CanvasStyler;
+  };
 }
 
 export function createTextbox(
   object: TuiObject,
   options: CreateTextboxOptions,
 ): TextboxComponent {
-  const { row, column, width, height } = typeof options.rectangle === "function"
-    ? options.rectangle()
-    : options.rectangle;
-
-  const textbox = {
-    value: "",
-    ...createComponent<"valueChange", string>(object, {
-      name: "textbox",
-      interactive: true,
-      draw() {
-        for (const { draw } of textbox.children) {
-          draw();
-        }
-
-        const styler = getCurrentStyler(textbox);
-
-        let text = options.hidden
-          ? "*".repeat(textbox.value.length)
-          : textbox.value;
-
-        let textWidth = textPixelWidth(text);
-        if (textWidth > width) {
-          text = text.slice(0, width);
-          textWidth = textPixelWidth(text);
-        }
-
-        drawText(object.canvas, {
-          column,
-          row,
-          text,
-          styler,
-        });
-      },
-      drawPriority: 1,
-      ...options,
-    }),
+  const position = {
+    x: 0,
+    y: 0,
   };
 
-  const focusedWithin = [textbox, ...(options.focusedWithin || [])];
+  const textbox: TextboxComponent = createComponent(object, {
+    name: "textbox",
+    interactive: true,
+    draw() {
+      const styler = getCurrentStyler(textbox);
+
+      let text = textbox.hidden
+        ? "*".repeat(textbox.value.length)
+        : textbox.value;
+
+      let textWidth = textPixelWidth(text);
+
+      const { row, column, width, height } = getStaticValue(
+        textbox.rectangle,
+      );
+
+      if (textWidth > width) {
+        text = text.slice(0, width);
+        textWidth = textPixelWidth(text);
+      }
+
+      drawText(object.canvas, {
+        column,
+        row,
+        text,
+        styler,
+      });
+
+      if (textbox.instance.selected.item?.id === textbox.id) {
+        drawPixel(object.canvas, {
+          column: column + Math.min(position.x, width - 1),
+          row: row + Math.min(position.y, height - 1),
+          value: textbox.value[position.x] || " ",
+          styler: textbox.styler.cursor ||
+            { foreground: "black", background: "white" },
+        });
+      }
+    },
+    drawPriority: 1,
+    ...options,
+  }, {
+    value: "",
+    hidden: options.hidden,
+    multiline: options.multiline,
+  });
+
+  const focusedWithin = [textbox, ...textbox.focusedWithin];
 
   createBox(textbox, {
     ...options,
     focusedWithin,
   });
 
-  if (options.styler.border) {
+  if (textbox.styler.frame) {
     createFrame(textbox, {
       ...options,
-      rectangle: {
-        column: column - 1,
-        row: row - 1,
-        width: width + 1,
-        height: height + 1,
+      rectangle() {
+        const rectangle = getStaticValue(textbox.rectangle);
+        return {
+          column: rectangle.column - 1,
+          row: rectangle.row - 1,
+          width: rectangle.width + 1,
+          height: rectangle.height + 1,
+        };
       },
-      styler: options.styler.border,
+      styler: textbox.styler.frame,
       focusedWithin,
     });
   }
-
-  const position = {
-    x: 0,
-    y: 0,
-  };
 
   const moveKey = (direction: "up" | "down" | "left" | "right") => {
     switch (direction) {

@@ -10,15 +10,49 @@ import {
   createFrameBuffer,
   fillBuffer,
   FrameBufferInstance,
-  writeBufferSync,
+  writeBuffer,
 } from "./frame_buffer.ts";
 
-import { Writer } from "./types.ts";
+import { ConsoleSize, Dynamic, Writer } from "./types.ts";
+
+export interface CreateCanvasOptions {
+  writer: Writer;
+  styler: CanvasStyler;
+  size?: Dynamic<ConsoleSize>;
+  filler?: string;
+}
 
 export interface CanvasInstance {
   writer: Writer;
   frameBuffer: FrameBufferInstance;
   styler: CanvasStyler;
+}
+
+export function createCanvas(
+  { writer, styler, size, filler }: CreateCanvasOptions,
+): CanvasInstance {
+  const frameBuffer = createFrameBuffer({
+    writer,
+    size,
+    filler,
+  });
+
+  frameBuffer.filler = styleTextFromStyler(styler, " ");
+  fillBuffer(frameBuffer);
+
+  const canvas: CanvasInstance = {
+    frameBuffer,
+    writer,
+    styler,
+  };
+
+  Deno.addSignalListener("SIGWINCH", () => draw(canvas));
+
+  return canvas;
+}
+
+export function draw(instance: CanvasInstance): void {
+  writeBuffer(instance.frameBuffer);
 }
 
 export interface CanvasStyler {
@@ -41,15 +75,15 @@ export function getStyle(
   bg: boolean,
 ) {
   if (style.startsWith("#")) {
-    return crayon()[bg ? "bgHex" : "hex"](style, true);
+    return crayon[bg ? "bgHex" : "hex"](style, true);
   } else if (rgbRegex.test(style)) {
     const [, r, g, b] = style.match(rgbRegex)?.map(Number) || [];
-    return crayon()[bg ? "bgRgb" : "rgb"](r, g, b);
+    return crayon[bg ? "bgRgb" : "rgb"](r, g, b);
   }
 
   return bg
-    ? crayon()[`bg${style[0].toUpperCase()}${style.slice(1)}` as CrayonStyle]
-    : crayon()[style as CrayonStyle];
+    ? crayon[`bg${style[0].toUpperCase()}${style.slice(1)}` as CrayonStyle]
+    : crayon[style as CrayonStyle];
 }
 
 export function styleText(
@@ -78,45 +112,6 @@ export function styleTextFromStyler(
   }
 
   return text;
-}
-
-export function draw(instance: CanvasInstance) {
-  writeBufferSync(instance.frameBuffer);
-}
-
-export function createCanvas(
-  writer: Writer,
-  styler: CanvasStyler,
-): CanvasInstance {
-  const frameBuffer = createFrameBuffer(writer);
-
-  frameBuffer.filler = styleTextFromStyler(styler, " ");
-  fillBuffer(frameBuffer);
-
-  const canvas: CanvasInstance = {
-    frameBuffer,
-    writer,
-    styler,
-  };
-
-  Deno.addSignalListener("SIGWINCH", () => draw(canvas));
-
-  return canvas;
-}
-
-export function loop(
-  instance: CanvasInstance,
-  interval: number,
-  middleware?: () => void,
-): () => void {
-  const loopInterval = setInterval(() => {
-    if (middleware) middleware();
-    writeBufferSync(instance.frameBuffer);
-  }, interval);
-
-  return () => {
-    clearInterval(loopInterval);
-  };
 }
 
 export interface DrawPixelOptions {

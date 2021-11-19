@@ -1,6 +1,7 @@
 import { readKeypressesEmitter } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
-import { AnyComponent } from "./tui_component.ts";
+import { AnyComponent } from "./types.ts";
+import { getStaticValue } from "./util.ts";
 
 export function handleKeypresses(instance: TuiInstance) {
   instance.emitter.on("key", (keyPress) => {
@@ -14,33 +15,33 @@ export function handleKeypresses(instance: TuiInstance) {
   readKeypressesEmitter(instance.reader, instance.emitter);
 }
 
-export const controlsPosition: { [id: number]: { x: number; y: number } } = {};
+export const controlsPosition: {
+  [id: number]: { x: number; y: number; heldEnter: number };
+} = {};
 
 // TODO: Make it actually good
 export function handleKeyboardControls(instance: TuiInstance) {
   controlsPosition[instance.id] ||= {
     x: 0,
     y: 0,
+    heldEnter: 0,
   };
 
   const position = controlsPosition[instance.id];
-  let { item } = instance.selected;
 
   instance.on("key", ({ key, ctrl, shift, meta }) => {
+    let { item } = instance.selected;
+
+    if (key === "return" && !shift && !ctrl && !meta) {
+      instance.selected.active = true;
+      item?.emitter.emit("active");
+      position.heldEnter = Date.now();
+    }
+
     if (!shift || ctrl || meta) return;
 
     const vector = { x: 0, y: 0 };
     switch (key) {
-      case "return":
-        if (item) {
-          instance.selected.active = true;
-          item.emitter.emit("active");
-
-          setTimeout(() => {
-            instance.selected.active = false;
-          }, 100);
-        }
-        return;
       case "up":
         vector.y -= 1;
         break;
@@ -63,21 +64,29 @@ export function handleKeyboardControls(instance: TuiInstance) {
     position.x = Math.max(0, position.x);
     position.y = Math.max(0, position.y);
 
-    item ||= instance.interactiveComponents[0];
+    const interactiveComponents = instance.components.filter((
+      { interactive },
+    ) => interactive);
+
+    item ||= interactiveComponents[0];
 
     const _mapping: AnyComponent[][] = [];
     for (
-      const component of instance.interactiveComponents.sort((a, b) =>
-        a.staticRectangle.row - b.staticRectangle.row
+      const component of interactiveComponents.sort((a, b) =>
+        getStaticValue(a.rectangle).row -
+        getStaticValue(b.rectangle).row
       )
     ) {
-      _mapping[component.staticRectangle.row] ||= [];
-      _mapping[component.staticRectangle.row].push(component);
+      _mapping[getStaticValue(component.rectangle).row] ||= [];
+      _mapping[getStaticValue(component.rectangle).row].push(
+        component,
+      );
     }
 
     for (const row in _mapping) {
       _mapping[row] = _mapping[row].sort((a, b) =>
-        a.staticRectangle.column - b.staticRectangle.column
+        getStaticValue(a.rectangle).column -
+        getStaticValue(b.rectangle).column
       );
     }
 

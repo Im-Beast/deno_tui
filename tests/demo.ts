@@ -3,11 +3,13 @@ import {
   createButton,
   createCheckbox,
   createCombobox,
+  createFrame,
   createLabel,
   createMenu,
   createMenuItem,
   createTextbox,
   createTui,
+  getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
   TuiStyler,
@@ -25,7 +27,7 @@ const mainStyler: TuiStyler = {
     foreground: "black",
     background: "lightCyan",
   },
-  border: {
+  frame: {
     foreground: "white",
     background: "black",
   },
@@ -36,7 +38,10 @@ const componentStyler: TuiStyler = {
   background: "blue",
 };
 
-const tui = createTui(Deno.stdin, Deno.stdout, mainStyler);
+const tui = createTui(Deno.stdin, Deno.stdout, {
+  styler: mainStyler,
+});
+
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 
@@ -147,7 +152,7 @@ createTextbox(tui, {
 
 createCombobox(tui, {
   items: ["uno", "dos", "tres", { label: "quatro", value: 4 }],
-  defaultValue: 2,
+  value: 2,
   rectangle: {
     column: 40,
     row: 3,
@@ -169,12 +174,18 @@ createMenuItem(menu, {
 createMenuItem(menu, {
   styler: componentStyler,
   text: "Dos",
-});
+}).text;
 
 createMenuItem(menu, {
   styler: componentStyler,
   text: "Tres",
 });
+
+/* createMenuItem(menu, {
+  styler: componentStyler,
+  text:
+    "０ １ ２ ３ ４ ５ ６ ７ ８ ９ Ａ Ｂ Ｃ Ｄ Ｅ Ｆ Ｇ Ｈ Ｉ Ｊ Ｋ Ｌ Ｍ Ｎ Ｏ Ｐ Ｑ Ｒ Ｓ Ｔ Ｕ Ｖ Ｗ Ｘ Ｙ Ｚ",
+}); */
 
 const pos = { col: 0, row: 0 };
 const dir = { col: 1, row: 1 };
@@ -189,38 +200,48 @@ const dynamicButton = createButton(tui, {
   text: () => `${(Math.round(Math.random() * 1e5)).toString(32)}`,
   styler: componentStyler,
 });
+dynamicButton.interactive = false;
 
 setInterval(() => {
   pos.col += 1 * dir.col;
   pos.row += 1 * dir.row;
 
-  const { row, column, width, height } = dynamicButton.staticRectangle;
+  const { row, column, width, height } = getStaticValue(
+    dynamicButton.rectangle,
+  );
+  const { height: tuiHeight, width: tuiWidth } = tui.rectangle();
 
-  if (row >= tui.rectangle.height - height || row <= 0) {
+  if (row >= tuiHeight - height || row <= 0) {
     dir.row *= -1;
   }
 
-  if (column >= tui.rectangle.width - width || column <= 0) {
+  if (column >= tuiWidth - width || column <= 0) {
     dir.col *= -1;
   }
 }, 100);
 
 let last = Date.now();
 let avg = 60;
-createLabel(tui, {
-  rectangle: () => ({
-    ...tui.rectangle,
-    height: 0,
-    column: tui.rectangle.width - 15,
-  }),
+createMenuItem(menu, {
   styler: componentStyler,
-  text: () => {
+  text() {
     avg = ((avg * 6) + Date.now() - last) / 7;
     last = Date.now();
     return `AVG FPS: ${(1000 / avg).toFixed(2)}`;
   },
-  textAlign: {
-    horizontal: "left",
-    vertical: "top",
-  },
 });
+
+createFrame(tui, {
+  rectangle: {
+    column: 100,
+    row: 2,
+    height: 10,
+    width: 10,
+  },
+  label: "hi",
+  styler: componentStyler,
+});
+
+setTimeout(() => {
+  menu.height = 1;
+}, 500);

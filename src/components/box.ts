@@ -3,30 +3,30 @@ import {
   createComponent,
   CreateComponentOptions,
   getCurrentStyler,
-  getStaticRectangle,
+  TuiComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
+import { getStaticValue } from "../util.ts";
+
+export type BoxComponent = TuiComponent<"box">;
 
 export type CreateBoxOptions = Omit<
   CreateComponentOptions,
   "interactive" | "name" | "draw"
 >;
 
-export function createBox(object: TuiObject, options: CreateBoxOptions) {
+export function createBox(
+  object: TuiObject,
+  options: CreateBoxOptions,
+): BoxComponent {
   const box = createComponent(object, {
     name: "box",
     interactive: false,
     ...options,
     draw() {
-      const styler = getCurrentStyler(box);
-      const { row, column, width, height } = getStaticRectangle(box.rectangle);
-
       drawRectangle(object.canvas, {
-        row,
-        column,
-        width,
-        height,
-        styler,
+        ...getStaticValue(box.rectangle),
+        styler: getCurrentStyler(box),
       });
     },
   });

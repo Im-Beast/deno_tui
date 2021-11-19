@@ -1,51 +1,71 @@
 import { drawRectangle } from "../canvas.ts";
-import { getStaticRectangle } from "../tui_component.ts";
 import {
   createComponent,
   CreateComponentOptions,
+  ExtendedTuiComponent,
   getCurrentStyler,
-  TuiComponent,
 } from "../tui_component.ts";
-import { StaticTuiRectangle, TuiObject } from "../types.ts";
+import { TuiObject } from "../types.ts";
+import { textPixelWidth } from "../util.ts";
+import { getStaticValue } from "../util.ts";
 
 export type CreateMenuOptions = Omit<
   CreateComponentOptions,
   "interactive" | "name" | "rectangle"
 >;
 
-export interface MenuComponent extends TuiComponent {
-  readonly name: "menu";
-  offset: number;
-}
+export type MenuComponent = ExtendedTuiComponent<
+  "menu",
+  { height: number }
+>;
 
 export function createMenu(
   object: TuiObject,
   options: CreateMenuOptions,
 ): MenuComponent {
-  const rectangle: StaticTuiRectangle = {
-    ...getStaticRectangle(object.rectangle),
-    height: 1,
-  };
-
-  const menu = createComponent(object, {
+  const menu: MenuComponent = createComponent(object, {
     name: "menu",
     interactive: false,
-    rectangle,
+    rectangle: () => ({
+      ...getStaticValue(object.rectangle),
+      height: 1,
+    }),
+    drawPriority: 1,
     draw() {
-      for (const { draw } of menu.children) {
-        draw();
-      }
-
-      const styler = getCurrentStyler(menu);
-
       drawRectangle(menu.canvas, {
-        ...getStaticRectangle(object.rectangle),
-        height: 1,
-        styler,
+        ...getStaticValue(menu.rectangle),
+        height: menu.height,
+        styler: getCurrentStyler(menu),
       });
+
+      let offsetX = 1;
+      let offsetY = 0;
+      const { width } = getStaticValue(menu.rectangle);
+      for (
+        const child of menu.children
+      ) {
+        if (child.name === "menuItem" && child?.text) {
+          child.rectangle = {
+            column: offsetX,
+            row: offsetY,
+            width: textPixelWidth(String(getStaticValue(child.text))),
+            height: 1,
+          };
+
+          if (offsetX + child.rectangle.width > width) {
+            offsetX = 1;
+            offsetY++;
+          } else {
+            offsetX += getStaticValue(child.rectangle).width + 1;
+          }
+        }
+      }
+      menu.height = 1 + offsetY;
     },
     ...options,
+  }, {
+    height: 1,
   });
 
-  return { offset: 0, ...menu } as MenuComponent;
+  return menu;
 }

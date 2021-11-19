@@ -1,60 +1,71 @@
-import { createComponent } from "../tui_component.ts";
-import { TuiObject } from "../types.ts";
+import { createComponent, ExtendedTuiComponent } from "../tui_component.ts";
+import { Dynamic, TextAlign, TuiObject } from "../types.ts";
+import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { createFrame } from "./frame.ts";
-import { createLabel, TextAlign } from "./label.ts";
+import { createLabel } from "./label.ts";
+
+export type ButtonComponent = ExtendedTuiComponent<"button", {
+  text?: Dynamic<string>;
+  textAlign?: Dynamic<TextAlign>;
+}>;
 
 export interface CreateButtonOptions extends CreateBoxOptions {
-  text?: string | (() => string);
-  textAlign?: TextAlign;
-  interactive?: boolean;
+  text?: Dynamic<string>;
+  textAlign?: Dynamic<TextAlign>;
 }
 
-export function createButton(object: TuiObject, options: CreateButtonOptions) {
-  const button = createComponent(object, {
-    name: "button",
-    interactive: options.interactive,
-    draw() {
-      for (const { draw } of button.children) {
-        draw();
-      }
-    },
-    ...options,
-  });
+export function createButton(
+  object: TuiObject,
+  options: CreateButtonOptions,
+): ButtonComponent {
+  const button: ButtonComponent = {
+    text: options.text,
+    textAlign: options.textAlign,
+    ...createComponent(object, {
+      name: "button",
+      interactive: true,
+      ...options,
+    }),
+  };
 
-  const focusedWithin = [button, ...(options.focusedWithin || [])];
+  const focusedWithin = [button, ...button.focusedWithin];
 
   createBox(button, {
     ...options,
     focusedWithin,
-    drawPriority: options.drawPriority,
   });
 
-  if (options.styler.border) {
+  if (button.styler.frame) {
     createFrame(button, {
       ...options,
-      drawPriority: options.drawPriority,
-      rectangle: () => ({
-        column: button.staticRectangle.column - 1,
-        row: button.staticRectangle.row - 1,
-        width: button.staticRectangle.width + 1,
-        height: button.staticRectangle.height + 1,
-      }),
-      styler: options.styler.border,
+      rectangle() {
+        const rectangle = getStaticValue(button.rectangle);
+        return {
+          column: rectangle.column - 1,
+          row: rectangle.row - 1,
+          width: rectangle.width + 1,
+          height: rectangle.height + 1,
+        };
+      },
+      styler: button.styler.frame,
       focusedWithin,
     });
   }
 
-  if (options.text) {
+  if (button.text) {
     createLabel(button, {
-      drawPriority: (options.drawPriority || 0) + 1,
-      text: options.text,
+      drawPriority: button.drawPriority + 1,
+      text: button.text,
       rectangle: button.rectangle,
-      textAlign: options.textAlign || {
-        horizontal: "center",
-        vertical: "center",
-      },
-      styler: options.styler,
+      textAlign: () =>
+        getStaticValue(
+          button.textAlign || ({
+            horizontal: "center",
+            vertical: "center",
+          }),
+        ),
+      styler: button.styler,
       focusedWithin,
     });
   }

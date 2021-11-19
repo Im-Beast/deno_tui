@@ -1,4 +1,5 @@
-import { Writer } from "./types.ts";
+import { ConsoleSize, Dynamic, Writer } from "./types.ts";
+import { getStaticValue } from "./util.ts";
 
 export interface FrameBuffer {
   [row: number]: {
@@ -14,14 +15,46 @@ export interface FrameBufferInstance {
   filler: string;
 }
 
+export interface CreateFrameBufferOptions {
+  writer: Writer;
+  filler?: string;
+  size?: Dynamic<ConsoleSize>;
+}
+
+export function createFrameBuffer(
+  {
+    writer,
+    filler = " ",
+    size = () => Deno.consoleSize(writer.rid),
+  }: CreateFrameBufferOptions,
+): FrameBufferInstance {
+  const frameBuffer: FrameBufferInstance = {
+    ...getStaticValue(size),
+    buffer: [],
+    writer,
+    filler,
+  };
+
+  if (typeof size === "function") {
+    Deno.addSignalListener("SIGWINCH", () => {
+      const { columns, rows } = size();
+      frameBuffer.columns = columns;
+      frameBuffer.rows = rows;
+      fillBuffer(frameBuffer, frameBuffer.filler);
+    });
+  }
+
+  Deno.addSignalListener("SIGINT", () => {
+    showCursor(writer);
+    Deno.exit(0);
+  });
+
+  return frameBuffer;
+}
+
 const textEncoder = new TextEncoder();
 
-const chars = {
-  showCursor: textEncoder.encode("\x1b[?25l"),
-  hideCursor: textEncoder.encode("\x1b[?25l"),
-};
-
-export function writeSync(
+export function write(
   writer: Writer,
   value: string | Uint8Array,
 ) {
@@ -33,19 +66,24 @@ export function writeSync(
   }
 }
 
-export async function write(
+export function moveCursor(
   writer: Writer,
-  value: string | Uint8Array,
+  column: number,
+  row: number,
 ) {
-  if (typeof value === "string") value = textEncoder.encode(value);
-
-  let writtenBytes = 0;
-  while (writtenBytes < value.length) {
-    writtenBytes += await Deno.write(writer.rid, value.subarray(writtenBytes));
-  }
+  const ansi = textEncoder.encode(`\x1b[${column};${row}H`);
+  write(writer, ansi);
 }
 
-export function writeBufferSync(instance: FrameBufferInstance) {
+export function hideCursor(writer: Writer) {
+  write(writer, "\x1b[?25l");
+}
+
+export function showCursor(writer: Writer) {
+  write(writer, "\x1b[?25h");
+}
+
+export function writeBuffer(instance: FrameBufferInstance) {
   hideCursor(instance.writer);
   moveCursor(instance.writer, 0, 0);
 
@@ -62,44 +100,6 @@ export function writeBufferSync(instance: FrameBufferInstance) {
   }
 }
 
-export async function writeBuffer(instance: FrameBufferInstance) {
-  const promises = [];
-
-  hideCursor(instance.writer);
-  moveCursor(instance.writer, 0, 0);
-
-  let string = "";
-
-  for (let r = 0; r < instance.rows; ++r) {
-    string += "\r";
-    for (let c = 0; c < instance.columns; ++c) {
-      string += instance.buffer[r][c];
-    }
-    string += "\n";
-    promises.push(instance.writer.write(textEncoder.encode(string)));
-    string = "";
-  }
-
-  await Promise.all(promises);
-}
-
-export function moveCursor(
-  writer: Writer,
-  column: number,
-  row: number,
-) {
-  const ansi = textEncoder.encode(`\x1b[${column};${row}H`);
-  writeSync(writer, ansi);
-}
-
-export function hideCursor(writer: Writer) {
-  writeSync(writer, chars.hideCursor);
-}
-
-export function showCursor(writer: Writer) {
-  writeSync(writer, chars.showCursor);
-}
-
 export function fillBuffer(
   instance: FrameBufferInstance,
   value: string = instance.filler,
@@ -111,27 +111,4 @@ export function fillBuffer(
       buffer[r][c] ||= value;
     }
   }
-}
-
-export function createFrameBuffer(writer: Writer): FrameBufferInstance {
-  const { columns, rows } = Deno.consoleSize(writer.rid);
-
-  const buffer: FrameBuffer = [];
-
-  const frameBuffer: FrameBufferInstance = {
-    buffer,
-    writer,
-    columns,
-    rows,
-    filler: " ",
-  };
-
-  Deno.addSignalListener("SIGWINCH", () => {
-    const { columns, rows } = Deno.consoleSize(frameBuffer.writer.rid);
-    frameBuffer.columns = columns;
-    frameBuffer.rows = rows;
-    fillBuffer(frameBuffer, frameBuffer.filler);
-  });
-
-  return frameBuffer;
 }

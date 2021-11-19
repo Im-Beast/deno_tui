@@ -1,14 +1,15 @@
-import {
-  CanvasInstance,
-  createCanvas,
-  draw,
-  drawRectangle,
-  loop,
-} from "./canvas.ts";
+import { CanvasInstance, createCanvas, draw, drawRectangle } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
-import { AnyComponent } from "./tui_component.ts";
-import { Reader, StaticTuiRectangle, TuiStyler, Writer } from "./types.ts";
+import { AnyComponent } from "./types.ts";
+import {
+  ConsoleSize,
+  Dynamic,
+  Reader,
+  TuiRectangle,
+  TuiStyler,
+  Writer,
+} from "./types.ts";
 
 export interface TuiInstance {
   readonly id: number;
@@ -16,76 +17,109 @@ export interface TuiInstance {
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>;
-  draw: () => void;
-  reader: Reader;
-  writer: Writer;
-  rectangle: StaticTuiRectangle;
+  readonly on: TuiInstance["emitter"]["on"];
+  readonly off: TuiInstance["emitter"]["off"];
+  readonly once: TuiInstance["emitter"]["once"];
+  readonly draw: () => void;
+  readonly stopDrawing: () => void;
+  rectangle: () => TuiRectangle;
   children: AnyComponent[];
-  interactiveComponents: AnyComponent[];
-  allComponents: AnyComponent[];
+  components: AnyComponent[];
   selected: {
     item?: AnyComponent;
     focused: boolean;
     active: boolean;
   };
   canvas: CanvasInstance;
-  on: TuiInstance["emitter"]["on"];
-  off: TuiInstance["emitter"]["off"];
-  once: TuiInstance["emitter"]["once"];
+  reader: Reader;
+  writer: Writer;
+}
+
+export interface CreateTuiOptions {
+  styler: TuiStyler;
+  filler?: string;
+  size?: Dynamic<ConsoleSize>;
+  refreshRate?: Dynamic<number>;
 }
 
 let instanceId = 0;
 export function createTui(
   reader: Reader,
   writer: Writer,
-  styler: TuiStyler,
+  { styler, filler, size, refreshRate = 16 }: CreateTuiOptions,
 ): TuiInstance {
-  const canvas = createCanvas(writer, styler);
+  const canvas = createCanvas({
+    writer,
+    styler,
+    filler,
+    size,
+  });
 
   const emitter = createEventEmitter() as TuiInstance["emitter"];
 
   const tui: TuiInstance = {
     id: instanceId++,
-    reader,
-    writer,
-    get rectangle() {
-      return {
-        column: 0,
-        row: 0,
-        width: canvas.frameBuffer.columns,
-        height: canvas.frameBuffer.rows,
-      };
+    emitter,
+    on: emitter.on,
+    once: emitter.once,
+    off: emitter.off,
+    draw() {
+      drawRectangle(tui.canvas, {
+        ...tui.rectangle(),
+        styler,
+      });
+
+      const drawComponents = tui.components.sort((b, a) =>
+        b.drawPriority - a.drawPriority
+      );
+
+      for (const component of drawComponents) {
+        component.draw();
+      }
+
+      draw(canvas);
     },
+    stopDrawing() {
+      clearInterval(intervalId);
+    },
+    rectangle: () => ({
+      column: 0,
+      row: 0,
+      width: canvas.frameBuffer.columns,
+      height: canvas.frameBuffer.rows,
+    }),
     children: [],
-    interactiveComponents: [],
-    allComponents: [],
+    components: [],
     selected: {
       active: false,
       focused: false,
       item: undefined,
     },
     canvas,
-    emitter,
-    draw: () => draw(canvas),
-    on: emitter.on,
-    once: emitter.once,
-    off: emitter.off,
+    reader,
+    writer,
   };
 
-  loop(tui.canvas, 16, () => {
-    drawRectangle(tui.canvas, {
-      ...tui.rectangle,
-      styler,
-    });
-
-    const drawComps = tui.allComponents.sort((b, a) =>
-      b.drawPriority - a.drawPriority
+  let intervalId: number;
+  const restartInterval = () => {
+    if (intervalId) clearInterval(intervalId);
+    const dynamicRR = typeof refreshRate === "function";
+    let lastRR: number;
+    setInterval(
+      dynamicRR
+        ? () => {
+          tui.draw();
+          const rr = refreshRate();
+          if (lastRR && lastRR !== rr) {
+            restartInterval();
+          }
+        }
+        : tui.draw,
+      dynamicRR ? refreshRate() : refreshRate,
     );
+  };
 
-    for (const { draw } of drawComps) {
-      draw();
-    }
-  });
+  restartInterval();
 
   return tui;
 }

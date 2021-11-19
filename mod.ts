@@ -6,6 +6,7 @@ export * from "./src/key_reader.ts";
 export * from "./src/tui.ts";
 export * from "./src/tui_component.ts";
 export * from "./src/types.ts";
+export * from "./src/util.ts";
 export * from "./src/components/box.ts";
 export * from "./src/components/textbox.ts";
 export * from "./src/components/label.ts";
