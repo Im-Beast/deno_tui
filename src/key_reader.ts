@@ -140,12 +140,12 @@ export async function* readKeypresses(
 ): AsyncIterableIterator<KeyPress[]> {
   while (true) {
     const buffer = new Uint8Array(1024);
-    // Deno.setRaw(reader.rid, true, { cbreak: true });
+    Deno.setRaw(reader.rid, true, { cbreak: true });
 
     const byteLength = await reader.read(buffer);
     if (typeof byteLength !== "number") continue;
 
-    // Deno.setRaw(reader.rid, false, { cbreak: true });
+    Deno.setRaw(reader.rid, false, { cbreak: true });
     yield decodeBuffer(buffer.subarray(0, byteLength));
   }
 }
