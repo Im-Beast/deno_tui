@@ -5,8 +5,14 @@ export function getStaticValue<T>(value: DynamicValue<T>): T {
   return typeof value === "function" ? value() : value;
 }
 
-// This function was created by sindresorhus: https://github.com/sindresorhus/is-fullwidth-code-point/blob/main/index.js
-export function isFullWidth(codePoint: number) {
+// Original function was created by sindresorhus: https://github.com/sindresorhus/is-fullwidth-code-point/blob/main/index.js
+export function isFullWidth(char: string): boolean {
+  if (char.length !== 1) {
+    throw new Error("This function takes string that's 1 character long!");
+  }
+
+  const codePoint = char.charCodeAt(0);
+
   return (
     codePoint >= 0x1100 &&
     (codePoint <= 0x115f ||
@@ -28,10 +34,32 @@ export function isFullWidth(codePoint: number) {
   );
 }
 
-export function textPixelWidth(text: string): number {
+export function textWidth(text: string): number {
+  text = removeStyleCodes(text);
   let width = 0;
-  for (let i = 0; i < text.length; ++i) {
-    width += isFullWidth(text.charCodeAt(i)) ? 2 : 1;
+  for (const letter of text) {
+    width += isFullWidth(letter) ? 2 : 1;
   }
   return width;
+}
+
+export function clamp(number: number, min: number, max: number): number {
+  return Math.min(Math.max(number, min), max);
+}
+
+export function clampAndRound(
+  number: number,
+  min: number,
+  max: number,
+): number {
+  return clamp(Math.round(number), min, max);
+}
+
+export function capitalize(text: string): string {
+  return text[0].toUpperCase() + text.slice(1);
+}
+
+export function removeStyleCodes(text: string): string {
+  // deno-lint-ignore no-control-regex
+  return text.replace(/\x1b\[\d+m/g, "");
 }

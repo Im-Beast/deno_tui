@@ -1,6 +1,6 @@
 export * from "./src/canvas.ts";
+export * from "./src/colors.ts";
 export * from "./src/event_emitter.ts";
-export * from "./src/frame_buffer.ts";
 export * from "./src/keyboard.ts";
 export * from "./src/key_reader.ts";
 export * from "./src/tui.ts";
