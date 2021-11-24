@@ -1,4 +1,10 @@
-import { CanvasInstance, createCanvas, draw, drawRectangle } from "./canvas.ts";
+import {
+  CanvasInstance,
+  createCanvas,
+  drawRectangle,
+  drawText,
+  render,
+} from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent } from "./types.ts";
@@ -10,6 +16,7 @@ import {
   TuiStyler,
   Writer,
 } from "./types.ts";
+import { getStaticValue } from "./util.ts";
 
 export interface TuiInstance {
   readonly id: number;
@@ -30,31 +37,46 @@ export interface TuiInstance {
     focused: boolean;
     active: boolean;
   };
+  styler: Dynamic<TuiStyler>;
   canvas: CanvasInstance;
   reader: Reader;
   writer: Writer;
+  size: Dynamic<ConsoleSize>;
 }
 
-export interface CreateTuiOptions {
+export type CreateTuiOptions = {
   styler: TuiStyler;
-  filler?: string;
-  size?: Dynamic<ConsoleSize>;
   refreshRate?: Dynamic<number>;
+  size?: Dynamic<ConsoleSize>;
+} & (CreateTuiOptionsWithCanvas | CreateTuiOptionsWithoutCanvas);
+
+export interface CreateTuiOptionsWithCanvas {
+  canvas: CanvasInstance;
+  filler?: never;
+}
+
+export interface CreateTuiOptionsWithoutCanvas {
+  canvas?: never;
+  filler?: string;
 }
 
 let instanceId = 0;
 export function createTui(
   reader: Reader,
   writer: Writer,
-  { styler, filler, size, refreshRate = 16 }: CreateTuiOptions,
-): TuiInstance {
-  const canvas = createCanvas({
-    writer,
+  {
     styler,
     filler,
+    refreshRate = 16,
     size,
-  });
-
+    canvas = createCanvas({
+      writer,
+      styler,
+      filler,
+      size,
+    }),
+  }: CreateTuiOptions,
+): TuiInstance {
   const emitter = createEventEmitter() as TuiInstance["emitter"];
 
   const tui: TuiInstance = {
@@ -63,6 +85,8 @@ export function createTui(
     on: emitter.on,
     once: emitter.once,
     off: emitter.off,
+    styler,
+    size: size || (() => getStaticValue(tui.canvas.size)),
     draw() {
       drawRectangle(tui.canvas, {
         ...tui.rectangle(),
@@ -77,17 +101,32 @@ export function createTui(
         component.draw();
       }
 
-      draw(canvas);
+      const fpsText = `FPS: ${tui.canvas.fps.toFixed(2)}`;
+
+      drawText(tui.canvas, {
+        column: tui.rectangle().width - fpsText.length,
+        row: 0,
+        text: fpsText,
+        styler: {
+          foreground: "\x1b[38m",
+          background: "\x1b[45m",
+        },
+      });
+
+      render(tui.canvas);
     },
     stopDrawing() {
       clearInterval(intervalId);
     },
-    rectangle: () => ({
-      column: 0,
-      row: 0,
-      width: canvas.frameBuffer.columns,
-      height: canvas.frameBuffer.rows,
-    }),
+    rectangle() {
+      const { columns: width, rows: height } = getStaticValue(tui.size);
+      return {
+        column: 0,
+        row: 0,
+        width,
+        height,
+      };
+    },
     children: [],
     components: [],
     selected: {
@@ -115,7 +154,7 @@ export function createTui(
           }
         }
         : tui.draw,
-      dynamicRR ? refreshRate() : refreshRate,
+      getStaticValue(refreshRate),
     );
   };
 

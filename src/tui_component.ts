@@ -9,6 +9,7 @@ import {
   TuiRectangle,
   TuiStyler,
 } from "./types.ts";
+import { getStaticValue } from "./util.ts";
 
 export function getInstance(object: TuiInstance | AnyComponent) {
   return Object.hasOwn(object, "instance")
@@ -31,11 +32,11 @@ export function getCurrentStyler(
   component: AnyComponent,
   options?: GetCurrentStylerOptions,
 ) {
-  const { styler, focusedWithin } = component;
+  const styler = getStaticValue(component.styler);
   const { item, focused, active } = component.instance.selected;
 
   const isSelected = (item?.id == component.id) ||
-    focusedWithin.some(({ id }) => item?.id === id);
+    component.focusedWithin.some(({ id }) => item?.id === id);
   const isFocused = options?.focused?.value ||
     (!options?.focused?.force && isSelected && focused);
   const isActive = options?.active?.value ||
@@ -77,14 +78,14 @@ export type TuiComponent<
   children: AnyComponent[];
   focusedWithin: AnyComponent[];
   canvas: CanvasInstance;
-  styler: TuiStyler;
+  styler: Dynamic<TuiStyler>;
   drawPriority: number;
   interactive: boolean;
 };
 
 export interface CreateComponentOptions<Name extends string = string> {
   name: Name;
-  styler: TuiStyler;
+  styler?: Dynamic<TuiStyler>;
   rectangle: Dynamic<TuiRectangle>;
   interactive?: boolean;
   focusedWithin?: AnyComponent[];
@@ -119,7 +120,7 @@ export function createComponent<
   {
     name,
     interactive = false,
-    styler,
+    styler = object.styler,
     rectangle,
     focusedWithin = [],
     draw = (() => {}),
