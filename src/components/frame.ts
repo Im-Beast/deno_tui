@@ -5,7 +5,7 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { Dynamic, TuiObject } from "../types.ts";
-import { getStaticValue, textPixelWidth } from "../util.ts";
+import { getStaticValue, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 
 export interface CreateFrameOptions extends CreateBoxOptions {
@@ -28,7 +28,6 @@ export function createFrame(
       ...options,
       draw() {
         const styler = getCurrentStyler(frame);
-        if (!styler.background && !styler.foreground) return;
         const { row, column, width, height } = getStaticValue(
           frame.rectangle,
         );
@@ -103,14 +102,14 @@ export function createFrame(
             styler,
           });
 
-          let textWidth = textPixelWidth(label);
-          while (textWidth > width - 3) {
+          let tw = textWidth(label);
+          while (tw > width - 3) {
             label = label.slice(0, -1);
-            textWidth = textPixelWidth(label);
+            tw = textWidth(label);
           }
 
           drawPixel(frame.canvas, {
-            column: column + textWidth + 2,
+            column: column + tw + 2,
             row,
             value: "├",
             styler,
@@ -120,7 +119,7 @@ export function createFrame(
             column: column + 2,
             row,
             text: label,
-            styler: frame.styler,
+            styler,
           });
         }
       },

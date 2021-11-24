@@ -5,7 +5,7 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { Dynamic, TextAlign, TuiObject } from "../types.ts";
-import { getStaticValue, textPixelWidth } from "../util.ts";
+import { getStaticValue, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 
 export type LabelComponent = ExtendedTuiComponent<"label", {
@@ -54,18 +54,16 @@ export function createLabel(
   const updateDrawFuncs = (text: string) => {
     drawers = [];
 
-    const { column, row, width, height } = getStaticValue(
-      label.rectangle,
-    );
+    const { column, row, width, height } = getStaticValue(label.rectangle);
 
     const lines = text.split("\n");
     const textAlign = getStaticValue(label.textAlign);
 
     for (let [i, line] of lines.entries()) {
-      let textWidth = textPixelWidth(line);
-      while (textWidth > width) {
+      let tw = textWidth(line);
+      while (tw > width) {
         line = line.slice(0, -1);
-        textWidth = textPixelWidth(line);
+        tw = textWidth(line);
       }
 
       let c = column;
@@ -73,7 +71,7 @@ export function createLabel(
 
       switch (textAlign.horizontal) {
         case "center":
-          c = Math.floor(column + (width / 2 - textWidth / 2));
+          c = Math.floor(column + (width / 2 - tw / 2));
           break;
         case "right":
           r = column + width;

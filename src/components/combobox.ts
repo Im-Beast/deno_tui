@@ -89,10 +89,10 @@ export function createCombobox(
       const button = createButton(main, {
         ...options,
         text,
-        styler: {
-          ...combobox.styler,
+        styler: () => ({
+          ...getStaticValue(combobox.styler),
           frame: undefined,
-        },
+        }),
         rectangle() {
           const rectangle = getStaticValue(combobox.rectangle);
           return {

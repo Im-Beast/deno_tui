@@ -3,13 +3,18 @@ import {
   createComponent,
   ExtendedTuiComponent,
   getCurrentStyler,
+  removeComponent,
 } from "../tui_component.ts";
-import { TuiStyler } from "../types.ts";
+import { Dynamic, TuiStyler } from "../types.ts";
 import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
-import { createFrame } from "./frame.ts";
-import { textPixelWidth } from "../util.ts";
+import { createFrame, FrameComponent } from "./frame.ts";
+import { textWidth } from "../util.ts";
+
+export type TextboxTuiStyler = TuiStyler & {
+  cursor?: CanvasStyler;
+};
 
 export type TextboxComponent = ExtendedTuiComponent<
   "textbox",
@@ -17,9 +22,7 @@ export type TextboxComponent = ExtendedTuiComponent<
     value: string;
     hidden: boolean;
     multiline: boolean;
-    styler: TuiStyler & {
-      cursor?: CanvasStyler;
-    };
+    styler: Dynamic<TextboxTuiStyler>;
   },
   "valueChange",
   string
@@ -28,9 +31,7 @@ export type TextboxComponent = ExtendedTuiComponent<
 export interface CreateTextboxOptions extends CreateBoxOptions {
   hidden: boolean;
   multiline: boolean;
-  styler: TuiStyler & {
-    cursor?: CanvasStyler;
-  };
+  styler: Dynamic<TextboxTuiStyler>;
 }
 
 export function createTextbox(
@@ -42,41 +43,67 @@ export function createTextbox(
     y: 0,
   };
 
+  let frame: FrameComponent | undefined;
+
   const textbox: TextboxComponent = createComponent(object, {
     name: "textbox",
     interactive: true,
     draw() {
-      const styler = getCurrentStyler(textbox);
+      const { row, column, width, height } = getStaticValue(
+        textbox.rectangle,
+      );
+
+      if (!frame && getStaticValue(textbox.styler).frame) {
+        frame = createFrame(textbox, {
+          ...options,
+          rectangle() {
+            const rectangle = getStaticValue(textbox.rectangle);
+            return {
+              column: rectangle.column - 1,
+              row: rectangle.row - 1,
+              width: rectangle.width + 1,
+              height: rectangle.height + 1,
+            };
+          },
+          styler() {
+            const styler = getStaticValue(textbox.styler);
+
+            if (frame && !styler.frame) {
+              removeComponent(frame);
+              frame = undefined;
+            }
+
+            return styler.frame || {};
+          },
+          focusedWithin: [textbox, ...textbox.focusedWithin],
+        });
+      }
 
       let text = textbox.hidden
         ? "*".repeat(textbox.value.length)
         : textbox.value;
 
-      let textWidth = textPixelWidth(text);
-
-      const { row, column, width, height } = getStaticValue(
-        textbox.rectangle,
-      );
-
-      if (textWidth > width) {
-        text = text.slice(0, width);
-        textWidth = textPixelWidth(text);
+      let tw = textWidth(text);
+      while (tw > width) {
+        text = text.slice(0, -1);
+        tw = textWidth(text);
       }
 
       drawText(object.canvas, {
         column,
         row,
         text,
-        styler,
+        styler: getCurrentStyler(textbox),
       });
 
       if (textbox.instance.selected.item?.id === textbox.id) {
+        const cursorCol = column + Math.min(position.x, width - 1);
         drawPixel(object.canvas, {
-          column: column + Math.min(position.x, width - 1),
+          column: cursorCol,
           row: row + Math.min(position.y, height - 1),
           value: textbox.value[position.x] || " ",
-          styler: textbox.styler.cursor ||
-            { foreground: "black", background: "white" },
+          styler: (getStaticValue<TextboxTuiStyler>(textbox.styler)?.cursor) ||
+            { foreground: "\x1b[30m", background: "\x1b[47m" },
         });
       }
     },
@@ -94,23 +121,6 @@ export function createTextbox(
     ...options,
     focusedWithin,
   });
-
-  if (textbox.styler.frame) {
-    createFrame(textbox, {
-      ...options,
-      rectangle() {
-        const rectangle = getStaticValue(textbox.rectangle);
-        return {
-          column: rectangle.column - 1,
-          row: rectangle.row - 1,
-          width: rectangle.width + 1,
-          height: rectangle.height + 1,
-        };
-      },
-      styler: textbox.styler.frame,
-      focusedWithin,
-    });
-  }
 
   const moveKey = (direction: "up" | "down" | "left" | "right") => {
     switch (direction) {

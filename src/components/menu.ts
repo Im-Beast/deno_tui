@@ -6,7 +6,7 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { textPixelWidth } from "../util.ts";
+import { textWidth } from "../util.ts";
 import { getStaticValue } from "../util.ts";
 
 export type CreateMenuOptions = Omit<
@@ -48,7 +48,7 @@ export function createMenu(
           child.rectangle = {
             column: offsetX,
             row: offsetY,
-            width: textPixelWidth(String(getStaticValue(child.text))),
+            width: textWidth(String(getStaticValue(child.text))),
             height: 1,
           };
 
