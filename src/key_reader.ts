@@ -145,7 +145,6 @@ export async function* readKeypresses(
     const byteLength = await reader.read(buffer);
     if (typeof byteLength !== "number") continue;
 
-    Deno.setRaw(reader.rid, false, { cbreak: true });
     yield decodeBuffer(buffer.subarray(0, byteLength));
   }
 }
