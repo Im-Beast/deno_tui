@@ -1,4 +1,5 @@
 import {
+  compileStyler,
   createBox,
   createButton,
   createCheckbox,
@@ -12,10 +13,12 @@ import {
   getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
+  keyword,
+  rgb,
   TuiStyler,
 } from "../mod.ts";
 
-const mainStyler: TuiStyler = {
+const mainStyler = compileStyler<TuiStyler>({
   foreground: "white",
   background: "black",
   focused: {
@@ -31,15 +34,16 @@ const mainStyler: TuiStyler = {
     foreground: "white",
     background: "black",
   },
-};
+});
 
 const componentStyler: TuiStyler = {
   ...mainStyler,
-  background: "blue",
+  background: keyword("bgBlue"),
 };
 
 const tui = createTui(Deno.stdin, Deno.stdout, {
   styler: mainStyler,
+  refreshRate: 32,
 });
 
 handleKeypresses(tui);
@@ -60,6 +64,22 @@ const button = createButton(tui, {
   },
 });
 
+createBox(tui, {
+  rectangle: {
+    column: 15,
+    row: 15,
+    width: 2,
+    height: 1,
+  },
+  styler: () => ({
+    background: rgb(
+      Math.random() * 255,
+      Math.random() * 255,
+      Math.random() * 255,
+      true,
+    ),
+  }),
+});
 tui.selected.item = button;
 
 const box = createBox(tui, {
@@ -120,8 +140,8 @@ createCheckbox(tui, {
   styler: {
     ...componentStyler,
     active: {
-      background: "green",
-      foreground: "black",
+      background: keyword("green"),
+      foreground: keyword("black"),
     },
   },
 });
@@ -174,18 +194,12 @@ createMenuItem(menu, {
 createMenuItem(menu, {
   styler: componentStyler,
   text: "Dos",
-}).text;
+});
 
 createMenuItem(menu, {
   styler: componentStyler,
   text: "Tres",
 });
-
-/* createMenuItem(menu, {
-  styler: componentStyler,
-  text:
-    "０ １ ２ ３ ４ ５ ６ ７ ８ ９ Ａ Ｂ Ｃ Ｄ Ｅ Ｆ Ｇ Ｈ Ｉ Ｊ Ｋ Ｌ Ｍ Ｎ Ｏ Ｐ Ｑ Ｒ Ｓ Ｔ Ｕ Ｖ Ｗ Ｘ Ｙ Ｚ",
-}); */
 
 const pos = { col: 0, row: 0 };
 const dir = { col: 1, row: 1 };
@@ -193,7 +207,7 @@ const dynamicButton = createButton(tui, {
   drawPriority: 50,
   rectangle: () => ({
     column: 30 + pos.col,
-    row: 10 + pos.row,
+    row: 1 + pos.row,
     height: 3,
     width: 6,
   }),
@@ -218,30 +232,15 @@ setInterval(() => {
   if (column >= tuiWidth - width || column <= 0) {
     dir.col *= -1;
   }
-}, 100);
-
-let last = Date.now();
-let avg = 60;
-createMenuItem(menu, {
-  styler: componentStyler,
-  text() {
-    avg = ((avg * 6) + Date.now() - last) / 7;
-    last = Date.now();
-    return `AVG FPS: ${(1000 / avg).toFixed(2)}`;
-  },
-});
+}, 16);
 
 createFrame(tui, {
   rectangle: {
     column: 100,
     row: 2,
-    height: 10,
+    height: 8,
     width: 10,
   },
   label: "hi",
   styler: componentStyler,
 });
-
-setTimeout(() => {
-  menu.height = 1;
-}, 500);
