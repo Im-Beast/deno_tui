@@ -3,13 +3,11 @@ import {
   createComponent,
   ExtendedTuiComponent,
   getCurrentStyler,
-  removeComponent,
 } from "../tui_component.ts";
 import { Dynamic, TuiStyler } from "../types.ts";
 import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
-import { createFrame, FrameComponent } from "./frame.ts";
 import { textWidth } from "../util.ts";
 
 export type TextboxTuiStyler = TuiStyler & {
@@ -19,13 +17,14 @@ export type TextboxTuiStyler = TuiStyler & {
 export type TextboxComponent = ExtendedTuiComponent<
   "textbox",
   {
-    value: string;
+    value: string[];
+    string: () => string;
     hidden: boolean;
     multiline: boolean;
     styler: Dynamic<TextboxTuiStyler>;
   },
   "valueChange",
-  string
+  string[]
 >;
 
 export interface CreateTextboxOptions extends CreateBoxOptions {
@@ -38,12 +37,7 @@ export function createTextbox(
   object: TuiObject,
   options: CreateTextboxOptions,
 ): TextboxComponent {
-  const position = {
-    x: 0,
-    y: 0,
-  };
-
-  let frame: FrameComponent | undefined;
+  const position = { x: 0, y: 0 };
 
   const textbox: TextboxComponent = createComponent(object, {
     name: "textbox",
@@ -53,55 +47,32 @@ export function createTextbox(
         textbox.rectangle,
       );
 
-      if (!frame && getStaticValue(textbox.styler).frame) {
-        frame = createFrame(textbox, {
-          ...options,
-          rectangle() {
-            const rectangle = getStaticValue(textbox.rectangle);
-            return {
-              column: rectangle.column - 1,
-              row: rectangle.row - 1,
-              width: rectangle.width + 1,
-              height: rectangle.height + 1,
-            };
-          },
-          styler() {
-            const styler = getStaticValue(textbox.styler);
+      for (let [i, line] of textbox.value.entries()) {
+        if (i >= height) break;
+        if (textbox.hidden) {
+          line = "*".repeat(line.length);
+        }
 
-            if (frame && !styler.frame) {
-              removeComponent(frame);
-              frame = undefined;
-            }
+        let tw = textWidth(line);
+        while (tw > width) {
+          line = line.slice(0, -1);
+          tw = textWidth(line);
+        }
 
-            return styler.frame || {};
-          },
-          focusedWithin: [textbox, ...textbox.focusedWithin],
+        drawText(object.canvas, {
+          column,
+          row: row + i,
+          text: line,
+          styler: getCurrentStyler(textbox),
         });
       }
-
-      let text = textbox.hidden
-        ? "*".repeat(textbox.value.length)
-        : textbox.value;
-
-      let tw = textWidth(text);
-      while (tw > width) {
-        text = text.slice(0, -1);
-        tw = textWidth(text);
-      }
-
-      drawText(object.canvas, {
-        column,
-        row,
-        text,
-        styler: getCurrentStyler(textbox),
-      });
 
       if (textbox.instance.selected.item?.id === textbox.id) {
         const cursorCol = column + Math.min(position.x, width - 1);
         drawPixel(object.canvas, {
           column: cursorCol,
-          row: row + Math.min(position.y, height - 1),
-          value: textbox.value[position.x] || " ",
+          row: row + position.y,
+          value: textbox.value?.[position.y]?.[position.x] || " ",
           styler: (getStaticValue<TextboxTuiStyler>(textbox.styler)?.cursor) ||
             { foreground: "\x1b[30m", background: "\x1b[47m" },
         });
@@ -110,77 +81,85 @@ export function createTextbox(
     drawPriority: 1,
     ...options,
   }, {
-    value: "",
+    value: [""],
+    string: () => textbox.value.join("\n"),
     hidden: options.hidden,
     multiline: options.multiline,
   });
 
-  const focusedWithin = [textbox, ...textbox.focusedWithin];
-
   createBox(textbox, {
     ...options,
-    focusedWithin,
+    focusedWithin: [textbox, ...textbox.focusedWithin],
+    styler: () => getStaticValue(textbox.styler),
   });
 
-  const moveKey = (direction: "up" | "down" | "left" | "right") => {
-    switch (direction) {
-      case "left":
-        position.x = Math.max(--position.x, 0);
-        break;
-      case "right":
-        position.x = Math.min(++position.x, textbox.value.length);
-        break;
-      case "up":
-        position.y = Math.max(--position.y, 0);
-        break;
-      case "down":
-        position.y = Math.min(
-          ++position.y,
-          textbox.value.split("\n").length,
-        );
-        break;
-    }
-  };
+  textbox.on("key", ({ key, shift, ctrl, meta }) => {
+    if (!key || shift) return;
 
-  const pushCharacter = (character: string) => {
-    textbox.value = textbox.value.slice(0, position.x) + character +
-      textbox.value.slice(position.x);
-    moveKey("right");
-  };
+    const startValue = [...textbox.value];
+    const rectangle = getStaticValue(textbox.rectangle);
 
-  textbox.on("key", ({ key, ctrl, meta }) => {
-    const startValue = textbox.value;
-
-    if (!key) return;
     if (!ctrl && !meta && key.length === 1) {
-      pushCharacter(key);
+      textbox.value[position.y] ||= "";
+      textbox.value[position.y] =
+        textbox.value[position.y].slice(0, position.x) + key +
+        textbox.value[position.y].slice(position.x);
+      ++position.x;
+      textbox.emitter.emit("valueChange", startValue);
+      return;
     }
 
     switch (key) {
-      case "space":
-        pushCharacter(" ");
+      case "up":
+        position.y = Math.max(0, position.y - 1);
+        textbox.value[position.y] ||= "";
+        position.x = textbox.value[position.y].length >= position.x
+          ? position.x
+          : textbox.value[position.y].length;
+        break;
+      case "down":
+        position.y = Math.min(position.y + 1, rectangle.height - 1);
+        textbox.value[position.y] ||= "";
+        position.x = textbox.value[position.y].length >= position.x
+          ? position.x
+          : textbox.value[position.y].length;
         break;
       case "left":
+        position.x = Math.max(0, position.x - 1);
+        break;
       case "right":
-      case "up":
-      case "down":
-        moveKey(key);
+        position.x = Math.min(position.x + 1, textbox.value[position.y].length);
+        break;
+      case "return":
+        position.y = Math.min(position.y + 1, rectangle.height - 1);
+        textbox.value[position.y] ||= "";
+        position.x = textbox.value[position.y].length;
         break;
       case "backspace":
-        textbox.value = textbox.value.substr(0, position.x - 1) +
-          textbox.value.substr(position.x);
-        moveKey("left");
+        if (position.x === 0) {
+          position.y = Math.max(0, position.y - 1);
+          position.x = textbox.value[position.y].length;
+        } else {
+          textbox.value[position.y] ||= "";
+          textbox.value[position.y] =
+            textbox.value[position.y].substr(0, position.x - 1) +
+            textbox.value[position.y].substr(position.x);
+          position.x = Math.max(0, position.x - 1);
+        }
         break;
       case "delete":
-        textbox.value = textbox.value.substr(0, position.x) +
-          textbox.value.substr(position.x + 1);
+        textbox.value[position.y] =
+          textbox.value[position.y].substr(0, position.x) +
+          textbox.value[position.y].substr(position.x + 1);
         break;
       case "home":
         position.x = 0;
         break;
       case "end":
-        position.x = textbox.value.length;
+        position.x = textbox.value[position.y].length;
         break;
+      default:
+        return;
     }
 
     textbox.emitter.emit("valueChange", startValue);
