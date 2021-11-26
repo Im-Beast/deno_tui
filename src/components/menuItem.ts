@@ -6,12 +6,12 @@ import { createButton } from "./button.ts";
 import { MenuComponent } from "./menu.ts";
 
 export type MenuItemComponent = ExtendedTuiComponent<"menuItem", {
-  text: Dynamic<string>;
+  label: Dynamic<string>;
 }>;
 
 export interface CreateMenuItemOptions
   extends Omit<CreateBoxOptions, "rectangle"> {
-  text: Dynamic<string>;
+  label: Dynamic<string>;
 }
 
 export function createMenuItem(
@@ -20,6 +20,7 @@ export function createMenuItem(
 ): MenuItemComponent {
   const menuItem = createComponent(object, {
     name: "menuItem",
+    interactive: true,
     rectangle: {
       width: 0,
       height: 0,
@@ -28,18 +29,17 @@ export function createMenuItem(
     },
     ...options,
   }, {
-    text: options.text,
+    label: options.label,
   });
 
-  createButton(menuItem, {
+  const button = createButton(menuItem, {
     ...options,
     rectangle: () => getStaticValue(menuItem.rectangle),
-    text: () => getStaticValue(menuItem.text),
-    styler: {
-      ...options.styler,
-      frame: undefined,
-    },
+    label: () => getStaticValue(menuItem.label),
+    styler: () => ({ ...getStaticValue(menuItem.styler), frame: undefined }),
+    focusedWithin: [menuItem, ...menuItem.focusedWithin],
   });
+  button.interactive = false;
 
   return menuItem;
 }

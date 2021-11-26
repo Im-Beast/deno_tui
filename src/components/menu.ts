@@ -44,11 +44,11 @@ export function createMenu(
       for (
         const child of menu.children
       ) {
-        if (child.name === "menuItem" && child?.text) {
+        if (child.name === "menuItem" || child.name === "menuList") {
           child.rectangle = {
             column: offsetX,
             row: offsetY,
-            width: textWidth(String(getStaticValue(child.text))),
+            width: textWidth(String(getStaticValue(child.label))),
             height: 1,
           };
 

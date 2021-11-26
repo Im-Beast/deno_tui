@@ -67,11 +67,11 @@ export function createLabel(
       }
 
       let c = column;
-      let r = row + i;
+      let r = row;
 
       switch (textAlign.horizontal) {
         case "center":
-          c = Math.floor(column + (width / 2 - tw / 2));
+          c = Math.floor(column + (width / 2) - (tw / 2));
           break;
         case "right":
           r = column + width;
@@ -90,7 +90,7 @@ export function createLabel(
       drawers.push(() =>
         drawText(object.canvas, {
           column: c,
-          row: r,
+          row: r + i,
           text: line,
           styler: getCurrentStyler(label),
         })

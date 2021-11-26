@@ -6,24 +6,22 @@ import {
 import { Dynamic, TextAlign, TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
-import { createFrame, FrameComponent } from "./frame.ts";
 import { createLabel, LabelComponent } from "./label.ts";
 
 export type ButtonComponent = ExtendedTuiComponent<"button", {
-  text?: Dynamic<string>;
-  textAlign?: Dynamic<TextAlign>;
+  label?: Dynamic<string>;
+  labelAlign?: Dynamic<TextAlign>;
 }>;
 
 export interface CreateButtonOptions extends CreateBoxOptions {
-  text?: Dynamic<string>;
-  textAlign?: Dynamic<TextAlign>;
+  label?: Dynamic<string>;
+  labelAlign?: Dynamic<TextAlign>;
 }
 
 export function createButton(
   object: TuiObject,
   options: CreateButtonOptions,
 ): ButtonComponent {
-  let frame: FrameComponent | undefined;
   let label: LabelComponent | undefined;
 
   const button: ButtonComponent = createComponent(object, {
@@ -31,37 +29,11 @@ export function createButton(
     interactive: true,
     ...options,
     draw() {
-      if (!frame && getStaticValue(button.styler).frame) {
-        frame = createFrame(button, {
-          ...options,
-          rectangle() {
-            const rectangle = getStaticValue(button.rectangle);
-            return {
-              column: rectangle.column - 1,
-              row: rectangle.row - 1,
-              width: rectangle.width + 1,
-              height: rectangle.height + 1,
-            };
-          },
-          styler() {
-            const styler = getStaticValue(button.styler);
-
-            if (frame && !styler.frame) {
-              removeComponent(frame);
-              frame = undefined;
-            }
-
-            return styler.frame || {};
-          },
-          focusedWithin: [button, ...button.focusedWithin],
-        });
-      }
-
-      if (!label && button.text) {
+      if (!label && button.label) {
         label = createLabel(button, {
           drawPriority: button.drawPriority + 1,
           text() {
-            const value = getStaticValue(button.text);
+            const value = getStaticValue(button.label);
 
             if (label && typeof value !== "string") {
               removeComponent(label);
@@ -73,7 +45,7 @@ export function createButton(
           rectangle: button.rectangle,
           textAlign: () =>
             getStaticValue(
-              button.textAlign || ({
+              button.labelAlign || ({
                 horizontal: "center",
                 vertical: "center",
               }),
@@ -84,8 +56,8 @@ export function createButton(
       }
     },
   }, {
-    text: options.text,
-    textAlign: options.textAlign,
+    label: options.label,
+    labelAlign: options.labelAlign,
   });
 
   createBox(button, {

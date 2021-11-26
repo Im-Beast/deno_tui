@@ -3,10 +3,12 @@ import {
   createComponent,
   CreateComponentOptions,
   getCurrentStyler,
+  removeComponent,
   TuiComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
+import { createFrame, FrameComponent } from "./frame.ts";
 
 export type BoxComponent = TuiComponent<"box">;
 
@@ -19,11 +21,41 @@ export function createBox(
   object: TuiObject,
   options: CreateBoxOptions,
 ): BoxComponent {
+  let frame: FrameComponent | undefined;
+
   const box = createComponent(object, {
     name: "box",
     interactive: false,
     ...options,
     draw() {
+      const styler = getStaticValue(box.styler);
+      if (!frame && styler.frame) {
+        frame = createFrame(box, {
+          ...options,
+          label: styler.frame.label,
+          rectangle() {
+            const rectangle = getStaticValue(box.rectangle);
+            return {
+              column: rectangle.column - 1,
+              row: rectangle.row - 1,
+              width: rectangle.width + 1,
+              height: rectangle.height + 1,
+            };
+          },
+          styler() {
+            const styler = getStaticValue(box.styler);
+
+            if (frame && !styler.frame) {
+              removeComponent(frame);
+              frame = undefined;
+            }
+
+            return styler.frame || {};
+          },
+          focusedWithin: [box, ...box.focusedWithin],
+        });
+      }
+
       drawRectangle(object.canvas, {
         ...getStaticValue(box.rectangle),
         styler: getCurrentStyler(box),
