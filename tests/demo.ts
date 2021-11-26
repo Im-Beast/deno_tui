@@ -1,4 +1,5 @@
 import {
+  capitalize,
   compileStyler,
   createBox,
   createButton,
@@ -8,17 +9,18 @@ import {
   createLabel,
   createMenu,
   createMenuItem,
+  createMenuList,
   createTextbox,
   createTui,
   getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
   keyword,
-  rgb,
+  textWidth,
   TuiStyler,
 } from "../mod.ts";
 
-const mainStyler = compileStyler<TuiStyler>({
+const tuiStyler = compileStyler<TuiStyler>({
   foreground: "white",
   background: "black",
   focused: {
@@ -37,80 +39,97 @@ const mainStyler = compileStyler<TuiStyler>({
 });
 
 const componentStyler: TuiStyler = {
-  ...mainStyler,
+  ...tuiStyler,
   background: keyword("bgBlue"),
 };
 
 const tui = createTui(Deno.stdin, Deno.stdout, {
-  styler: mainStyler,
-  refreshRate: 32,
+  styler: tuiStyler,
 });
-
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 
-const button = createButton(tui, {
-  rectangle: {
-    column: 3,
-    row: 2,
-    width: 10,
-    height: 5,
-  },
+const menu = createMenu(tui, {
   styler: componentStyler,
-  text: "Click me",
-  textAlign: {
-    vertical: "center",
-    horizontal: "center",
-  },
 });
+
+createMenuList(menu, {
+  label: "File",
+  items: ["Open", "Save", "Close"],
+  // When styler property is missing it is inherited from parent
+});
+
+const help = createMenuItem(menu, {
+  label: "Help",
+});
+
+let helpHidden = true;
+help.on("active", () => helpHidden = !helpHidden);
+
+const helpMessage = createButton(help, {
+  // Set dynamic properties as functions so they'll be reactive!
+  rectangle() {
+    if (helpHidden) {
+      return {
+        column: -1,
+        row: -1,
+        width: 0,
+        height: 0,
+      };
+    }
+
+    const { width, height } = tui.rectangle();
+    return {
+      column: ~~(width / 4),
+      row: ~~((height - 1) / 4),
+      width: ~~(width / 2),
+      height: ~~((height - 1) / 2),
+    };
+  },
+  label:
+    `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
+  drawPriority: 2, // draw over components with lower priority (default 0)
+});
+helpMessage.interactive = false;
 
 createBox(tui, {
   rectangle: {
-    column: 15,
-    row: 15,
-    width: 2,
-    height: 1,
-  },
-  styler: () => ({
-    background: rgb(
-      Math.random() * 255,
-      Math.random() * 255,
-      Math.random() * 255,
-      true,
-    ),
-  }),
-});
-tui.selected.item = button;
-
-const box = createBox(tui, {
-  rectangle: {
-    column: 16,
+    column: 2,
     row: 2,
-    width: 12,
-    height: 3,
+    width: 5,
+    height: 4,
   },
   styler: componentStyler,
 });
 
-createLabel(box, {
-  text: "Test label",
+createFrame(tui, {
   rectangle: {
-    column: 17,
-    row: 3,
-    width: 10,
+    column: 1,
+    row: 1,
+    width: 6,
+    height: 5,
+  },
+  styler: componentStyler.frame,
+});
+
+createLabel(tui, {
+  rectangle: {
+    column: 1,
+    row: 8,
+    width: 50,
     height: 2,
   },
+  text: "↓ This is label\nＱuick Ｂrown Ｆox\njumped over the lazy dog.",
   textAlign: {
-    horizontal: "right",
-    vertical: "center",
+    vertical: "top",
+    horizontal: "left",
   },
-  styler: componentStyler,
 });
 
 createCheckbox(tui, {
   rectangle: {
-    column: 3,
-    row: 10,
+    column: 28,
+    row: 2,
     width: 1,
     height: 1,
   },
@@ -120,8 +139,8 @@ createCheckbox(tui, {
 
 createCheckbox(tui, {
   rectangle: {
-    column: 7,
-    row: 10,
+    column: 28,
+    row: 5,
     width: 1,
     height: 1,
   },
@@ -129,118 +148,106 @@ createCheckbox(tui, {
   styler: componentStyler,
 });
 
-createCheckbox(tui, {
+createCombobox(tui, {
+  items: ["one", "two", "three", "four", { label: "five", value: 5 }],
   rectangle: {
-    column: 11,
-    row: 10,
-    width: 1,
+    column: 55,
+    row: 2,
+    width: 9,
     height: 1,
   },
-  default: false,
-  styler: {
-    ...componentStyler,
-    active: {
-      background: keyword("green"),
-      foreground: keyword("black"),
-    },
-  },
+  styler: componentStyler,
 });
 
-createTextbox(tui, {
+const normalTextbox = createTextbox(tui, {
+  rectangle: {
+    column: 55,
+    row: 5,
+    width: 9,
+    height: 1,
+  },
   hidden: false,
   multiline: false,
-  rectangle: {
-    column: 17,
-    row: 7,
-    width: 10,
-    height: 1,
-  },
   styler: componentStyler,
 });
+normalTextbox.value = ["visible"];
 
-createTextbox(tui, {
+const hiddenTextbox = createTextbox(tui, {
+  rectangle: {
+    column: 55,
+    row: 8,
+    width: 9,
+    height: 1,
+  },
   hidden: true,
   multiline: false,
+  styler: componentStyler,
+});
+hiddenTextbox.value = ["hidden"];
+
+const multilineTextbox = createTextbox(tui, {
   rectangle: {
-    column: 17,
-    row: 10,
-    width: 10,
-    height: 1,
-  },
-  styler: componentStyler,
-});
-
-createCombobox(tui, {
-  items: ["uno", "dos", "tres", { label: "quatro", value: 4 }],
-  value: 2,
-  rectangle: {
-    column: 40,
-    row: 3,
-    width: 6,
-    height: 1,
-  },
-  styler: componentStyler,
-});
-
-const menu = createMenu(tui, {
-  styler: componentStyler,
-});
-
-createMenuItem(menu, {
-  styler: componentStyler,
-  text: "Uno",
-});
-
-createMenuItem(menu, {
-  styler: componentStyler,
-  text: "Dos",
-});
-
-createMenuItem(menu, {
-  styler: componentStyler,
-  text: "Tres",
-});
-
-const pos = { col: 0, row: 0 };
-const dir = { col: 1, row: 1 };
-const dynamicButton = createButton(tui, {
-  drawPriority: 50,
-  rectangle: () => ({
-    column: 30 + pos.col,
-    row: 1 + pos.row,
+    column: 55,
+    row: 11,
+    width: 9,
     height: 3,
-    width: 6,
-  }),
-  text: () => `${(Math.round(Math.random() * 1e5)).toString(32)}`,
-  styler: componentStyler,
-});
-dynamicButton.interactive = false;
-
-setInterval(() => {
-  pos.col += 1 * dir.col;
-  pos.row += 1 * dir.row;
-
-  const { row, column, width, height } = getStaticValue(
-    dynamicButton.rectangle,
-  );
-  const { height: tuiHeight, width: tuiWidth } = tui.rectangle();
-
-  if (row >= tuiHeight - height || row <= 0) {
-    dir.row *= -1;
-  }
-
-  if (column >= tuiWidth - width || column <= 0) {
-    dir.col *= -1;
-  }
-}, 16);
-
-createFrame(tui, {
-  rectangle: {
-    column: 100,
-    row: 2,
-    height: 8,
-    width: 10,
   },
-  label: "hi",
+  hidden: false,
+  multiline: true,
   styler: componentStyler,
 });
+multilineTextbox.value = ["it", "is", "multiline"];
+
+const multilineHiddenTextbox = createTextbox(tui, {
+  rectangle: {
+    column: 68,
+    row: 8,
+    width: 9,
+    height: 3,
+  },
+  hidden: true,
+  multiline: true,
+  styler: componentStyler,
+});
+multilineHiddenTextbox.value = ["it", "is", "hidden"];
+
+createButton(tui, {
+  rectangle: {
+    column: 28,
+    row: 8,
+    width: 7,
+    height: 3,
+  },
+  label: "click",
+  styler: componentStyler,
+});
+
+const specifiedComponents: string[] = [];
+for (const component of tui.children) {
+  if (
+    component.name === "label" ||
+    specifiedComponents.some((x) => x === component.name)
+  ) {
+    continue;
+  }
+
+  specifiedComponents.push(component.name);
+
+  const rectangle = getStaticValue(component.rectangle);
+  const message = `← This is ${capitalize(component.name)}`;
+
+  createLabel(component, {
+    rectangle: {
+      column: rectangle.column + rectangle.width + 2,
+      row: rectangle.row,
+      width: textWidth(message),
+      height: 1,
+    },
+    text: message,
+    textAlign: {
+      horizontal: "center",
+      vertical: "center",
+    },
+    styler: tuiStyler,
+  });
+}
