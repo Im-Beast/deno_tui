@@ -42,35 +42,43 @@ export function getCurrentStyler(
   const isActive = options?.active?.value ||
     (!options?.active?.force && isSelected && active);
 
-  return (isActive
-    ? styler.active || styler.focused
-    : isFocused
-    ? styler.focused
-    : styler) || styler;
+  if (isActive) {
+    return {
+      ...styler,
+      ...styler.focused,
+      ...styler.active,
+    };
+  } else if (isFocused) {
+    return {
+      ...styler,
+      ...styler.focused,
+    };
+  }
+  return styler;
 }
 
 export type ExtendedTuiComponent<
   Name extends string = string,
   Extension = void,
   Events = void,
-  Attributes = void,
-> = TuiComponent<Name, Events, Attributes> & Extension;
+  EventDataType = void,
+> = TuiComponent<Name, Events, EventDataType> & Extension;
 
 export type TuiComponent<
   Name extends string = string,
   Events = void,
-  Attributes = void,
+  EventDataType = void,
 > = {
   readonly id: number;
-  readonly name: Name;
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>
-    & EventEmitter<Events extends string ? Events : never, Attributes>;
-  readonly on: TuiComponent<Name, Events, Attributes>["emitter"]["on"];
-  readonly once: TuiComponent<Name, Events, Attributes>["emitter"]["once"];
-  readonly off: TuiComponent<Name, Events, Attributes>["emitter"]["off"];
+    & EventEmitter<Events extends string ? Events : never, EventDataType>;
+  readonly on: TuiComponent<Name, Events, EventDataType>["emitter"]["on"];
+  readonly once: TuiComponent<Name, Events, EventDataType>["emitter"]["once"];
+  readonly off: TuiComponent<Name, Events, EventDataType>["emitter"]["off"];
+  name: Name;
   draw: () => void;
   instance: TuiInstance;
   rectangle: Dynamic<TuiRectangle>;
