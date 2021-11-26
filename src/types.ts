@@ -36,6 +36,7 @@ export interface TuiStyler extends CanvasStyler {
   frame?: CanvasStyler & {
     active?: CanvasStyler;
     focused?: CanvasStyler;
+    label?: Dynamic<string>;
   };
 }
 

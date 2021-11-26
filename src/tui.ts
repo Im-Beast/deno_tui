@@ -29,6 +29,7 @@ export interface TuiInstance {
   readonly once: TuiInstance["emitter"]["once"];
   readonly draw: () => void;
   readonly stopDrawing: () => void;
+  readonly restartDrawing: () => void;
   rectangle: () => TuiRectangle;
   children: AnyComponent[];
   components: AnyComponent[];
@@ -59,7 +60,6 @@ export interface CreateTuiOptionsWithoutCanvas {
   canvas?: never;
   filler?: string;
 }
-
 let instanceId = 0;
 export function createTui(
   reader: Reader,
@@ -67,7 +67,7 @@ export function createTui(
   {
     styler,
     filler,
-    refreshRate = 16,
+    refreshRate = 32,
     size,
     canvas = createCanvas({
       writer,
@@ -93,11 +93,11 @@ export function createTui(
         styler,
       });
 
-      const drawComponents = tui.components.sort((b, a) =>
+      tui.components = tui.components.sort((b, a) =>
         b.drawPriority - a.drawPriority
       );
 
-      for (const component of drawComponents) {
+      for (const component of tui.components) {
         component.draw();
       }
 
@@ -114,9 +114,14 @@ export function createTui(
       });
 
       render(tui.canvas);
+
+      tui.selected.active = false;
     },
     stopDrawing() {
       clearInterval(intervalId);
+    },
+    restartDrawing() {
+      restartInterval();
     },
     rectangle() {
       const { columns: width, rows: height } = getStaticValue(tui.size);

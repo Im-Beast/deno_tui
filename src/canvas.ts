@@ -5,29 +5,22 @@ import { ConsoleSize, Dynamic, Writer } from "./types.ts";
 import { getStaticValue, isFullWidth, removeStyleCodes } from "./util.ts";
 import { capitalize } from "./util.ts";
 
-const textEncoder = new TextEncoder();
+const encoder = new TextEncoder();
 
 export function moveCursor(
   writer: Writer,
   row: number,
   column: number,
 ) {
-  Deno.writeSync(writer.rid, textEncoder.encode(`\x1b[${row};${column}H`));
+  Deno.writeSync(writer.rid, encoder.encode(`\x1b[${row};${column}H`));
 }
 
 export function hideCursor(writer: Writer) {
-  Deno.writeSync(writer.rid, textEncoder.encode(`\x1b[?25l`));
+  Deno.writeSync(writer.rid, encoder.encode(`\x1b[?25l`));
 }
 
 export function showCursor(writer: Writer) {
-  Deno.writeSync(writer.rid, textEncoder.encode(`\x1b[?25h`));
-}
-
-export interface CreateCanvasOptions {
-  writer: Writer;
-  styler: CanvasStyler;
-  size?: Dynamic<ConsoleSize>;
-  filler?: string;
+  Deno.writeSync(writer.rid, encoder.encode(`\x1b[?25h`));
 }
 
 export interface CanvasInstance {
@@ -43,27 +36,33 @@ export interface CanvasInstance {
   lastTime?: number;
 }
 
+export interface CreateCanvasOptions {
+  writer: Writer;
+  styler: CanvasStyler;
+  size?: Dynamic<ConsoleSize>;
+  filler?: string;
+}
+
 export function createCanvas(
   {
     writer,
     styler,
-    size = () => Deno.consoleSize(writer.rid),
     filler = " ",
+    size = () => Deno.consoleSize(writer.rid),
   }: CreateCanvasOptions,
 ): CanvasInstance {
   const canvas: CanvasInstance = {
+    size,
     writer,
     styler,
-    size,
-    filler: styleTextFromStyler(filler, styler),
-    frameBuffer: [],
-    changes: [],
-    smartRender: true,
     fps: 0,
+    changes: [],
+    frameBuffer: [],
+    smartRender: true,
+    filler: styleTextFromStyler(filler, styler),
   };
 
   const updateCanvas = () => {
-    Deno.writeSync(writer.rid, textEncoder.encode(`\x1b[0332J`));
     fillBuffer(canvas);
     renderFull(canvas);
     canvas.prevBuffer = undefined;
@@ -105,9 +104,8 @@ export function renderChanges(instance: CanvasInstance): void {
   for (const [r, c] of instance.changes) {
     instance.frameBuffer[r][c] ||= [instance.filler, instance.filler];
     const text = instance.frameBuffer[r][c].join("");
-
     moveCursor(instance.writer, r + 1, (c * 2) + 1);
-    const encoded = textEncoder.encode(text);
+    const encoded = encoder.encode(text);
     Deno.writeSync(instance.writer.rid, encoded);
   }
 
@@ -117,20 +115,21 @@ export function renderChanges(instance: CanvasInstance): void {
 export function renderFull(instance: CanvasInstance): void {
   const { rows, columns } = getStaticValue(instance.size);
 
+  moveCursor(instance.writer, 0, 0);
+
   for (let r = 0; r < rows; ++r) {
     let string = "\r";
-
     for (let c = 0; c < ~~(columns / 2); ++c) {
       string += instance.frameBuffer[r][c].join("");
     }
-
     if (r < rows - 1) string += "\n";
-
-    Deno.writeSync(instance.writer.rid, textEncoder.encode(string));
+    Deno.writeSync(instance.writer.rid, encoder.encode(string));
   }
 }
 
 export function render(instance: CanvasInstance): void {
+  Deno.writeSync(instance.writer.rid, encoder.encode(`\x1b[0332J`));
+
   if (instance.prevBuffer?.length) {
     const { rows, columns } = getStaticValue(instance.size);
 
@@ -146,7 +145,6 @@ export function render(instance: CanvasInstance): void {
     }
   }
 
-  moveCursor(instance.writer, 0, 0);
   hideCursor(instance.writer);
 
   if (instance.smartRender && instance.prevBuffer) {
@@ -301,7 +299,7 @@ export function compileStylerValue(value: string, index: string) {
 export function compileStyler<T = void>(
   styler: T extends CanvasStyler ? T | AnyStyler : AnyStyler,
 ): T extends CanvasStyler ? T : AnyStyler {
-  // @ts-ignore :(
+  // @ts-expect-error Creating new object which will be expanded
   const obj: T extends CanvasStyler ? T : AnyStyler = {};
 
   for (const [index, value] of Object.entries(styler)) {

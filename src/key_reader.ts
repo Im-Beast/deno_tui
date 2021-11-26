@@ -242,7 +242,6 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
           case "[24~":
             keyPress.key = "f12";
             break;
-
           case "[A":
           case "OA":
             keyPress.key = "up";
@@ -292,17 +291,14 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
           case "[F":
           case "OF":
           case "[8~":
+          case "[4~":
             keyPress.key = "end";
             break;
-
           case "[2~":
             keyPress.key = "insert";
             break;
           case "[3~":
             keyPress.key = "delete";
-            break;
-          case "[4~":
-            keyPress.key = "end";
             break;
           case "[5~":
           case "[[5~":
@@ -312,7 +308,6 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
           case "[[6~":
             keyPress.key = "pagedown";
             break;
-
           case "[a":
             keyPress.key = "up";
             keyPress.shift = true;
@@ -357,7 +352,6 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
             keyPress.key = "end";
             keyPress.shift = true;
             break;
-
           case "Oa":
             keyPress.key = "up";
             keyPress.ctrl = true;
@@ -378,7 +372,6 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
             keyPress.key = "clear";
             keyPress.ctrl = true;
             break;
-
           case "[2^":
             keyPress.key = "insert";
             keyPress.ctrl = true;
@@ -403,12 +396,10 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
             keyPress.key = "end";
             keyPress.ctrl = true;
             break;
-
           case "[Z":
             keyPress.key = "tab";
             keyPress.shift = true;
             break;
-
           default:
             break;
         }
