@@ -29,7 +29,6 @@ export interface TuiInstance {
   readonly once: TuiInstance["emitter"]["once"];
   readonly draw: () => void;
   readonly stopDrawing: () => void;
-  readonly restartDrawing: () => void;
   rectangle: () => TuiRectangle;
   children: AnyComponent[];
   components: AnyComponent[];
@@ -79,6 +78,7 @@ export function createTui(
 ): TuiInstance {
   const emitter = createEventEmitter() as TuiInstance["emitter"];
 
+  let timeoutHandle: number | undefined;
   const tui: TuiInstance = {
     id: instanceId++,
     emitter,
@@ -92,10 +92,6 @@ export function createTui(
         ...tui.rectangle(),
         styler,
       });
-
-      tui.components = tui.components.sort((b, a) =>
-        b.drawPriority - a.drawPriority
-      );
 
       for (const component of tui.components) {
         component.draw();
@@ -116,12 +112,14 @@ export function createTui(
       render(tui.canvas);
 
       tui.selected.active = false;
+
+      timeoutHandle = setTimeout(
+        tui.draw,
+        getStaticValue(refreshRate) - tui.canvas.deltaTime,
+      );
     },
     stopDrawing() {
-      clearInterval(intervalId);
-    },
-    restartDrawing() {
-      restartInterval();
+      clearTimeout(timeoutHandle);
     },
     rectangle() {
       const { columns: width, rows: height } = getStaticValue(tui.size);
@@ -144,26 +142,6 @@ export function createTui(
     writer,
   };
 
-  let intervalId: number;
-  const restartInterval = () => {
-    if (intervalId) clearInterval(intervalId);
-    const dynamicRR = typeof refreshRate === "function";
-    let lastRR: number;
-    setInterval(
-      dynamicRR
-        ? () => {
-          tui.draw();
-          const rr = refreshRate();
-          if (lastRR && lastRR !== rr) {
-            restartInterval();
-          }
-        }
-        : tui.draw,
-      getStaticValue(refreshRate),
-    );
-  };
-
-  restartInterval();
-
+  tui.draw();
   return tui;
 }

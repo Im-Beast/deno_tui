@@ -168,6 +168,10 @@ export function createComponent<
   instance.components.push(component);
   object.children.push(component);
 
+  instance.components = instance.components.sort((b, a) =>
+    b.drawPriority - a.drawPriority
+  );
+
   return component as Extension extends void
     ? TuiComponent<Name, Events, DataTypes>
     : ExtendedTuiComponent<Name, Extension, Events, DataTypes>;
