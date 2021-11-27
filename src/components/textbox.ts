@@ -68,11 +68,14 @@ export function createTextbox(
       }
 
       if (textbox.instance.selected.item?.id === textbox.id) {
+        const currentCharacter = textbox.value?.[position.y]?.[position.x];
         const cursorCol = column + Math.min(position.x, width - 1);
         drawPixel(object.canvas, {
           column: cursorCol,
           row: row + position.y,
-          value: textbox.value?.[position.y]?.[position.x] || " ",
+          value: currentCharacter
+            ? textbox.hidden ? "*" : currentCharacter
+            : " ",
           styler: (getStaticValue<TextboxTuiStyler>(textbox.styler)?.cursor) ||
             { foreground: "\x1b[30m", background: "\x1b[47m" },
         });
