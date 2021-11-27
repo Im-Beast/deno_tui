@@ -8,19 +8,18 @@ import { capitalize } from "./util.ts";
 const encoder = new TextEncoder();
 
 export function moveCursor(
-  writer: Writer,
   row: number,
   column: number,
-) {
-  Deno.writeSync(writer.rid, encoder.encode(`\x1b[${row};${column}H`));
+): string {
+  return `\x1b[${row};${column}H`;
 }
 
-export function hideCursor(writer: Writer) {
-  Deno.writeSync(writer.rid, encoder.encode(`\x1b[?25l`));
+export function hideCursor(): string {
+  return `\x1b[?25l`;
 }
 
-export function showCursor(writer: Writer) {
-  Deno.writeSync(writer.rid, encoder.encode(`\x1b[?25h`));
+export function showCursor(): string {
+  return `\x1b[?25h`;
 }
 
 export interface CanvasInstance {
@@ -30,10 +29,10 @@ export interface CanvasInstance {
   filler: string;
   frameBuffer: [string, string][][];
   prevBuffer?: [string, string][][];
-  changes: [number, number][];
   smartRender: boolean;
   fps: number;
-  lastTime?: number;
+  lastTime: number;
+  deltaTime: number;
 }
 
 export interface CreateCanvasOptions {
@@ -56,7 +55,8 @@ export function createCanvas(
     writer,
     styler,
     fps: 0,
-    changes: [],
+    lastTime: Date.now(),
+    deltaTime: 16,
     frameBuffer: [],
     smartRender: true,
     filler: styleTextFromStyler(filler, styler),
@@ -64,15 +64,17 @@ export function createCanvas(
 
   const updateCanvas = () => {
     fillBuffer(canvas);
-    renderFull(canvas);
     canvas.prevBuffer = undefined;
+    renderFull(canvas);
   };
 
   updateCanvas();
+  // Temporary fix for full-width characters getting cut
+  setTimeout(updateCanvas, 32);
 
   Deno.addSignalListener("SIGWINCH", updateCanvas);
   Deno.addSignalListener("SIGINT", () => {
-    showCursor(writer);
+    Deno.writeSync(canvas.writer.rid, encoder.encode(showCursor()));
     Deno.exit(0);
   });
 
@@ -82,43 +84,48 @@ export function createCanvas(
 export function fillBuffer(
   instance: CanvasInstance,
 ) {
-  const fillerArr: [string, string] =
-    isFullWidth(removeStyleCodes(instance.filler))
-      ? [instance.filler, ""]
-      : [instance.filler, instance.filler];
+  const fullWidth = isFullWidth(removeStyleCodes(instance.filler));
 
   const { rows, columns } = getStaticValue(instance.size);
 
   for (let r = 0; r < rows; ++r) {
     instance.frameBuffer[r] ||= [];
     for (let c = 0; c < ~~(columns / 2); ++c) {
-      if (!instance.frameBuffer[r][c]?.length) {
-        instance.frameBuffer[r][c] = fillerArr;
-        instance.changes.push([r, c]);
-      }
+      instance.frameBuffer[r][c] ||= [
+        instance.filler,
+        fullWidth ? "" : instance.filler,
+      ];
     }
   }
 }
 
 export function renderChanges(instance: CanvasInstance): void {
-  for (const [r, c] of instance.changes) {
-    instance.frameBuffer[r][c] ||= [instance.filler, instance.filler];
-    const text = instance.frameBuffer[r][c].join("");
-    moveCursor(instance.writer, r + 1, (c * 2) + 1);
-    const encoded = encoder.encode(text);
-    Deno.writeSync(instance.writer.rid, encoded);
-  }
+  if (!instance.prevBuffer?.length) return;
 
-  instance.changes = [];
+  const { rows, columns } = getStaticValue(instance.size);
+
+  let string = "";
+  for (let r = 0; r < rows; ++r) {
+    for (let c = 0; c < ~~(columns / 2); ++c) {
+      if (
+        String(instance.prevBuffer?.[r]?.[c]) !=
+          String(instance.frameBuffer?.[r]?.[c])
+      ) {
+        string += moveCursor(r + 1, (c * 2) + 1) +
+          instance.frameBuffer[r][c].join("");
+      }
+    }
+  }
+  Deno.writeSync(instance.writer.rid, encoder.encode(string));
 }
 
 export function renderFull(instance: CanvasInstance): void {
   const { rows, columns } = getStaticValue(instance.size);
 
-  moveCursor(instance.writer, 0, 0);
+  Deno.writeSync(instance.writer.rid, encoder.encode(moveCursor(0, 0)));
 
   for (let r = 0; r < rows; ++r) {
-    let string = "\r";
+    let string = `\r`;
     for (let c = 0; c < ~~(columns / 2); ++c) {
       string += instance.frameBuffer[r][c].join("");
     }
@@ -128,24 +135,8 @@ export function renderFull(instance: CanvasInstance): void {
 }
 
 export function render(instance: CanvasInstance): void {
-  Deno.writeSync(instance.writer.rid, encoder.encode(`\x1b[0332J`));
-
-  if (instance.prevBuffer?.length) {
-    const { rows, columns } = getStaticValue(instance.size);
-
-    for (const [r, _row] of instance.frameBuffer.entries()) {
-      if (!_row || r > rows) continue;
-      for (const [c, _col] of _row.entries()) {
-        if (!_col || c >= ~~(columns / 2)) continue;
-        // @ts-expect-error javascript hack
-        if (String(instance.prevBuffer?.[r]?.[c]) != _col) {
-          instance.changes.push([r, c]);
-        }
-      }
-    }
-  }
-
-  hideCursor(instance.writer);
+  const start = Date.now();
+  Deno.writeSync(instance.writer.rid, encoder.encode(hideCursor()));
 
   if (instance.smartRender && instance.prevBuffer) {
     renderChanges(instance);
@@ -155,13 +146,9 @@ export function render(instance: CanvasInstance): void {
 
   instance.prevBuffer = JSON.parse(JSON.stringify(instance.frameBuffer));
 
-  if (!instance.lastTime) {
-    instance.lastTime = Date.now();
-  } else {
-    const fps = 1000 / (Date.now() - instance.lastTime);
-    instance.fps = fps;
-    instance.lastTime = Date.now();
-  }
+  instance.fps = 1000 / (Date.now() - instance.lastTime);
+  instance.lastTime = Date.now();
+  instance.deltaTime = Date.now() - start;
 }
 
 interface DrawPixelOptions {
@@ -175,40 +162,27 @@ export function drawPixel(
   instance: CanvasInstance,
   { column, row, styler, value }: DrawPixelOptions,
 ) {
-  if (Math.min(row, column) < 0) return;
   const index = column % 2;
   column = ~~(column / 2);
+  const pos = instance.frameBuffer?.[row]?.[column];
+  if (!pos) return;
 
-  if (!instance.frameBuffer?.[row]?.[column]?.length) {
-    instance.frameBuffer[row] ||= [];
-    instance.frameBuffer[row][column] ||= [
-      instance.filler,
-      instance.filler,
-    ];
-  }
-
-  const fullWidth = isFullWidth(removeStyleCodes(value));
+  const fullWidth = isFullWidth(value);
 
   if (styler) {
     value = styleTextFromStyler(value, styler);
   }
 
-  const pos = instance.frameBuffer[row][column];
-  const valueArr: [string, string] = [value, value];
-
   const revIndex = (index - 1) * -1;
   if (fullWidth) {
     if (index === 1) {
       instance.frameBuffer[row][column + 1][0] = "";
-      valueArr[revIndex] = pos[revIndex];
     } else {
-      valueArr[revIndex] = "";
+      instance.frameBuffer[row][column][revIndex] = "";
     }
-  } else {
-    valueArr[revIndex] = fullWidth ? "" : pos[revIndex];
   }
 
-  instance.frameBuffer[row][column] = valueArr;
+  instance.frameBuffer[row][column][index] = value;
 }
 
 export interface DrawRectangleOptions {
@@ -290,7 +264,7 @@ export function styleText(
 export function compileStylerValue(value: string, index: string) {
   if (!value?.includes) throw value;
   return value.includes("\x1b") ? value : keyword(
-    index.includes("background")
+    index.includes("background") && !value.includes("bg")
       ? `bg${capitalize(value)}` as Style
       : value as Style,
   );
