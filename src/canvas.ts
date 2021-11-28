@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { keyword } from "./colors.ts";
 import { Style } from "./colors.ts";
 import { StyleCode } from "./colors.ts";
@@ -7,6 +8,16 @@ import { capitalize } from "./util.ts";
 
 const encoder = new TextEncoder();
 
+/** ASCII escape code to hide terminal cursor  */
+export const HIDE_CURSOR = `\x1b[?25l`;
+/** ASCII escape code to show terminal cursor  */
+export const SHOW_CURSOR = `\x1b[?25h`;
+
+/**
+ * Get ASCII escape code that moves terminal cursor to given position
+ * @param row - terminal row tow which cursor will be moved
+ * @param column - terminal column tow which cursor will be moved
+ */
 export function moveCursor(
   row: number,
   column: number,
@@ -14,52 +25,57 @@ export function moveCursor(
   return `\x1b[${row};${column}H`;
 }
 
-export function hideCursor(): string {
-  return `\x1b[?25l`;
-}
-
-export function showCursor(): string {
-  return `\x1b[?25h`;
-}
-
 export interface CanvasInstance {
+  /** Writer that canvas will write data to */
   writer: Writer;
-  styler: CanvasStyler;
+  /** Size of canvas, limits size of frameBuffer too */
   size: Dynamic<ConsoleSize>;
+  /** Character which will be used to fill empty space */
   filler: string;
+  /** Matrix which stores pixels which later will be used to render to the terminal */
   frameBuffer: [string, string][][];
+  /** Previously used frameBuffer, used to calculate changes */
   prevBuffer?: [string, string][][];
+  /** Whether canvas should only redraw changes */
   smartRender: boolean;
+  /** Canvas FPS */
   fps: number;
+  /** Last time canvas was rendered */
   lastTime: number;
+  /** How long it took to render last frame */
   deltaTime: number;
 }
 
 export interface CreateCanvasOptions {
+  /** Writer that canvas will write data to */
   writer: Writer;
-  styler: CanvasStyler;
+  /** Size of canvas, limits size of frameBuffer too */
   size?: Dynamic<ConsoleSize>;
-  filler?: string;
+  /** Character which will be used to fill empty space */
+  filler: string;
 }
 
+/**
+ * Create CanvasInstance
+ * It is used to render on terminal screen
+ * @param options
+ */
 export function createCanvas(
   {
     writer,
-    styler,
-    filler = " ",
+    filler,
     size = () => Deno.consoleSize(writer.rid),
   }: CreateCanvasOptions,
 ): CanvasInstance {
   const canvas: CanvasInstance = {
     size,
+    filler,
     writer,
-    styler,
     fps: 0,
     lastTime: Date.now(),
     deltaTime: 16,
     frameBuffer: [],
     smartRender: true,
-    filler: styleTextFromStyler(filler, styler),
   };
 
   const updateCanvas = () => {
@@ -74,16 +90,18 @@ export function createCanvas(
 
   Deno.addSignalListener("SIGWINCH", updateCanvas);
   Deno.addSignalListener("SIGINT", () => {
-    Deno.writeSync(canvas.writer.rid, encoder.encode(showCursor()));
+    Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
     Deno.exit(0);
   });
 
   return canvas;
 }
 
-export function fillBuffer(
-  instance: CanvasInstance,
-) {
+/**
+ * Fills empty spaces in canvas frameBuffer
+ * @param instance - canvas instance which frameBuffer will be filled
+ */
+export function fillBuffer(instance: CanvasInstance): void {
   const fullWidth = isFullWidth(removeStyleCodes(instance.filler));
 
   const { rows, columns } = getStaticValue(instance.size);
@@ -99,6 +117,10 @@ export function fillBuffer(
   }
 }
 
+/**
+ * Compares changes between frames and then renders only them on terminal screen
+ * @param instance - canvas instance which will be rendered
+ */
 export function renderChanges(instance: CanvasInstance): void {
   if (!instance.prevBuffer?.length) return;
 
@@ -119,6 +141,10 @@ export function renderChanges(instance: CanvasInstance): void {
   Deno.writeSync(instance.writer.rid, encoder.encode(string));
 }
 
+/**
+ * Renders canvas frameBuffer on terminal screen
+ * @param instance - canvas instance which will be rendered
+ */
 export function renderFull(instance: CanvasInstance): void {
   const { rows, columns } = getStaticValue(instance.size);
 
@@ -134,9 +160,15 @@ export function renderFull(instance: CanvasInstance): void {
   }
 }
 
+/**
+ * Render terminal depending to its options
+ *
+ * Calculate running metrics (fps/lastTime/deltaTime)
+ * @param instance - canvas instance which will be rendered
+ */
 export function render(instance: CanvasInstance): void {
   const start = Date.now();
-  Deno.writeSync(instance.writer.rid, encoder.encode(hideCursor()));
+  Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
 
   if (instance.smartRender && instance.prevBuffer) {
     renderChanges(instance);
@@ -152,12 +184,21 @@ export function render(instance: CanvasInstance): void {
 }
 
 interface DrawPixelOptions {
+  /** Column on which pixel will be drawn */
   column: number;
+  /** Row on which pixel will be drawn */
   row: number;
+  /** String that will be set as pixel */
   value: string;
+  /** Definition on how pixel will look like */
   styler?: CanvasStyler;
 }
 
+/**
+ * Draw pixel on canvas
+ * @param instance - canvas instance on which pixel will be drawn
+ * @param options
+ */
 export function drawPixel(
   instance: CanvasInstance,
   { column, row, styler, value }: DrawPixelOptions,
@@ -170,7 +211,7 @@ export function drawPixel(
   const fullWidth = isFullWidth(value);
 
   if (styler) {
-    value = styleTextFromStyler(value, styler);
+    value = styleStringFromStyler(value, styler);
   }
 
   const revIndex = (index - 1) * -1;
@@ -186,14 +227,25 @@ export function drawPixel(
 }
 
 export interface DrawRectangleOptions {
-  styler?: CanvasStyler;
-  row: number;
+  /** Column on which rectangle will be drawn */
   column: number;
+  /** Row on which rectangle will be drawn */
+  row: number;
+  /** Width of rectangle */
   width: number;
+  /** Height of rectangle */
   height: number;
+  /** String that will be set as pixel */
   value?: string;
+  /** Definition on how pixel will look like */
+  styler?: CanvasStyler;
 }
 
+/**
+ * Draw rectangle on canvas
+ * @param instance - canvas instance on which rectangle will be drawn
+ * @param options
+ */
 export function drawRectangle(
   instance: CanvasInstance,
   { column, row, width, height, value = " ", styler }: DrawRectangleOptions,
@@ -211,12 +263,21 @@ export function drawRectangle(
 }
 
 export interface DrawTextOptions {
-  styler?: CanvasStyler;
+  /** Terminal's column on which text drawing will start */
   column: number;
-  text: string;
+  /** Terminal's row on which text drawing will start */
   row: number;
+  /** String that will be drawn */
+  text: string;
+  /** Definition on how drawn text will look like */
+  styler?: CanvasStyler;
 }
 
+/**
+ * Draw text on canvas
+ * @param instance - canvas instance on which text will be drawn
+ * @param options
+ */
 export function drawText(
   instance: CanvasInstance,
   options: DrawTextOptions,
@@ -240,12 +301,19 @@ export function drawText(
   }
 }
 
+/**
+ * Used to define looks of elements drawn on canvas
+ */
 export interface CanvasStyler {
+  /** ANSI escape code sequence specifying foreground color of characters that ill be drawn */
   foreground?: StyleCode;
+  /** ANSI escape code sequence specifying background color of characters that will be drawn */
   background?: StyleCode;
+  /** ANSI escape code sequence specifying attributes of characters that will be drawn */
   attributes?: StyleCode[];
 }
 
+/** Any possible to create styler */
 export interface AnyStyler {
   [key: string]: StyleCode | Style | {
     foreground?: StyleCode | Style;
@@ -254,6 +322,12 @@ export interface AnyStyler {
   };
 }
 
+/**
+ * Returns text with applied ANSI escape code
+ * @param text - text that will be styled
+ * @param style - ANSI escape code that will be applied to the text
+ * @example ("Hi", "\x1b[32m") -> "\x1b[32mHi\x1b[0m"
+ */
 export function styleText(
   text: string,
   style: StyleCode,
@@ -261,16 +335,25 @@ export function styleText(
   return `${style}${text}\x1b[0m`;
 }
 
-export function compileStylerValue(value: string, index: string) {
+/**
+ * Compiles value found in styler to StyleCode
+ * @param value - value that needs to be compiled
+ * @param property - styler property name on which value is located
+ */
+export function compileStylerValue(value: string, property: string): StyleCode {
   if (!value?.includes) throw value;
-  return value.includes("\x1b") ? value : keyword(
-    index.includes("background") && !value.includes("bg")
+  return value.includes("\x1b") ? value as StyleCode : keyword(
+    property.includes("background") && !value.includes("bg")
       ? `bg${capitalize(value)}` as Style
       : value as Style,
   );
 }
 
-export function compileStyler<T = void>(
+/**
+ * Compiles every parameter of a styler to ANSI escape code.
+ * @param styler - styler that will be compiled
+ */
+export function compileStyler<T>(
   styler: T extends CanvasStyler ? T | AnyStyler : AnyStyler,
 ): T extends CanvasStyler ? T : AnyStyler {
   // @ts-expect-error Creating new object which will be expanded
@@ -295,22 +378,27 @@ export function compileStyler<T = void>(
   return obj;
 }
 
-export function styleTextFromStyler(
-  text: string,
+/**
+ * Applies ansi escape codesfrom styler to given string
+ * @param string - string to be styled
+ * @param styler - definition for styling string
+ */
+export function styleStringFromStyler(
+  string: string,
   styler: CanvasStyler,
 ): string {
   if (styler.foreground) {
-    text = styleText(text, styler.foreground);
+    string = styleText(string, styler.foreground);
   }
   if (styler.background) {
-    text = styleText(text, styler.background);
+    string = styleText(string, styler.background);
   }
 
   if (styler.attributes) {
     for (const attribute of styler.attributes) {
-      text = styleText(text, attribute);
+      string = styleText(string, attribute);
     }
   }
 
-  return text;
+  return string;
 }

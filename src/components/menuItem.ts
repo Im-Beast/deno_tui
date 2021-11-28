@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { createComponent, ExtendedTuiComponent } from "../tui_component.ts";
 import { Dynamic } from "../types.ts";
 import { getStaticValue } from "../util.ts";
@@ -5,15 +6,26 @@ import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 import { MenuComponent } from "./menu.ts";
 
-export type MenuItemComponent = ExtendedTuiComponent<"menuItem", {
-  label: Dynamic<string>;
-}>;
-
-export interface CreateMenuItemOptions
-  extends Omit<CreateBoxOptions, "rectangle"> {
+interface MenuItemExtension {
   label: Dynamic<string>;
 }
 
+export type MenuItemComponent = ExtendedTuiComponent<
+  "menuItem",
+  MenuItemExtension
+>;
+
+export type CreateMenuItemOptions =
+  & Omit<CreateBoxOptions, "rectangle">
+  & MenuItemExtension;
+
+/**
+ * Create MenuItem
+ * It is interactive by default
+ * It gets automatically placed by menu
+ * @param object - parent of the created box, must be MenuComponent
+ * @param options
+ */
 export function createMenuItem(
   object: MenuComponent,
   options: CreateMenuItemOptions,

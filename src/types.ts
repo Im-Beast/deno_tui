@@ -1,10 +1,9 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
+// In this module should be served types that aren't specific to only one function or module
+
 import { CanvasStyler } from "./canvas.ts";
 import { TuiInstance } from "./tui.ts";
 import { ExtendedTuiComponent } from "./tui_component.ts";
-
-export type Range<From extends number, To extends number> = number extends From
-  ? number
-  : _Range<From, To, []>;
 
 type _Range<
   From extends number,
@@ -14,11 +13,15 @@ type _Range<
   : 
     | (R["length"] extends Range<0, From> ? From : R["length"])
     | _Range<From, To, [To, ...R]>;
+// Returns type for numbers between given range
+export type Range<From extends number, To extends number> = number extends From
+  ? number
+  : _Range<From, To, []>;
 
 // deno-lint-ignore no-explicit-any
 type _any = any;
 // deno-fmt-ignore
-export type AnyComponent = ExtendedTuiComponent< _any,  { [x: string | number | symbol]: unknown;  },  _any, _any >;
+export type AnyComponent = ExtendedTuiComponent< _any,  { [x in _any]: _any;  },  _any, _any >;
 
 export type TuiObject = TuiInstance | AnyComponent;
 
@@ -30,6 +33,7 @@ export interface Reader extends Deno.Reader {
   readonly rid: number;
 }
 
+/** Definition on how Tui or TuiComponent should look like */
 export interface TuiStyler extends CanvasStyler {
   active?: CanvasStyler;
   focused?: CanvasStyler;
@@ -40,6 +44,7 @@ export interface TuiStyler extends CanvasStyler {
   };
 }
 
+/** Positioning of text */
 export interface TextAlign {
   horizontal: "left" | "center" | "right";
   vertical: "top" | "center" | "bottom";

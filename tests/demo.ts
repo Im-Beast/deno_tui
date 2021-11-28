@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
   capitalize,
   compileStyler,
@@ -133,7 +134,7 @@ createCheckbox(tui, {
     width: 1,
     height: 1,
   },
-  default: false,
+  value: false,
   styler: componentStyler,
 });
 
@@ -144,7 +145,7 @@ createCheckbox(tui, {
     width: 1,
     height: 1,
   },
-  default: true,
+  value: true,
   styler: componentStyler,
 });
 

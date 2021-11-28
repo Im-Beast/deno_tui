@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
   createComponent,
   ExtendedTuiComponent,
@@ -8,16 +9,26 @@ import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { createLabel, LabelComponent } from "./label.ts";
 
-export type ButtonComponent = ExtendedTuiComponent<"button", {
+interface ButtonExtension {
+  /** Label's text displayed on the button */
   label?: Dynamic<string>;
-  labelAlign?: Dynamic<TextAlign>;
-}>;
-
-export interface CreateButtonOptions extends CreateBoxOptions {
-  label?: Dynamic<string>;
+  /**
+   * Position of the label
+   * Requires `label` property to be set.
+   */
   labelAlign?: Dynamic<TextAlign>;
 }
 
+export type ButtonComponent = ExtendedTuiComponent<"button", ButtonExtension>;
+
+export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;
+
+/**
+ * Create ButtonComponent
+ * It is interactive by default
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createButton(
   object: TuiObject,
   options: CreateButtonOptions,

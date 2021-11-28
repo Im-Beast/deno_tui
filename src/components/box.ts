@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { drawRectangle } from "../canvas.ts";
 import {
   createComponent,
@@ -17,6 +18,12 @@ export type CreateBoxOptions = Omit<
   "interactive" | "name" | "draw"
 >;
 
+/**
+ * Create BoxComponent
+ * It is not interactive by default
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createBox(
   object: TuiObject,
   options: CreateBoxOptions,

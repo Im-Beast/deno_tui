@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { KeyPress } from "../key_reader.ts";
 import {
   createComponent,
@@ -9,34 +10,68 @@ import { getStaticValue, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 
+/**
+ * Get label from ComboboxValue
+ * @param value - item to get label from
+ */
 export function getComboboxValueLabel(value: ComboboxValue): string {
   return typeof value === "string" ? value : value.label;
 }
 
+/** Type of value accepted by combobox */
 export type ComboboxValue = string | { label: string; value: unknown };
 
 export type ComboboxComponent = ExtendedTuiComponent<
   "combobox",
   {
-    readonly valueIndex: (() => number);
+    /** Items available to choose in combobox */
     items: ComboboxValue[];
+    /**
+     * Currently selected item
+     * - When you're setting value you can use either value of the item or index pointing to it in `items` property
+     * - When component processes change it will return value of the item
+     */
     value: ComboboxValue | number;
+    /** Index of currently selected item */
+    readonly valueIndex: (() => number);
+    /** Label's text displayed on the button */
     label?: Dynamic<string>;
-    textAlign: Dynamic<TextAlign>;
+    /**
+     * Position of the label
+     * Requires `label` property to be set.
+     */
+    labelAlign?: Dynamic<TextAlign>;
     expandItemsWidth?: Dynamic<boolean>;
   },
   "valueChange",
   ComboboxValue
 >;
 
-export interface CreateComboboxOptions extends CreateBoxOptions {
+export type CreateComboboxOptions = CreateBoxOptions & {
+  /** Items available to choose in combobox */
   items: ComboboxValue[];
+  /**
+   * Currently selected item
+   * - When you're setting value you can use either value of the item or index pointing to it in `items` property
+   * - When component processes change it will return value of the item
+   */
   value?: ComboboxValue | number;
+  /** Label's text displayed on the button */
   label?: Dynamic<string>;
-  textAlign?: Dynamic<TextAlign>;
+  /**
+   * Position of the label
+   * Requires `label` property to be set.
+   */
+  labelAlign?: Dynamic<TextAlign>;
   expandItemsWidth?: Dynamic<boolean>;
-}
+};
 
+/**
+ * Create ComboboxComponent
+ * It is interactive by default
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createCombobox(
   object: TuiObject,
   options: CreateComboboxOptions,
@@ -59,7 +94,7 @@ export function createCombobox(
       typeof combobox.value === "number"
         ? combobox.value
         : combobox.items.indexOf(combobox.value),
-    textAlign: options.textAlign || {
+    labelAlign: options.labelAlign || {
       horizontal: "center",
       vertical: "center",
     },
@@ -68,7 +103,7 @@ export function createCombobox(
 
   const main = createButton(combobox, {
     ...options,
-    labelAlign: () => getStaticValue(combobox.textAlign),
+    labelAlign: () => getStaticValue(combobox.labelAlign),
     rectangle: () => getStaticValue(combobox.rectangle),
     label: () =>
       getStaticValue(combobox.label) ||
@@ -117,7 +152,7 @@ export function createCombobox(
       const button = createButton(main, {
         ...options,
         label,
-        labelAlign: () => getStaticValue(combobox.textAlign),
+        labelAlign: () => getStaticValue(combobox.labelAlign),
         styler: () => ({
           ...getStaticValue(combobox.styler),
           frame: undefined,

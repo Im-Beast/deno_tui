@@ -1,5 +1,8 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
+
 export interface EventEmitter<Event extends string, DataType> {
   listeners: Listener<Event, DataType>[];
+
   emit: (event: Event, ...data: DataType[]) => void;
   on: EventFunction<Event, DataType>;
   once: EventFunction<Event, DataType>;
@@ -9,20 +12,27 @@ export interface EventEmitter<Event extends string, DataType> {
   ) => void;
 }
 
-export type EventFunction<Event extends string, DataType> = (
+type EventFunction<Event extends string, DataType> = (
   event: Event,
   func: ListenerFunction<DataType>,
   priority?: number,
 ) => void;
 
-export type ListenerFunction<DataType> = (...data: DataType[]) => void;
+type ListenerFunction<DataType> = (...data: DataType[]) => void;
 
+/** Object which stores data about function that fires on given event */
 export interface Listener<Event extends string, DataType> {
+  /** Event on which Listener's `func` will be fired */
   event: Event;
+  /** Function fired when Listener's `event` gets emitted */
   func: ListenerFunction<DataType>;
+  /** Priority of the Listener, higher priority listeners will get fired before lower priority ones */
   priority: number;
 }
 
+/**
+ * Create EventListener
+ */
 export function createEventEmitter<
   Event extends string,
   DataType,
@@ -34,7 +44,7 @@ export function createEventEmitter<
   const emit: emitter["emit"] = (emitEvent, ...data) => {
     listeners
       .filter(({ event }) => emitEvent === event)
-      .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+      .sort((a, b) => b.priority - a.priority)
       .forEach(({ func }) => setTimeout(() => func(...data), 0));
   };
 

@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
   createComponent,
   CreateComponentOptions,
@@ -8,23 +9,28 @@ import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createButton } from "./button.ts";
 
+interface CheckboxExtension {
+  /** Whether checkbox is checked or not */
+  value?: boolean;
+}
+
 export type CheckboxComponent = ExtendedTuiComponent<
   "checkbox",
-  {
-    value: boolean;
-  },
+  CheckboxExtension,
   "valueChange",
   boolean
 >;
 
-export interface CreateCheckboxOptions extends
-  Omit<
-    CreateComponentOptions,
-    "interactive" | "name"
-  > {
-  default: boolean;
-}
+export type CreateCheckboxOptions =
+  & Omit<CreateComponentOptions, "interactive" | "name">
+  & CheckboxExtension;
 
+/**
+ * Create CheckboxComponent
+ * It is interactive by default
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createCheckbox(
   object: TuiObject,
   options: CreateCheckboxOptions,
@@ -33,7 +39,7 @@ export function createCheckbox(
     name: "checkbox",
     ...options,
   }, {
-    value: options.default,
+    value: !!options.value,
   });
 
   const button = createButton(checkbox, {
@@ -41,7 +47,7 @@ export function createCheckbox(
     styler: () => {
       return getCurrentStyler(checkbox, {
         active: {
-          value: checkbox.value,
+          value: !!checkbox.value,
           force: true,
         },
       });

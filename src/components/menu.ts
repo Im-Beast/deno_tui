@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { drawRectangle } from "../canvas.ts";
 import {
   createComponent,
@@ -16,9 +17,17 @@ export type CreateMenuOptions = Omit<
 
 export type MenuComponent = ExtendedTuiComponent<
   "menu",
+  /** Height of the menu */
   { height: number }
 >;
 
+/**
+ * Create MenuComponent
+ * It is not interactive by default
+ * It automatically distributes menu* components
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createMenu(
   object: TuiObject,
   options: CreateMenuOptions,
@@ -28,7 +37,7 @@ export function createMenu(
     interactive: false,
     rectangle: () => ({
       ...getStaticValue(object.rectangle),
-      height: 1,
+      height: menu.height,
     }),
     drawPriority: 1,
     draw() {

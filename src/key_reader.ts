@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { EventEmitter } from "./event_emitter.ts";
 import { Range, Reader } from "./types.ts";
 
@@ -10,7 +11,7 @@ export type Key =
   | `f${Range<1, 12>}`
   | `${Range<0, 10>}`;
 
-export type SpecialKeys =
+type SpecialKeys =
   | "return"
   | "tab"
   | "backspace"
@@ -28,7 +29,7 @@ export type SpecialKeys =
   | "end"
   | "tab";
 
-export type Chars =
+type Chars =
   | "!"
   | "@"
   | "#"
@@ -60,7 +61,7 @@ export type Chars =
   | "\\"
   | "|";
 
-export type Alphabet = aToZ | Uppercase<aToZ>;
+type Alphabet = aToZ | Uppercase<aToZ>;
 
 type aToZ =
   | "a"
@@ -91,50 +92,64 @@ type aToZ =
   | "z";
 
 export interface KeyPress {
+  /** Raw buffer of keypress */
   buffer: Uint8Array;
+  /** Key that has been pressed */
   key: Key;
+  /** Whether meta key has been pressed as well when keypress happened */
   meta: boolean;
+  /** Whether shift key has been pressed as well when keypress happened */
   shift: boolean;
+  /** Whether ctrl key has been pressed as well when keypress happened */
   ctrl: boolean;
 }
 
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
+  /** Raw buffers of keypress */
   buffer: Uint8Array[];
+  /** Keys that has been pressed */
   keys: Key[];
 }
 
-export function readKeypressesEmitter(
+/**
+ * Read keypresses from stdin and redirect them to EventEmitter on `key` event.
+ * @param reader - Reader from which keypresses will be read
+ * @param emitter - EventEmitter to which keypresses will be redirected
+ */
+export async function readKeypressesEmitter(
   reader: Reader,
   // deno-lint-ignore no-explicit-any
   emitter: EventEmitter<any, any>,
-): void {
-  void async function () {
-    for await (const keyPresses of readKeypresses(reader)) {
-      const multiKey: MultiKeyPress = {
-        keys: [],
-        buffer: [],
-        ctrl: false,
-        meta: false,
-        shift: false,
-      };
+): Promise<void> {
+  for await (const keyPresses of readKeypresses(reader)) {
+    const multiKey: MultiKeyPress = {
+      keys: [],
+      buffer: [],
+      ctrl: false,
+      meta: false,
+      shift: false,
+    };
 
-      for (const keyPress of keyPresses) {
-        emitter.emit("key", keyPress);
+    for (const keyPress of keyPresses) {
+      emitter.emit("key", keyPress);
 
-        multiKey.keys.push(keyPress.key);
-        multiKey.buffer.push(keyPress.buffer);
-        multiKey.shift ||= keyPress.shift;
-        multiKey.meta ||= keyPress.meta;
-        multiKey.ctrl ||= keyPress.ctrl;
-      }
-
-      if (keyPresses.length > 1) {
-        emitter.emit("multiKey", multiKey);
-      }
+      multiKey.keys.push(keyPress.key);
+      multiKey.buffer.push(keyPress.buffer);
+      multiKey.shift ||= keyPress.shift;
+      multiKey.meta ||= keyPress.meta;
+      multiKey.ctrl ||= keyPress.ctrl;
     }
-  }();
+
+    if (keyPresses.length > 1) {
+      emitter.emit("multiKey", multiKey);
+    }
+  }
 }
 
+/**
+ * Read keypresses from stdin
+ * @param reader - Reader from which keypresses will be read
+ */
 export async function* readKeypresses(
   reader: Reader,
 ): AsyncIterableIterator<KeyPress[]> {
@@ -149,6 +164,10 @@ export async function* readKeypresses(
   }
 }
 
+/**
+ * Decodes Uint8Array buffer to easily usable array of KeyPress objects
+ * @param buffer - raw keypress buffer
+ */
 export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
   const decodedBuffer = decoder.decode(buffer);
   let keys = [decodedBuffer];

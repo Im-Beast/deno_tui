@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 export * from "./src/canvas.ts";
 export * from "./src/colors.ts";
 export * from "./src/event_emitter.ts";

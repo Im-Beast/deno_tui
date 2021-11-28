@@ -1,8 +1,13 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { KeyPress, readKeypressesEmitter } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+/**
+ * Emit pressed keys to focused objects
+ * @param instance - TuiInstance from which keys will be redirected to focused items
+ */
 export function handleKeypresses(instance: TuiInstance) {
   instance.emitter.on("key", (keyPress) => {
     instance.selected.item?.emitter.emit("key", keyPress);

@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { CanvasStyler, drawPixel, drawText } from "../canvas.ts";
 import {
   createComponent,
@@ -17,10 +18,15 @@ export type TextboxTuiStyler = TuiStyler & {
 export type TextboxComponent = ExtendedTuiComponent<
   "textbox",
   {
+    /** Textbox content, each index of array starting by 1 represents newline */
     value: string[];
+    /** `textbox.value` converted into a string using `textbox.value.join("\n")` */
     string: () => string;
+    /** Whether textbox content is hidden by asteriks (*) */
     hidden: boolean;
+    /** Whether textbox is multiline */
     multiline: boolean;
+    /** Definition on how component looks like */
     styler: Dynamic<TextboxTuiStyler>;
   },
   "valueChange",
@@ -28,11 +34,22 @@ export type TextboxComponent = ExtendedTuiComponent<
 >;
 
 export interface CreateTextboxOptions extends CreateBoxOptions {
+  /** Textbox content, each index of array starting by 1 represents newline */
+  value?: string[];
+  /** Whether textbox content is hidden by asteriks (*) */
   hidden: boolean;
+  /** Whether textbox is multiline */
   multiline: boolean;
+  /** Definition on how component looks like */
   styler: Dynamic<TextboxTuiStyler>;
 }
 
+/**
+ * Create TextboxComponent
+ * It is interactive by default
+ * @param object - parent of the created box, either Tui instance or other component
+ * @param options
+ */
 export function createTextbox(
   object: TuiObject,
   options: CreateTextboxOptions,
@@ -84,7 +101,7 @@ export function createTextbox(
     drawPriority: 1,
     ...options,
   }, {
-    value: [""],
+    value: options?.value?.length ? options.value : [""],
     string: () => textbox.value.join("\n"),
     hidden: options.hidden,
     multiline: options.multiline,
