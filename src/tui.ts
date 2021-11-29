@@ -3,7 +3,6 @@ import {
   CanvasInstance,
   createCanvas,
   drawRectangle,
-  drawText,
   render,
   styleStringFromStyler,
 } from "./canvas.ts";
@@ -129,18 +128,6 @@ export function createTui(
       for (const component of tui.components) {
         component.draw();
       }
-
-      const fpsText = `FPS: ${tui.canvas.fps.toFixed(2)}`;
-
-      drawText(tui.canvas, {
-        column: tui.rectangle().width - fpsText.length,
-        row: 0,
-        text: fpsText,
-        styler: {
-          foreground: "\x1b[38m",
-          background: "\x1b[45m",
-        },
-      });
 
       render(tui.canvas);
 

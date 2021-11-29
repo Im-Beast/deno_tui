@@ -252,3 +252,24 @@ for (const component of tui.children) {
     styler: tuiStyler,
   });
 }
+
+const label = createLabel(tui, {
+  text: () => `FPS: ${tui.canvas.fps.toFixed(2)}`,
+  textAlign: {
+    horizontal: "left",
+    vertical: "top",
+  },
+  rectangle() {
+    const rectangle = tui.rectangle();
+    const width = textWidth(getStaticValue(label.text));
+
+    return {
+      ...rectangle,
+      column: rectangle.width - width,
+      height: 1,
+      row: 0,
+    };
+  },
+  drawPriority: 1,
+  styler: componentStyler,
+});
