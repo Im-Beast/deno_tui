@@ -114,6 +114,7 @@ export function createCombobox(
       ),
     styler: () => getStaticValue(combobox.styler),
     focusedWithin: [combobox, ...combobox.focusedWithin],
+    drawPriority: 1,
   });
   main.interactive = false;
 
@@ -165,6 +166,7 @@ export function createCombobox(
             row: rectangle.row + i + 1,
           };
         },
+        drawPriority: 2,
       });
 
       button.on("active", () => {
