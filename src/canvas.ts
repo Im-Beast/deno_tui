@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { keyword } from "./colors.ts";
+import { Attribute, Color, keyword } from "./colors.ts";
 import { Style } from "./colors.ts";
 import { StyleCode } from "./colors.ts";
 import { ConsoleSize, Dynamic, Writer } from "./types.ts";
@@ -44,6 +44,8 @@ export interface CanvasInstance {
   lastTime: number;
   /** How long it took to render last frame */
   deltaTime: number;
+  /** Fix for smartRender cutting off fullWidth characters */
+  refreshed: boolean;
 }
 
 export interface CreateCanvasOptions {
@@ -53,6 +55,8 @@ export interface CreateCanvasOptions {
   size?: Dynamic<ConsoleSize>;
   /** Character which will be used to fill empty space */
   filler: string;
+  /** Whether canvas should only redraw changes, defaults to true */
+  smartRender?: boolean;
 }
 
 /**
@@ -65,6 +69,7 @@ export function createCanvas(
     writer,
     filler,
     size = () => Deno.consoleSize(writer.rid),
+    smartRender = true,
   }: CreateCanvasOptions,
 ): CanvasInstance {
   const canvas: CanvasInstance = {
@@ -75,20 +80,21 @@ export function createCanvas(
     lastTime: Date.now(),
     deltaTime: 16,
     frameBuffer: [],
-    smartRender: true,
+    smartRender,
+    refreshed: false,
   };
 
-  const updateCanvas = () => {
+  const updateCanvas = (render = true) => {
     fillBuffer(canvas);
     canvas.prevBuffer = undefined;
-    renderFull(canvas);
+    if (render) {
+      renderFull(canvas);
+    }
   };
 
-  updateCanvas();
-  // Temporary fix for full-width characters getting cut
-  setTimeout(updateCanvas, 32);
+  updateCanvas(false);
 
-  Deno.addSignalListener("SIGWINCH", updateCanvas);
+  Deno.addSignalListener("SIGWINCH", () => updateCanvas(true));
   Deno.addSignalListener("SIGINT", () => {
     Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
     Deno.exit(0);
@@ -138,6 +144,7 @@ export function renderChanges(instance: CanvasInstance): void {
       }
     }
   }
+
   Deno.writeSync(instance.writer.rid, encoder.encode(string));
 }
 
@@ -174,6 +181,14 @@ export function render(instance: CanvasInstance): void {
     renderChanges(instance);
   } else {
     renderFull(instance);
+  }
+
+  if (!instance.refreshed && instance.smartRender) {
+    setTimeout(() => {
+      fillBuffer(instance);
+      instance.prevBuffer = undefined;
+      instance.refreshed = true;
+    }, 1);
   }
 
   instance.prevBuffer = JSON.parse(JSON.stringify(instance.frameBuffer));
@@ -315,10 +330,10 @@ export interface CanvasStyler {
 
 /** Any possible to create styler */
 export interface AnyStyler {
-  [key: string]: StyleCode | Style | {
-    foreground?: StyleCode | Style;
-    background?: StyleCode | Style;
-    attributes?: (StyleCode | Style)[];
+  [key: string]: StyleCode | Style | Attribute[] | {
+    foreground?: StyleCode | Color;
+    background?: StyleCode | Color;
+    attributes?: (StyleCode | Attribute)[];
   };
 }
 
@@ -387,18 +402,19 @@ export function styleStringFromStyler(
   string: string,
   styler: CanvasStyler,
 ): string {
+  let style = "";
   if (styler.foreground) {
-    string = styleText(string, styler.foreground);
+    style += styler.foreground;
   }
   if (styler.background) {
-    string = styleText(string, styler.background);
+    style += styler.background;
   }
 
   if (styler.attributes) {
     for (const attribute of styler.attributes) {
-      string = styleText(string, attribute);
+      style += attribute;
     }
   }
 
-  return string;
+  return styleText(string, style as StyleCode);
 }
