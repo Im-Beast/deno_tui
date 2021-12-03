@@ -49,6 +49,7 @@ const tui = createTui(Deno.stdin, Deno.stdout, {
 });
 handleKeypresses(tui);
 handleKeyboardControls(tui);
+tui.draw();
 
 const menu = createMenu(tui, {
   styler: componentStyler,
