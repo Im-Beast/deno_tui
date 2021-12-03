@@ -4,19 +4,22 @@ export interface EventEmitter<Event extends string, DataType> {
   listeners: Listener<Event, DataType>[];
 
   emit: (event: Event, ...data: DataType[]) => void;
-  on: EventFunction<Event, DataType>;
-  once: EventFunction<Event, DataType>;
+  on: (
+    event: Event,
+    func: ListenerFunction<DataType>,
+    priority?: number,
+    once?: boolean,
+  ) => void;
+  once: (
+    event: Event,
+    func: ListenerFunction<DataType>,
+    priority?: number,
+  ) => void;
   off: (
     event: Event | "*",
     func?: ListenerFunction<DataType>,
   ) => void;
 }
-
-type EventFunction<Event extends string, DataType> = (
-  event: Event,
-  func: ListenerFunction<DataType>,
-  priority?: number,
-) => void;
 
 type ListenerFunction<DataType> = (...data: DataType[]) => void;
 
@@ -28,6 +31,8 @@ export interface Listener<Event extends string, DataType> {
   func: ListenerFunction<DataType>;
   /** Priority of the Listener, higher priority listeners will get fired before lower priority ones */
   priority: number;
+  /** Whether Listener should fire only once */
+  once: boolean;
 }
 
 /**
@@ -46,25 +51,28 @@ export function createEventEmitter<
       .filter(({ event }) => emitEvent === event)
       .sort((a, b) => b.priority - a.priority)
       .forEach(({ func }) => setTimeout(() => func(...data), 0));
+
+    listeners = listeners.filter(({ once }) => !once);
   };
 
-  const on: emitter["on"] = (event, func, priority = 0) => {
-    listeners.push({ event, func, priority } as Listener<Event, DataType>);
+  const on: emitter["on"] = (event, func, priority = 0, once = false) => {
+    listeners.push(
+      { event, func, priority, once } as Listener<Event, DataType>,
+    );
   };
 
   const once: emitter["once"] = (event, func, priority = 0) => {
-    on(event, func, priority);
-    on(event, () => off(event, func));
+    on(event, func, priority, true);
   };
 
   const off: emitter["off"] = (event, func) => {
     if (!func) {
       listeners = listeners.filter((
         listener,
-      ) => (listener.event !== event || event === "*"));
+      ) => (listener.event !== event && event !== "*"));
     } else {
       listeners = listeners.filter((listener) =>
-        (listener.event !== event || event === "*") || listener.func !== func
+        (listener.event !== event && event !== "*") || listener.func !== func
       );
     }
   };
