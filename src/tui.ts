@@ -162,6 +162,5 @@ export function createTui(
     writer,
   };
 
-  tui.draw();
   return tui;
 }
