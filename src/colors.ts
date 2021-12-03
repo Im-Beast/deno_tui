@@ -3,40 +3,10 @@ import { capitalize, clampAndRound } from "./util.ts";
 
 /** ANSI escape code */
 export type StyleCode =
+  | ""
   | `\x1b[${number}m`
   | `\x1b[${number};5;${number}m`
   | `\x1b[${number};2;${number};${number};${number}m`;
-
-/** Converts 4bit ansi code to 3bit one */
-export function ansi4ToAnsi3(code: number): number {
-  return code % 8;
-}
-
-/** Converts rgb value to 4bit ansi code */
-export function rgbToAnsi4(r: number, g: number, b: number): number {
-  const value = Math.round(Math.max(r, g, b) / 64);
-  if (!value) return 0;
-  return ((value >= 3 ? 8 : 0) + (Math.round(b / 255) << 2)) |
-    (Math.round(g / 255) << 1) |
-    Math.round(r / 255);
-}
-
-/** Converts 8bit ansi code to 4bit one */
-export function ansi8ToAnsi4(code: number): number {
-  if (code >= 232) {
-    const grayness = (code - 232) * 10 + 8;
-    return rgbToAnsi4(grayness, grayness, grayness);
-  }
-
-  code -= 16;
-
-  const rem = code % 36;
-  const r = (Math.floor(code / 36) / 5) * 255;
-  const g = (Math.floor(rem / 6) / 5) * 255;
-  const b = ((rem % 6) / 5) * 255;
-
-  return rgbToAnsi4(r, g, b);
-}
 
 /** Converts rgb value to 8bit ansi code */
 export function rgbToAnsi8(r: number, g: number, b: number): number {
@@ -84,7 +54,7 @@ const baseColors = [
 type BaseColors = typeof baseColors[number];
 
 /** Names for all 4bit colors */
-export type Colors =
+export type Color =
   | BaseColors
   | `bg${Capitalize<BaseColors>}`
   | `light${Capitalize<BaseColors>}`
@@ -92,7 +62,7 @@ export type Colors =
 
 /** Colors and attributes */
 export type Style =
-  | Colors
+  | Color
   | Attribute;
 
 /** Names for attributes */
@@ -118,7 +88,7 @@ export type Attribute =
   | "strikethroughOff";
 
 /** Map containing all 4bit colors */
-export const colors = new Map<Colors, StyleCode>();
+export const colors = new Map<Color, StyleCode>();
 
 for (const [i, color] of baseColors.entries()) {
   const capitalized = capitalize(color) as Capitalize<typeof color>;
@@ -158,6 +128,7 @@ export const styles = new Map<Style, StyleCode>([...colors, ...attributes]);
  * @param key - color/attribute name
  */
 export function keyword(key: Style): StyleCode {
+  if (Deno.noColor) return "";
   return styles.get(key) as StyleCode;
 }
 
@@ -166,6 +137,7 @@ export function keyword(key: Style): StyleCode {
  * @param isBg - whether generated color should color background
  */
 export function ansi3(code: number, isBg?: boolean): StyleCode {
+  if (Deno.noColor) return "";
   code = clampAndRound(code, 0, 7);
   return `\x1b[${code + (isBg ? 40 : 30)}m`;
 }
@@ -175,6 +147,7 @@ export function ansi3(code: number, isBg?: boolean): StyleCode {
  * @param isBg - whether generated color should color background
  */
 export function ansi4(code: number, isBg?: boolean): StyleCode {
+  if (Deno.noColor) return "";
   code = clampAndRound(code, 0, 15);
   return `\x1b[${code + (isBg ? 10 : 0) + (code > 7 ? 82 : 30)}m`;
 }
@@ -184,6 +157,7 @@ export function ansi4(code: number, isBg?: boolean): StyleCode {
  * @param isBg - whether generated color should color background
  */
 export function ansi8(code: number, isBg?: boolean): StyleCode {
+  if (Deno.noColor) return "";
   code = clampAndRound(code, 0, 255);
   return `\x1b[${isBg ? 48 : 38};5;${code}m`;
 }
@@ -200,6 +174,7 @@ export function rgb(
   b: number,
   isBg?: boolean,
 ): StyleCode {
+  if (Deno.noColor) return "";
   return `\x1b[${isBg ? 48 : 38};2;${clampAndRound(r, 0, 255)};${
     clampAndRound(g, 0, 255)
   };${clampAndRound(b, 0, 255)}m`;
@@ -217,6 +192,7 @@ export function hsl(
   l: number,
   isBg?: boolean,
 ): StyleCode {
+  if (Deno.noColor) return "";
   return rgb(
     ...hslToRgb(
       clampAndRound(h, 0, 360),
@@ -237,6 +213,8 @@ export function hex(
   isAnsi8: boolean,
   isBg?: boolean,
 ): StyleCode | undefined {
+  if (Deno.noColor) return "";
+
   if (typeof hex === "number") {
     const rgbArr = [
       0xff & (hex >> 16),
@@ -246,8 +224,9 @@ export function hex(
     return isAnsi8 ? ansi8(rgbToAnsi8(...rgbArr), isBg) : rgb(...rgbArr, isBg);
   }
 
-  if (/#[0-F]{6}/.test(hex)) {
-    const chunks = hex.match(/.{2}/g) as [string, string, string];
+  if (/(#?)([0-F]|[0-f]){6}/.test(hex)) {
+    const chunks = hex.replace("#", "").match(/.{2}/g);
+    if (!chunks) return undefined;
     const rgbArr = chunks.map((v) => parseInt(v, 16)) as [
       number,
       number,
@@ -256,4 +235,6 @@ export function hex(
 
     return isAnsi8 ? ansi8(rgbToAnsi8(...rgbArr), isBg) : rgb(...rgbArr, isBg);
   }
+
+  return undefined;
 }
