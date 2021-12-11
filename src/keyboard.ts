@@ -1,27 +1,11 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { KeyPress, readKeypressesEmitter } from "./key_reader.ts";
+import { KeyPress } from "./key_reader.ts";
 import { getInteractiveComponents, TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp, getStaticValue } from "./util.ts";
 
 /**
- * Emit pressed keys to focused objects
- * @param instance - TuiInstance from which keys will be redirected to focused items
- */
-export function handleKeypresses(instance: TuiInstance): void {
-  instance.emitter.on("key", (keyPress) => {
-    instance.selected.item?.emitter.emit("key", keyPress);
-  });
-
-  instance.emitter.on("multiKey", (keyPress) => {
-    instance.selected.item?.emitter.emit("key", keyPress);
-  });
-
-  readKeypressesEmitter(instance.reader, instance.emitter);
-}
-
-/**
- * Change focused component
+ * Change focused component using 2 axis vector
  * @param instance – instance which components will be manipulated
  * @param vector – object which holds x and y (they should equal -1 or 0 or 1)
  */
