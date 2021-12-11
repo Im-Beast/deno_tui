@@ -94,11 +94,11 @@ export function createCanvas(
 
   updateCanvas(false);
 
-  Deno.addSignalListener("SIGWINCH", () => updateCanvas(true));
-  Deno.addSignalListener("SIGINT", () => {
+  addEventListener("unload", () => {
     Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
-    Deno.exit(0);
   });
+
+  Deno.addSignalListener("SIGWINCH", () => updateCanvas(true));
 
   return canvas;
 }

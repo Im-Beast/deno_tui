@@ -7,7 +7,7 @@ import {
   styleStringFromStyler,
 } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
-import { KeyPress, MultiKeyPress } from "./key_reader.ts";
+import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import {
   AnyComponent,
   ConsoleSize,
@@ -33,6 +33,7 @@ export interface TuiInstance {
   /** TUI's EventEmitter */
   readonly emitter:
     & EventEmitter<"key", KeyPress>
+    & EventEmitter<"mouse", MousePress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>;
   /** Handle given functions on specific tui events */
@@ -169,6 +170,10 @@ export function createTui(
     reader,
     writer,
   };
+
+  Deno.addSignalListener("SIGINT", () => {
+    Deno.exit(0);
+  });
 
   return tui;
 }
