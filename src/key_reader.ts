@@ -1,5 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { EventEmitter } from "./event_emitter.ts";
+import { TuiInstance } from "./tui.ts";
 import { Range, Reader } from "./types.ts";
 
 const decoder = new TextDecoder();
@@ -9,7 +10,8 @@ export type Key =
   | Chars
   | SpecialKeys
   | `f${Range<1, 12>}`
-  | `${Range<0, 10>}`;
+  | `${Range<0, 10>}`
+  | "mouse";
 
 type SpecialKeys =
   | "return"
@@ -104,6 +106,14 @@ export interface KeyPress {
   ctrl: boolean;
 }
 
+export interface MousePress extends KeyPress {
+  x: number;
+  y: number;
+  button: number | undefined;
+  release: boolean;
+  scroll: 1 | 0 | -1;
+}
+
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
   /** Raw buffers of keypress */
   buffer: Uint8Array[];
@@ -112,7 +122,28 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
 }
 
 /**
+ * Emit pressed keys to instance and focused objects
+ * @param instance - TuiInstance from which keys will be redirected to focused items
+ */
+export function handleKeypresses(instance: TuiInstance): void {
+  instance.emitter.on("key", (keyPress) => {
+    instance.selected.item?.emitter.emit("key", keyPress);
+  });
+
+  instance.emitter.on("mouse", (mousePress) => {
+    instance.selected.item?.emitter.emit("mouse", mousePress);
+  });
+
+  instance.emitter.on("multiKey", (keyPress) => {
+    instance.selected.item?.emitter.emit("key", keyPress);
+  });
+
+  readKeypressesEmitter(instance.reader, instance.emitter);
+}
+
+/**
  * Read keypresses from stdin and redirect them to EventEmitter on `key` event.
+ * They're both mouse and keyboard key presses.
  * @param reader - Reader from which keypresses will be read
  * @param emitter - EventEmitter to which keypresses will be redirected
  */
@@ -121,7 +152,7 @@ export async function readKeypressesEmitter(
   // deno-lint-ignore no-explicit-any
   emitter: EventEmitter<any, any>,
 ): Promise<void> {
-  for await (const keyPresses of readKeypresses(reader)) {
+  for await (const [keyPresses, mousePresses] of readKeypresses(reader)) {
     const multiKey: MultiKeyPress = {
       keys: [],
       buffer: [],
@@ -143,6 +174,10 @@ export async function readKeypressesEmitter(
     if (keyPresses.length > 1) {
       emitter.emit("multiKey", multiKey);
     }
+
+    for (const mousePress of mousePresses) {
+      emitter.emit("mouse", mousePress);
+    }
   }
 }
 
@@ -152,10 +187,11 @@ export async function readKeypressesEmitter(
  */
 export async function* readKeypresses(
   reader: Reader,
-): AsyncIterableIterator<KeyPress[]> {
+): AsyncIterableIterator<[KeyPress[], MousePress[]]> {
+  Deno.setRaw(reader.rid, true, { cbreak: true });
+
   while (true) {
     const buffer = new Uint8Array(1024);
-    Deno.setRaw(reader.rid, true, { cbreak: true });
 
     const byteLength = await reader.read(buffer);
     if (typeof byteLength !== "number") continue;
@@ -168,10 +204,10 @@ export async function* readKeypresses(
  * Decodes Uint8Array buffer to easily usable array of KeyPress objects
  * @param buffer - raw keypress buffer
  */
-export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
+export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
   const decodedBuffer = decoder.decode(buffer);
-  let keys = [decodedBuffer];
 
+  let keys: string[] = [decodedBuffer];
   if (decodedBuffer.split("\x1b").length > 1) {
     // deno-lint-ignore no-control-regex
     keys = decodedBuffer.split(/(?=\x1b)/);
@@ -179,16 +215,63 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
     keys = decodedBuffer.split("");
   }
 
-  const keyPresses = keys.map((key) => {
+  const keyPresses: KeyPress[] = [];
+  const mousePresses: MousePress[] = [];
+
+  for (const key of keys) {
+    const code = key.replace("\x1b", "").replace("1;", "");
+
+    /**
+     * Originally created by @TooTallNate
+     * https://github.com/TooTallNate/keypress/blob/9f1cc0ec7ac98a4aad0e0612ec14bf1b18c32eed/index.js#L370
+     */
+    if (code.startsWith("[M")) {
+      const mousePress: MousePress = {
+        buffer,
+        key: "mouse",
+        meta: false,
+        shift: false,
+        ctrl: false,
+        button: undefined,
+        release: false,
+        scroll: 0,
+        x: -1,
+        y: -1,
+      };
+
+      mousePress.key = "mouse";
+
+      mousePress.x = code.charCodeAt(3) - 33;
+      mousePress.y = code.charCodeAt(4) - 33;
+
+      const b = code.charCodeAt(2);
+      mousePress.ctrl = !!(1 << 4 & b);
+      mousePress.meta = !!(1 << 3 & b);
+      mousePress.shift = !!(1 << 2 & b);
+
+      mousePress.release = (3 & b) === 3;
+
+      if (1 << 6 & b) {
+        mousePress.scroll = 1 & b ? 1 : -1;
+      } else {
+        mousePress.scroll = 0;
+      }
+
+      if (!mousePress.release && !mousePress.scroll) {
+        mousePress.button = b & 3;
+      }
+
+      mousePresses.push(mousePress);
+      continue;
+    }
+
     const keyPress: KeyPress = {
       buffer,
-      key: <Key> key,
+      key: key as Key,
       meta: false,
       shift: false,
       ctrl: false,
     };
-
-    const code = keyPress.key.replace("\x1b", "").replace("1;", "");
 
     switch (key) {
       case "\r":
@@ -425,8 +508,8 @@ export function decodeBuffer(buffer: Uint8Array): KeyPress[] {
         break;
     }
 
-    return keyPress;
-  });
+    keyPresses.push(keyPress);
+  }
 
-  return keyPresses;
+  return [keyPresses, mousePresses];
 }

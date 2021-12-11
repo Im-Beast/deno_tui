@@ -1,0 +1,49 @@
+import { getInteractiveComponents, TuiInstance } from "./tui.ts";
+import { AnyComponent } from "./types.ts";
+import { clamp, getStaticValue } from "./util.ts";
+
+export const ENABLE_MOUSE = "\x1b[?1000h";
+export const DISABLE_MOUSE = "\x1b[?1000l";
+
+const encoder = new TextEncoder();
+
+/**
+ * Handle mouse controls
+ *  - Single click to focus component
+ *  - Double click/Single click focused component to activate
+ * @param instance – instance which components will be manipulated
+ */
+export function handleMouseControls(instance: TuiInstance): void {
+  Deno.writeSync(instance.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
+  addEventListener("unload", () => {
+    Deno.writeSync(instance.writer.rid, encoder.encode(DISABLE_MOUSE));
+  });
+
+  instance.on("mouse", ({ x, y, release }) => {
+    if (release) return;
+
+    const components = getInteractiveComponents(instance);
+    let item!: AnyComponent;
+
+    for (const component of components) {
+      const { column, height, row, width } = getStaticValue(
+        component.rectangle,
+      );
+
+      if (
+        clamp(x, column, column + width - 1) === x &&
+        clamp(y, row, row + height - 1) === y &&
+        (!item || component.drawPriority > item.drawPriority)
+      ) {
+        item = component;
+      }
+    }
+
+    if (instance.selected.item === item) {
+      instance.selected.active = true;
+      instance.selected.item?.emitter.emit("active");
+    }
+    instance.selected.item = item;
+    instance.selected.focused = true;
+  });
+}
