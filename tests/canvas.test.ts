@@ -11,7 +11,7 @@ import {
   styleText,
 } from "../src/canvas.ts";
 import { getStaticValue } from "../src/util.ts";
-import { assertEquals, assertThrows } from "./deps.ts";
+import { assertEquals, assertThrows, canvas } from "./deps.ts";
 
 const decoder = new TextDecoder();
 
@@ -30,15 +30,6 @@ const _canvas = createCanvas({
   filler: " ",
   writer,
   size: consoleSize,
-});
-
-export const canvas = createCanvas({
-  filler: " ",
-  writer,
-  size: {
-    rows: 30,
-    columns: 30,
-  },
 });
 
 console.clear();

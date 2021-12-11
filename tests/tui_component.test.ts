@@ -1,11 +1,16 @@
+import { createTui } from "../src/tui.ts";
 import {
   createComponent,
   CreateComponentOptions,
   getCurrentStyler,
   removeComponent,
 } from "../src/tui_component.ts";
-import { assert, assertEquals } from "./deps.ts";
-import { styler, tui } from "./tui.test.ts";
+import { assert, assertEquals, canvas, styler } from "./deps.ts";
+
+const tui = createTui(Deno.stdin, Deno.stdout, {
+  styler,
+  canvas,
+});
 
 const createOptions = {
   name: "dummy",
