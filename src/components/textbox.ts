@@ -118,6 +118,7 @@ export function createTextbox(
 
     const startValue = [...textbox.value];
     const rectangle = getStaticValue(textbox.rectangle);
+    const startY = position.y;
 
     if (!ctrl && !meta && key.length === 1) {
       textbox.value[position.y] ||= "";
@@ -152,8 +153,10 @@ export function createTextbox(
         break;
       case "return":
         position.y = Math.min(position.y + 1, rectangle.height - 1);
-        textbox.value[position.y] ||= "";
-        position.x = textbox.value[position.y].length;
+        if (position.y !== startY) {
+          textbox.value[position.y] ||= "";
+          position.x = textbox.value[position.y].length;
+        }
         break;
       case "backspace":
         if (position.x === 0) {
