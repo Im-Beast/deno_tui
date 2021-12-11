@@ -19,12 +19,44 @@ import {
 } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+/**
+ * Get interactive components
+ * @param instance – Tui to get components from
+ */
 export function getInteractiveComponents(
   instance: TuiInstance,
 ): AnyComponent[] {
   return instance.components.filter((
     { interactive },
   ) => interactive);
+}
+
+const timeoutHandle: { [id: number]: number } = {};
+/**
+ * Consistently draws TuiInstance.
+ * Returns function which stops drawing.
+ * @param instance – Tui to be drawn
+ */
+export function draw(instance: TuiInstance): () => void {
+  drawRectangle(instance.canvas, {
+    ...instance.rectangle(),
+    styler: getStaticValue(instance.styler),
+  });
+
+  for (const component of instance.components) {
+    component.draw();
+  }
+
+  render(instance.canvas);
+
+  instance.selected.active = false;
+
+  timeoutHandle[instance.id] = setTimeout(
+    () => draw(instance),
+    getStaticValue(instance.refreshRate) - instance.canvas.deltaTime,
+  );
+
+  return () => clearTimeout(timeoutHandle[instance.id]);
 }
 
 export interface TuiInstance {
@@ -42,12 +74,10 @@ export interface TuiInstance {
   readonly off: TuiInstance["emitter"]["off"];
   /** Disable handling specific functions on tui events */
   readonly once: TuiInstance["emitter"]["once"];
-  /** Function which draws all of TuiInstance */
-  readonly draw: () => void;
-  /** Stop drawing on screen, can be again  resumed using `draw` */
-  readonly stopDrawing: () => void;
   /** Size and position of tui */
   rectangle: () => TuiRectangle;
+  /** How often tui should be redrawn (in ms) */
+  refreshRate: Dynamic<number>;
   /** tui's children components */
   children: AnyComponent[];
   /** All of tui's components */
@@ -119,7 +149,6 @@ export function createTui(
 ): TuiInstance {
   const emitter = createEventEmitter() as TuiInstance["emitter"];
 
-  let timeoutHandle: number | undefined;
   const tui: TuiInstance = {
     id: instanceId++,
     emitter,
@@ -128,28 +157,6 @@ export function createTui(
     off: emitter.off,
     styler,
     size: size || (() => getStaticValue(tui.canvas.size)),
-    draw() {
-      drawRectangle(tui.canvas, {
-        ...tui.rectangle(),
-        styler,
-      });
-
-      for (const component of tui.components) {
-        component.draw();
-      }
-
-      render(tui.canvas);
-
-      tui.selected.active = false;
-
-      timeoutHandle = setTimeout(
-        tui.draw,
-        getStaticValue(refreshRate) - tui.canvas.deltaTime,
-      );
-    },
-    stopDrawing() {
-      clearTimeout(timeoutHandle);
-    },
     rectangle() {
       const { columns: width, rows: height } = getStaticValue(tui.size);
       return {
@@ -159,6 +166,7 @@ export function createTui(
         height,
       };
     },
+    refreshRate,
     children: [],
     components: [],
     selected: {

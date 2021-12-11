@@ -14,6 +14,7 @@ import {
   createMenuList,
   createTextbox,
   createTui,
+  draw,
   getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
@@ -53,7 +54,7 @@ const tui = createTui(Deno.stdin, Deno.stdout, {
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 handleMouseControls(tui);
-tui.draw();
+draw(tui);
 
 const menu = createMenu(tui, {
   styler: componentStyler,
