@@ -19,6 +19,14 @@ import {
 } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+export function getInteractiveComponents(
+  instance: TuiInstance,
+): AnyComponent[] {
+  return instance.components.filter((
+    { interactive },
+  ) => interactive);
+}
+
 export interface TuiInstance {
   /** Unique ID for TuiInstance */
   readonly id: number;

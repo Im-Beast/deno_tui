@@ -1,14 +1,13 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { KeyPress, readKeypressesEmitter } from "./key_reader.ts";
-import { TuiInstance } from "./tui.ts";
-import { AnyComponent } from "./types.ts";
-import { getStaticValue } from "./util.ts";
+import { getInteractiveComponents, TuiInstance } from "./tui.ts";
+import { clamp, getStaticValue } from "./util.ts";
 
 /**
  * Emit pressed keys to focused objects
  * @param instance - TuiInstance from which keys will be redirected to focused items
  */
-export function handleKeypresses(instance: TuiInstance) {
+export function handleKeypresses(instance: TuiInstance): void {
   instance.emitter.on("key", (keyPress) => {
     instance.selected.item?.emitter.emit("key", keyPress);
   });
@@ -24,27 +23,22 @@ export const controlsPosition: {
   [id: number]: { x: number; y: number };
 } = {};
 
-// TODO: Make it actually good
-export function handleKeyboardControls(instance: TuiInstance) {
-  controlsPosition[instance.id] ||= {
-    x: 0,
-    y: 0,
-  };
-
-  const position = controlsPosition[instance.id];
-
-  const handler = ({ key, ctrl, shift, meta }: KeyPress) => {
-    let { item } = instance.selected;
-
-    if (key === "return" && !shift && !ctrl && !meta) {
+export function handleKeyboardControls(instance: TuiInstance): void {
+  const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
+    if (key === "return") {
       instance.selected.active = true;
-      item?.emitter.emit("active");
+      instance.selected.item?.emitter.emit("active");
       return;
     }
 
     if (!shift || ctrl || meta) return;
 
+    let item = instance.selected.item || instance.components[0];
+
+    const { row } = getStaticValue(item?.rectangle);
+
     const vector = { x: 0, y: 0 };
+
     switch (key) {
       case "up":
         vector.y -= 1;
@@ -60,84 +54,44 @@ export function handleKeyboardControls(instance: TuiInstance) {
         break;
     }
 
-    if (vector.x === 0 && vector.y === 0) return;
+    const components = getInteractiveComponents(instance);
 
-    position.x += vector.x;
-    position.y += vector.y;
+    if (vector.y !== 0) {
+      const vertical = components
+        .filter(
+          (a) => a === item || getStaticValue(a.rectangle).row !== row,
+        )
+        .sort(
+          ({ rectangle: a }, { rectangle: b }) =>
+            getStaticValue(a).column - getStaticValue(b).column,
+        );
 
-    const interactiveComponents = instance.components.filter((
-      { interactive },
-    ) => interactive);
-
-    item ||= interactiveComponents[0];
-
-    const _mapping: AnyComponent[][] = [];
-    for (
-      const component of interactiveComponents.sort((a, b) =>
-        getStaticValue(a.rectangle).row -
-        getStaticValue(b.rectangle).row
-      )
-    ) {
-      const rectangle = getStaticValue(component.rectangle);
-      _mapping[rectangle.row] ||= [];
-      _mapping[rectangle.row].push(
-        component,
-      );
+      item = vertical[
+        clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
+      ];
     }
 
-    for (const row in _mapping) {
-      _mapping[row] = _mapping[row].sort((a, b) =>
-        getStaticValue(a.rectangle).column -
-        getStaticValue(b.rectangle).column
-      );
+    if (vector.x !== 0) {
+      const horizontal = components
+        .filter(
+          ({ rectangle: a }) => getStaticValue(a).row === row,
+        )
+        .sort(
+          ({ rectangle: a }, { rectangle: b }) =>
+            getStaticValue(a).column - getStaticValue(b).column,
+        );
+
+      item = horizontal[
+        clamp(horizontal.indexOf(item) + vector.x, 0, horizontal.length - 1)
+      ];
     }
 
-    const mapping: AnyComponent[][] = [];
-
-    let i = 0;
-    for (const components of _mapping) {
-      if (!components) continue;
-      mapping[i++] = components;
-    }
-
-    item ||= mapping[0][0];
-    if (!item) return;
-
-    if (position.y >= mapping.length) {
-      position.y = 0;
-    } else if (position.y < 0) {
-      position.y = mapping.length - 1;
-    }
-
-    let y = mapping[position.y];
-
-    if (position.x >= y.length) {
-      position.y += 1;
-      y = mapping[position.y];
-      if (!y) {
-        position.y = 0;
-        y = mapping[position.y];
-      }
-      position.x = 0;
-    } else if (position.x < 0) {
-      position.y -= 1;
-      y = mapping[position.y];
-      if (!y) {
-        position.y = mapping.length - 1;
-        y = mapping[position.y];
-      }
-      position.x = y.length - 1;
-    }
-
-    item = y[position.x];
-
-    instance.selected.item = item;
     instance.selected.focused = true;
-    instance.selected.item.emitter.emit("focus");
+    instance.selected.item = item;
   };
 
-  instance.emitter.on("key", handler);
-  instance.emitter.on("multiKey", ({ keys, meta, shift, ctrl, buffer }) => {
+  instance.on("key", handler);
+  instance.on("multiKey", ({ keys, meta, shift, ctrl, buffer }) => {
     for (const i in keys) {
       handler({
         key: keys[i],
