@@ -4,6 +4,7 @@ export * from "./src/colors.ts";
 export * from "./src/event_emitter.ts";
 export * from "./src/key_reader.ts";
 export * from "./src/keyboard.ts";
+export * from "./src/mouse.ts";
 export * from "./src/tui_component.ts";
 export * from "./src/tui.ts";
 export * from "./src/types.ts";
