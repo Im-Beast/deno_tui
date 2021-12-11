@@ -17,6 +17,7 @@ import {
   getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
+  handleMouseControls,
   keyword,
   removeComponent,
   textWidth,
@@ -51,6 +52,7 @@ const tui = createTui(Deno.stdin, Deno.stdout, {
 });
 handleKeypresses(tui);
 handleKeyboardControls(tui);
+handleMouseControls(tui);
 tui.draw();
 
 const menu = createMenu(tui, {
