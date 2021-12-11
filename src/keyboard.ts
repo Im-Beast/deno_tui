@@ -1,6 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { KeyPress, readKeypressesEmitter } from "./key_reader.ts";
 import { getInteractiveComponents, TuiInstance } from "./tui.ts";
+import { AnyComponent } from "./types.ts";
 import { clamp, getStaticValue } from "./util.ts";
 
 /**
@@ -19,10 +20,88 @@ export function handleKeypresses(instance: TuiInstance): void {
   readKeypressesEmitter(instance.reader, instance.emitter);
 }
 
-export const controlsPosition: {
-  [id: number]: { x: number; y: number };
-} = {};
+/**
+ * Change focused component
+ * @param instance – instance which components will be manipulated
+ * @param vector – object which holds x and y (they should equal -1 or 0 or 1)
+ */
+export function changeComponent(
+  instance: TuiInstance,
+  vector: { x: number; y: number },
+): AnyComponent {
+  let item = instance.selected.item || instance.components[0];
 
+  const { row, column } = getStaticValue(item?.rectangle);
+
+  const components = getInteractiveComponents(instance);
+
+  if (vector.y !== 0) {
+    let vertical = components
+      .filter(
+        (a) => a === item || getStaticValue(a.rectangle).row !== row,
+      )
+      .sort(
+        ({ rectangle: a }, { rectangle: b }) =>
+          getStaticValue(a).row - getStaticValue(b).row,
+      );
+
+    vertical = vertical.filter(({ rectangle: a }) =>
+      getStaticValue(a).row ===
+        getStaticValue(
+          vertical[
+            clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
+          ].rectangle,
+        ).row
+    );
+
+    let closest!: AnyComponent;
+    for (const component of vertical) {
+      if (!closest) {
+        closest = component;
+        continue;
+      }
+
+      const distA = Math.abs(
+        column - getStaticValue(component.rectangle).column,
+      );
+      const distB = Math.abs(column - getStaticValue(closest.rectangle).column);
+
+      if (distA < distB) {
+        closest = component;
+      } else if (distA === distB) {
+        closest = component.drawPriority > closest.drawPriority
+          ? component
+          : closest;
+      }
+    }
+
+    item = closest;
+  }
+
+  if (vector.x !== 0) {
+    const horizontal = components
+      .filter(
+        ({ rectangle: a }) => getStaticValue(a).row === row,
+      )
+      .sort(
+        ({ rectangle: a }, { rectangle: b }) =>
+          getStaticValue(a).column - getStaticValue(b).column,
+      );
+
+    item = horizontal[
+      clamp(horizontal.indexOf(item) + vector.x, 0, horizontal.length - 1)
+    ];
+  }
+
+  return item;
+}
+
+/**
+ * Handle keyboard controls
+ *  - Hold shift + press up/down/left/right to move between components
+ *  - Press enter to activate item
+ * @param instance – instance which components will be manipulated
+ */
 export function handleKeyboardControls(instance: TuiInstance): void {
   const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
     if (key === "return") {
@@ -32,10 +111,6 @@ export function handleKeyboardControls(instance: TuiInstance): void {
     }
 
     if (!shift || ctrl || meta) return;
-
-    let item = instance.selected.item || instance.components[0];
-
-    const { row } = getStaticValue(item?.rectangle);
 
     const vector = { x: 0, y: 0 };
 
@@ -54,40 +129,8 @@ export function handleKeyboardControls(instance: TuiInstance): void {
         break;
     }
 
-    const components = getInteractiveComponents(instance);
-
-    if (vector.y !== 0) {
-      const vertical = components
-        .filter(
-          (a) => a === item || getStaticValue(a.rectangle).row !== row,
-        )
-        .sort(
-          ({ rectangle: a }, { rectangle: b }) =>
-            getStaticValue(a).column - getStaticValue(b).column,
-        );
-
-      item = vertical[
-        clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
-      ];
-    }
-
-    if (vector.x !== 0) {
-      const horizontal = components
-        .filter(
-          ({ rectangle: a }) => getStaticValue(a).row === row,
-        )
-        .sort(
-          ({ rectangle: a }, { rectangle: b }) =>
-            getStaticValue(a).column - getStaticValue(b).column,
-        );
-
-      item = horizontal[
-        clamp(horizontal.indexOf(item) + vector.x, 0, horizontal.length - 1)
-      ];
-    }
-
     instance.selected.focused = true;
-    instance.selected.item = item;
+    instance.selected.item = changeComponent(instance, vector);
   };
 
   instance.on("key", handler);
