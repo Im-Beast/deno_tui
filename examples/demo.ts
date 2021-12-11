@@ -1,5 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
+  ButtonComponent,
   capitalize,
   compileStyler,
   createBox,
@@ -17,6 +18,7 @@ import {
   handleKeyboardControls,
   handleKeypresses,
   keyword,
+  removeComponent,
   textWidth,
   TuiStyler,
 } from "../mod.ts";
@@ -65,34 +67,33 @@ const help = createMenuItem(menu, {
   label: "Help",
 });
 
-let helpHidden = true;
-help.on("active", () => helpHidden = !helpHidden);
-
-const helpMessage = createButton(help, {
-  // Set dynamic properties as functions so they'll be reactive!
-  rectangle() {
-    if (helpHidden) {
-      return {
-        column: -1,
-        row: -1,
-        width: 0,
-        height: 0,
-      };
-    }
-
-    const { width, height } = tui.rectangle();
-    return {
-      column: ~~(width / 4),
-      row: ~~((height - 1) / 4),
-      width: ~~(width / 2),
-      height: ~~((height - 1) / 2),
-    };
-  },
-  label:
-    `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
-  drawPriority: 2, // draw over components with lower priority (default 0)
+help.on("active", () => {
+  helpHidden = !helpHidden;
+  if (helpHidden) removeComponent(helpMessage);
+  else createHelpButton();
 });
-helpMessage.interactive = false;
+
+let helpHidden = true;
+let helpMessage: ButtonComponent;
+
+const createHelpButton = () => {
+  helpMessage = createButton(help, {
+    // Set dynamic properties as functions so they'll be reactive!
+    rectangle() {
+      const { width, height } = tui.rectangle();
+      return {
+        column: ~~(width / 4),
+        row: ~~((height - 1) / 4),
+        width: ~~(width / 2),
+        height: ~~((height - 1) / 2),
+      };
+    },
+    label:
+      `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
+    drawPriority: 4, // draw over components with lower priority (default 0)
+  });
+  helpMessage.interactive = false;
+};
 
 createBox(tui, {
   rectangle: {
