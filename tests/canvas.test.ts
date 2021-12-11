@@ -17,11 +17,19 @@ const decoder = new TextDecoder();
 
 const writer = Deno.stdout;
 
-const consoleSize = await Deno.consoleSize(writer.rid);
+let consoleSize = {
+  columns: 5,
+  rows: 5,
+};
+
+try {
+  consoleSize = await Deno.consoleSize(writer.rid);
+} catch { /**/ }
 
 const _canvas = createCanvas({
   filler: " ",
   writer,
+  size: consoleSize,
 });
 
 export const canvas = createCanvas({
