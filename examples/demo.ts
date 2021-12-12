@@ -51,6 +51,7 @@ const componentStyler: TuiStyler = {
 const tui = createTui(Deno.stdin, Deno.stdout, {
   styler: tuiStyler,
 });
+
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 handleMouseControls(tui);
