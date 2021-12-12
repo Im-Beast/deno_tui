@@ -30,3 +30,19 @@ jobs:
 
       - name: Run tests
         run: deno test -A --unstable
+
+      - name: Check license headers
+        run: |
+          deno run -A https://deno.land/x/anzu@1.0.0/src/cli.ts \
+           -i ./ "/.+\.ts/" \
+           -e "deps.ts" \
+           -l "// Copyright 2021 Im-Beast. All rights reserved. MIT license." \
+           -p
+
+      - name: Push changes
+        run: |
+          git config user.name Github Actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "chore: Prepend missing license headers"
+          git push
