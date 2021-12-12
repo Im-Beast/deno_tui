@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { createTui } from "../src/tui.ts";
 import {
   createComponent,

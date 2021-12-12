@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { getInteractiveComponents, TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp, getStaticValue } from "./util.ts";
