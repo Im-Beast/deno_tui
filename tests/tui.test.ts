@@ -1,7 +1,17 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
+import { createCanvas } from "../src/canvas.ts";
 import { createTui } from "../src/tui.ts";
 import { getStaticValue } from "../src/util.ts";
-import { assertEquals, canvas, styler } from "./deps.ts";
+import { assertEquals, styler } from "./deps.ts";
+
+export const canvas = createCanvas({
+  filler: " ",
+  writer: Deno.stdout,
+  size: {
+    rows: 30,
+    columns: 30,
+  },
+});
 
 const createOptions = {
   styler,

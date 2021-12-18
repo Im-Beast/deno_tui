@@ -12,11 +12,20 @@ import {
   styleText,
 } from "../src/canvas.ts";
 import { getStaticValue } from "../src/util.ts";
-import { assertEquals, assertThrows, canvas } from "./deps.ts";
+import { assertEquals, assertThrows } from "./deps.ts";
 
 const decoder = new TextDecoder();
 
 const writer = Deno.stdout;
+
+export const canvas = createCanvas({
+  filler: " ",
+  writer: Deno.stdout,
+  size: {
+    rows: 30,
+    columns: 30,
+  },
+});
 
 let consoleSize = {
   columns: 5,
@@ -176,8 +185,9 @@ Deno.test("Canvas: rendering", async () => {
       cmd: [
         "deno",
         "run",
+        "--no-check",
         "--unstable",
-        import.meta.url.replace("canvas.test.ts", "render.test.ts"),
+        new URL("./actions/render.ts", import.meta.url).href,
         option,
       ],
       stdout: "piped",

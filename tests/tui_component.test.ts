@@ -1,4 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
+import { createCanvas } from "../src/canvas.ts";
 import { createTui } from "../src/tui.ts";
 import {
   createComponent,
@@ -6,7 +7,16 @@ import {
   getCurrentStyler,
   removeComponent,
 } from "../src/tui_component.ts";
-import { assert, assertEquals, canvas, styler } from "./deps.ts";
+import { assert, assertEquals, styler } from "./deps.ts";
+
+const canvas = createCanvas({
+  filler: " ",
+  writer: Deno.stdout,
+  size: {
+    rows: 30,
+    columns: 30,
+  },
+});
 
 const tui = createTui(Deno.stdin, Deno.stdout, {
   styler,
