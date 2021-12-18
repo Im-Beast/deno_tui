@@ -182,6 +182,7 @@ export function createTui(
   };
 
   Deno.addSignalListener("SIGINT", () => {
+    dispatchEvent(new Event("unload"));
     Deno.exit(0);
   });
 
