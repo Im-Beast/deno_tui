@@ -12,15 +12,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        deno-version: [vx.x.x, canary]
 
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
 
-      - name: Setup Deno
+      - name: Setup Deno ${{ matrix.deno-version }}
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.17
+          deno-version: ${{ matrix.deno-version }}
 
       - name: Verify formatting
         run: deno fmt --check
@@ -33,7 +36,7 @@ jobs:
 
       - name: Check license headers
         run: |
-          deno run -A https://deno.land/x/anzu@1.0.0/src/cli.ts \
+          deno run -A --no-check https://deno.land/x/anzu@1.0.0/src/cli.ts \
            -i ./ "/.+\.ts/" \
            -e "deps.ts" \
            -l "// Copyright 2021 Im-Beast. All rights reserved. MIT license." \
