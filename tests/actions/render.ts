@@ -6,7 +6,7 @@ import {
   drawText,
   renderChanges,
   renderFull,
-} from "../src/canvas.ts";
+} from "../../src/canvas.ts";
 
 const canvas = createCanvas({
   filler: " ",
