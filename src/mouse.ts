@@ -22,8 +22,8 @@ export function handleMouseControls(instance: TuiInstance): void {
     Deno.writeSync(instance.writer.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  instance.on("mouse", ({ x, y, release }) => {
-    if (release) return;
+  instance.on("mouse", ({ x, y, release, button }) => {
+    if (release || button !== 0) return;
 
     const components = getInteractiveComponents(instance);
     let item!: AnyComponent;
