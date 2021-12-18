@@ -1,5 +1,4 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-
 export interface EventEmitter<Event extends string, DataType> {
   listeners: Listener<Event, DataType>[];
 

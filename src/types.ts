@@ -1,6 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 // In this module should be served types that aren't specific to only one function or module
-
 import { CanvasStyler } from "./canvas.ts";
 import { TuiInstance } from "./tui.ts";
 import { ExtendedTuiComponent } from "./tui_component.ts";
@@ -13,7 +12,8 @@ type _Range<
   : 
     | (R["length"] extends Range<0, From> ? From : R["length"])
     | _Range<From, To, [To, ...R]>;
-// Returns type for numbers between given range
+
+/** Returns type for numbers between given range */
 export type Range<From extends number, To extends number> = number extends From
   ? number
   : _Range<From, To, []>;
@@ -23,13 +23,16 @@ type _any = any;
 // deno-fmt-ignore
 export type AnyComponent = ExtendedTuiComponent< _any,  { [x in _any]: _any;  },  _any, _any >;
 
+/** Object which can be used as a parent to create other component */
 export type TuiObject = TuiInstance | AnyComponent;
 
-export interface Writer extends Deno.Writer {
+/** stdin */
+export interface Reader extends Deno.Reader {
   readonly rid: number;
 }
 
-export interface Reader extends Deno.Reader {
+/** stdout */
+export interface Writer extends Deno.Writer {
   readonly rid: number;
 }
 
@@ -50,6 +53,7 @@ export interface TextAlign {
   vertical: "top" | "center" | "bottom";
 }
 
+/** Position and size of TuiObject */
 export interface TuiRectangle {
   column: number;
   row: number;
@@ -57,9 +61,11 @@ export interface TuiRectangle {
   height: number;
 }
 
+/** Console/Terminal size measured in columns and rows */
 export interface ConsoleSize {
   columns: number;
   rows: number;
 }
 
+/** Generic Type for creating dynamic typings for values */
 export type Dynamic<T> = T | (() => T);

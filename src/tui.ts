@@ -32,6 +32,7 @@ export function getInteractiveComponents(
 }
 
 const timeoutHandle: { [id: number]: number } = {};
+
 /**
  * Consistently draws TuiInstance.
  * Returns function which stops drawing.
@@ -59,6 +60,7 @@ export function draw(instance: TuiInstance): () => void {
   return () => clearTimeout(timeoutHandle[instance.id]);
 }
 
+/** Main object – "root" of Tui */
 export interface TuiInstance {
   /** Unique ID for TuiInstance */
   readonly id: number;

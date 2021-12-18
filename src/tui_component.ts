@@ -16,7 +16,7 @@ import { getStaticValue } from "./util.ts";
  * Extract TuiInstance from TuiObject
  * @param object - object from which TuiInstance will be extracted
  */
-export function getInstance(object: TuiInstance | AnyComponent) {
+export function getInstance(object: TuiInstance | AnyComponent): TuiInstance {
   return Object.hasOwn(object, "instance")
     ? (<TuiComponent> object).instance
     : object as TuiInstance;
@@ -53,7 +53,7 @@ export interface GetCurrentStylerOptions {
 export function getCurrentStyler(
   component: AnyComponent,
   options?: GetCurrentStylerOptions,
-) {
+): TuiStyler {
   const styler = getStaticValue(component.styler);
   const { item, focused, active } = component.instance.selected;
 
@@ -79,7 +79,7 @@ export function getCurrentStyler(
   return styler;
 }
 
-/** TuiComponent type that allows extension of its properties */
+/** TuiComponent that can be extended */
 export type ExtendedTuiComponent<
   Name extends string = string,
   Extension = void,
@@ -87,7 +87,7 @@ export type ExtendedTuiComponent<
   EventDataType = void,
 > = TuiComponent<Name, Events, EventDataType> & Extension;
 
-/** Basic TuiComponent type */
+/** Basic TuiComponent */
 export type TuiComponent<
   Name extends string = string,
   Events = void,
@@ -152,7 +152,7 @@ export interface CreateComponentOptions<Name extends string = string> {
  * "Destroy" component
  * - Disables all of its events
  * - Removes it from its parent and TuiInstance
- * - removes all of its children [recurses]
+ * - Removes all of its children (recurses)
  * @param component - component that will be removed
  */
 export function removeComponent(component: AnyComponent) {

@@ -3,7 +3,9 @@ import { getInteractiveComponents, TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp, getStaticValue } from "./util.ts";
 
+/** ASCII escape code to enable mouse handling */
 export const ENABLE_MOUSE = "\x1b[?1000h";
+/** ASCII escape code to disable mouse handling */
 export const DISABLE_MOUSE = "\x1b[?1000l";
 
 const encoder = new TextEncoder();

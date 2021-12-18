@@ -217,7 +217,7 @@ interface DrawPixelOptions {
 export function drawPixel(
   instance: CanvasInstance,
   { column, row, styler, value }: DrawPixelOptions,
-) {
+): void {
   const index = column % 2;
   column = ~~(column / 2);
   const pos = instance.frameBuffer?.[row]?.[column];
@@ -264,7 +264,7 @@ export interface DrawRectangleOptions {
 export function drawRectangle(
   instance: CanvasInstance,
   { column, row, width, height, value = " ", styler }: DrawRectangleOptions,
-) {
+): void {
   for (let r = row; r < row + height; ++r) {
     for (let c = column; c < column + width; ++c) {
       drawPixel(instance, {
@@ -296,7 +296,7 @@ export interface DrawTextOptions {
 export function drawText(
   instance: CanvasInstance,
   options: DrawTextOptions,
-) {
+): void {
   const lines = options.text.split("\n");
 
   for (const [l, line] of lines.entries()) {

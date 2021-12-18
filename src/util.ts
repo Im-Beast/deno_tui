@@ -3,9 +3,7 @@
 // deno-lint-ignore ban-types
 type DynamicValue<T> = T extends Function ? never : T | (() => T);
 
-/**
- * Extract static value from DynamicValue
- */
+/** Extract static value from DynamicValue */
 export function getStaticValue<T>(value?: DynamicValue<T>): T {
   return typeof value === "function" ? value() : value;
 }
