@@ -330,16 +330,17 @@ export interface CanvasStyler {
 }
 
 /** Any possible styler */
-export interface AnyStyler {
-  foreground: StyleCode | Color;
-  background: StyleCode | Color;
-  attributes: (StyleCode | Attribute)[];
+export type AnyStyler = {
   [key: string]: StyleCode | Style | (StyleCode | Attribute)[] | {
     foreground?: StyleCode | Color;
     background?: StyleCode | Color;
     attributes?: (StyleCode | Attribute)[];
   };
-}
+} & {
+  foreground?: StyleCode | Color;
+  background?: StyleCode | Color;
+  attributes?: (StyleCode | Attribute)[];
+};
 
 /**
  * Returns text with applied ANSI escape code
