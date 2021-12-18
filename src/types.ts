@@ -18,10 +18,9 @@ export type Range<From extends number, To extends number> = number extends From
   ? number
   : _Range<From, To, []>;
 
-// deno-lint-ignore no-explicit-any
-type _any = any;
 // deno-fmt-ignore
-export type AnyComponent = ExtendedTuiComponent< _any,  { [x in _any]: _any;  },  _any, _any >;
+// deno-lint-ignore no-explicit-any
+export type AnyComponent = ExtendedTuiComponent< any,  { [x in any]: any;  },  any, any >;
 
 /** Object which can be used as a parent to create other component */
 export type TuiObject = TuiInstance | AnyComponent;

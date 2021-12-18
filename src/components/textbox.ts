@@ -11,6 +11,7 @@ import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { textWidth } from "../util.ts";
 
+/** Definition on how TextboxComponent should look like */
 export type TextboxTuiStyler = TuiStyler & {
   cursor?: CanvasStyler;
 };

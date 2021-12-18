@@ -1,19 +1,23 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
+/** EventEmitter allows to emit and handle emitted events asynchronously */
 export interface EventEmitter<Event extends string, DataType> {
   listeners: Listener<Event, DataType>[];
-
+  /** Emits event with given data */
   emit: (event: Event, ...data: DataType[]) => void;
+  /** Handles given event using given function */
   on: (
     event: Event,
     func: ListenerFunction<DataType>,
     priority?: number,
     once?: boolean,
   ) => void;
+  /** Handles given event using given function only once */
   once: (
     event: Event,
     func: ListenerFunction<DataType>,
     priority?: number,
   ) => void;
+  /** Disables event handler that matches given event and/or function */
   off: (
     event: Event | "*",
     func?: ListenerFunction<DataType>,

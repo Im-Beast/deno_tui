@@ -5,6 +5,7 @@ import { Range, Reader } from "./types.ts";
 
 const decoder = new TextDecoder();
 
+/** Type for mostly every key name that `decodeBuffer` can recognize */
 export type Key =
   | Alphabet
   | Chars
@@ -93,6 +94,7 @@ type aToZ =
   | "y"
   | "z";
 
+/** KeyPress is an object that stores data about KeyPress issued to stdin */
 export interface KeyPress {
   /** Raw buffer of keypress */
   buffer: Uint8Array;
@@ -106,6 +108,7 @@ export interface KeyPress {
   ctrl: boolean;
 }
 
+/** KeyPress is an object that stores data about MousePress issued to stdin */
 export interface MousePress extends KeyPress {
   x: number;
   y: number;
@@ -114,6 +117,7 @@ export interface MousePress extends KeyPress {
   scroll: 1 | 0 | -1;
 }
 
+/** MultiKeyPress is an object that stores data about multiple KeyPresses issued to stdin at the same time */
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
   /** Raw buffers of keypress */
   buffer: Uint8Array[];

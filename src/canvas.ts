@@ -25,6 +25,7 @@ export function moveCursor(
   return `\x1b[${row};${column}H`;
 }
 
+/** Canvas is object which manages high-level "painting" on the terminal */
 export interface CanvasInstance {
   /** Writer that canvas will write data to */
   writer: Writer;
@@ -328,9 +329,12 @@ export interface CanvasStyler {
   attributes?: StyleCode[];
 }
 
-/** Any possible to create styler */
+/** Any possible styler */
 export interface AnyStyler {
-  [key: string]: StyleCode | Style | Attribute[] | {
+  foreground: StyleCode | Color;
+  background: StyleCode | Color;
+  attributes: (StyleCode | Attribute)[];
+  [key: string]: StyleCode | Style | (StyleCode | Attribute)[] | {
     foreground?: StyleCode | Color;
     background?: StyleCode | Color;
     attributes?: (StyleCode | Attribute)[];
