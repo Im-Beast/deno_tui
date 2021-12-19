@@ -42,7 +42,6 @@ const option = Deno.args[0];
 
 switch (option) {
   case "changes":
-    canvas.prevBuffer = [[]];
     renderChanges(canvas);
     break;
   case "emptyChanges":
