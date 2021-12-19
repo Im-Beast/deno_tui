@@ -18,7 +18,7 @@ const decoder = new TextDecoder();
 
 const writer = Deno.stdout;
 
-export const canvas = createCanvas({
+const canvas = createCanvas({
   filler: " ",
   writer: Deno.stdout,
   size: {
@@ -204,10 +204,10 @@ Deno.test("Canvas: rendering", async () => {
     );
   };
 
-  const promises = [
-    runTest("changes"),
-    runTest("full"),
-  ];
-
-  await Promise.all(promises);
+  await Promise.all(
+    [
+      runTest("changes"),
+      runTest("full"),
+    ],
+  );
 });

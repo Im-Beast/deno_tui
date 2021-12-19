@@ -4,7 +4,7 @@ import { createTui } from "../src/tui.ts";
 import { getStaticValue } from "../src/util.ts";
 import { assertEquals, styler } from "./deps.ts";
 
-export const canvas = createCanvas({
+const canvas = createCanvas({
   filler: " ",
   writer: Deno.stdout,
   size: {
@@ -19,7 +19,7 @@ const createOptions = {
   invalidProperty: "wow",
 };
 
-export const tui = createTui(Deno.stdin, Deno.stdout, createOptions);
+const tui = createTui(Deno.stdin, Deno.stdout, createOptions);
 
 Deno.test("TuiInstance: create tui", () => {
   assertEquals(
