@@ -35,8 +35,8 @@ export interface CanvasInstance {
   filler: string;
   /** Matrix which stores pixels which later will be used to render to the terminal */
   frameBuffer: [string, string][][];
-  /** Previously used frameBuffer, used to calculate changes */
-  prevBuffer?: [string, string][][];
+  /** Map of previously used frameBuffer, used to calculate changes q*/
+  prevBuffer: Map<string, string>;
   /** Whether canvas should only redraw changes */
   smartRender: boolean;
   /** Canvas FPS */
@@ -81,13 +81,13 @@ export function createCanvas(
     lastTime: Date.now(),
     deltaTime: 16,
     frameBuffer: [],
+    prevBuffer: new Map(),
     smartRender,
     refreshed: false,
   };
 
   const updateCanvas = (render = true) => {
     fillBuffer(canvas);
-    canvas.prevBuffer = undefined;
     if (render) {
       renderFull(canvas);
     }
@@ -129,19 +129,20 @@ export function fillBuffer(instance: CanvasInstance): void {
  * @param instance - canvas instance which will be rendered
  */
 export function renderChanges(instance: CanvasInstance): void {
-  if (!instance.prevBuffer?.length) return;
-
   const { rows, columns } = getStaticValue(instance.size);
 
   let string = "";
   for (let r = 0; r < rows; ++r) {
     for (let c = 0; c < ~~(columns / 2); ++c) {
+      const value = instance.frameBuffer?.[r]?.[c];
       if (
-        String(instance.prevBuffer?.[r]?.[c]) !=
-          String(instance.frameBuffer?.[r]?.[c])
+        instance.prevBuffer.get(`${r}/${c}`) !=
+          String(value)
       ) {
+        instance.prevBuffer.set(`${r}/${c}`, String(value));
+
         string += moveCursor(r + 1, (c * 2) + 1) +
-          instance.frameBuffer[r][c].join("");
+          value.join("");
       }
     }
   }
@@ -176,23 +177,19 @@ export function renderFull(instance: CanvasInstance): void {
  */
 export function render(instance: CanvasInstance): void {
   const start = Date.now();
-  Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
+  // Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
 
-  if (instance.smartRender && instance.prevBuffer) {
+  if (instance.smartRender) {
     renderChanges(instance);
+
+    if (!instance.refreshed && instance.fps > 0) {
+      fillBuffer(instance);
+      renderFull(instance);
+      instance.refreshed = true;
+    }
   } else {
     renderFull(instance);
   }
-
-  if (!instance.refreshed && instance.smartRender) {
-    setTimeout(() => {
-      fillBuffer(instance);
-      instance.prevBuffer = undefined;
-      instance.refreshed = true;
-    }, 1);
-  }
-
-  instance.prevBuffer = JSON.parse(JSON.stringify(instance.frameBuffer));
 
   instance.fps = 1000 / (Date.now() - instance.lastTime);
   instance.lastTime = Date.now();
