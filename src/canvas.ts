@@ -1,10 +1,12 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { Attribute, Color, keyword } from "./colors.ts";
-import { Style } from "./colors.ts";
-import { StyleCode } from "./colors.ts";
+import { Attribute, Color, keyword, Style, StyleCode } from "./colors.ts";
 import { ConsoleSize, Dynamic, Writer } from "./types.ts";
-import { getStaticValue, isFullWidth, removeStyleCodes } from "./util.ts";
-import { capitalize } from "./util.ts";
+import {
+  capitalize,
+  getStaticValue,
+  isFullWidth,
+  removeStyleCodes,
+} from "./util.ts";
 
 const encoder = new TextEncoder();
 
@@ -77,12 +79,12 @@ export function createCanvas(
     size,
     filler,
     writer,
+    smartRender,
     fps: 0,
     lastTime: Date.now(),
     deltaTime: 16,
     frameBuffer: [],
     prevBuffer: new Map(),
-    smartRender,
     refreshed: false,
   };
 
