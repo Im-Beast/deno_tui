@@ -19,7 +19,6 @@ import {
   handleKeyboardControls,
   handleKeypresses,
   handleMouseControls,
-  keyword,
   removeComponent,
   textWidth,
   TuiStyler,
@@ -43,10 +42,10 @@ const tuiStyler = compileStyler<TuiStyler>({
   },
 });
 
-const componentStyler: TuiStyler = {
+const componentStyler = compileStyler<TuiStyler>({
   ...tuiStyler,
-  background: keyword("bgBlue"),
-};
+  background: "blue",
+});
 
 const tui = createTui(Deno.stdin, Deno.stdout, {
   styler: tuiStyler,
@@ -166,57 +165,57 @@ createCombobox(tui, {
   styler: componentStyler,
 });
 
-const normalTextbox = createTextbox(tui, {
+createTextbox(tui, {
   rectangle: {
     column: 55,
     row: 5,
     width: 9,
     height: 1,
   },
+  value: ["visible"],
   hidden: false,
   multiline: false,
   styler: componentStyler,
 });
-normalTextbox.value = ["visible"];
 
-const hiddenTextbox = createTextbox(tui, {
+createTextbox(tui, {
   rectangle: {
     column: 55,
     row: 8,
     width: 9,
     height: 1,
   },
+  value: ["hidden"],
   hidden: true,
   multiline: false,
   styler: componentStyler,
 });
-hiddenTextbox.value = ["hidden"];
 
-const multilineTextbox = createTextbox(tui, {
+createTextbox(tui, {
   rectangle: {
     column: 55,
     row: 11,
     width: 9,
     height: 3,
   },
+  value: ["it", "is", "multiline", "overline", "overtwolines"],
   hidden: false,
   multiline: true,
   styler: componentStyler,
 });
-multilineTextbox.value = ["it", "is", "multiline"];
 
-const multilineHiddenTextbox = createTextbox(tui, {
+createTextbox(tui, {
   rectangle: {
     column: 68,
     row: 8,
     width: 9,
     height: 3,
   },
+  value: ["it", "is", "hidden"],
   hidden: true,
   multiline: true,
   styler: componentStyler,
 });
-multilineHiddenTextbox.value = ["it", "is", "hidden"];
 
 createButton(tui, {
   rectangle: {
