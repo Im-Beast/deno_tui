@@ -160,15 +160,19 @@ export function createTextbox(
         break;
       case "return":
         if (position.x === textbox.value[position.y].length) {
-          textbox.value.splice(position.y + 1, 0, "");
-          position.y = Math.min(position.y + 1, textbox.value.length);
+          if (textbox.multiline) {
+            textbox.value.splice(position.y + 1, 0, "");
+          }
+          position.y = Math.min(position.y + 1, textbox.value.length - 1);
           position.x = textbox.value[position.y].length;
         } else {
           const start = textbox.value[position.y].slice(0, position.x);
           const end = textbox.value[position.y].slice(position.x);
           textbox.value[position.y] = start;
-          textbox.value.splice(position.y + 1, 0, end);
-          position.y = Math.min(position.y + 1, textbox.value.length);
+          if (textbox.multiline) {
+            textbox.value.splice(position.y + 1, 0, end);
+          }
+          position.y = Math.min(position.y + 1, textbox.value.length - 1);
           position.x = 0;
         }
 
