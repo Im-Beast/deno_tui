@@ -33,7 +33,6 @@ Deno.test("TuiInstance: create tui", () => {
       "styler",
       "size",
       "rectangle",
-      "refreshRate",
       "children",
       "components",
       "selected",
