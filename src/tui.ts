@@ -69,6 +69,7 @@ export function draw(
   }
 
   render(instance.canvas);
+  instance.emitter.emit("draw", Date.now());
 
   instance.selected.active = false;
 
@@ -89,7 +90,8 @@ export interface TuiInstance {
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"mouse", MousePress>
     & EventEmitter<"multiKey", MultiKeyPress>
-    & EventEmitter<"focus" | "active", undefined>;
+    & EventEmitter<"focus" | "active", undefined>
+    & EventEmitter<"draw", number>;
   /** Handle given functions on specific tui events */
   readonly on: TuiInstance["emitter"]["on"];
   /** Handle given functions only once on specific tui events */
