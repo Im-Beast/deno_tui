@@ -15,6 +15,13 @@ const encoder = new TextEncoder();
  *  - Single click to focus component
  *  - Double click/Single click focused component to activate
  * @param instance – instance which components will be manipulated
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * handleKeypresses(tui);
+ * handleMouseControls(tui);
+ * ```
  */
 export function handleMouseControls(instance: TuiInstance): void {
   Deno.writeSync(instance.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));

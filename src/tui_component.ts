@@ -58,6 +58,39 @@ export interface GetCurrentStylerOptions {
  * Get current CanvasStyler of component from TuiStyler
  * @param component - Component for which styler will be gotten
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * const component = createComponent(tui, ...);
+ * component.styler = {
+ *  foreground: "\x1b[32m",
+ *  background: "\x1b[42m",
+ *  active: {
+ *    foreground: "\x1b[33m",
+ *    background: "\x1b[43m",
+ *  },
+ *  focused: {
+ *    foreground: "\x1b[34m",
+ *    background: "\x1b[44m",
+ *   }
+ * };
+ *
+ * getCurrentStyler(component); // -> component.styler
+ * getCurrentStyler(component, {
+ *  focused: {
+ *    value: true,
+ *    force: true,
+ *  }
+ * }); // -> component.styler.focused
+ *
+ * tui.selected.item = component;
+ * tui.selected.item.focused = true;
+ * getCurrentStyler(component); // -> component.styler.focused
+ *
+ * tui.selected.item.active = true;
+ * getCurrentStyler(component); // -> component.styler.active
+ * ```
  */
 export function getCurrentStyler(
   component: AnyComponent,
@@ -163,6 +196,12 @@ export interface CreateComponentOptions<Name extends string = string> {
  * - Removes it from its parent and TuiInstance
  * - Removes all of its children (recurses)
  * @param component - component that will be removed
+ * @example
+ * ```ts
+ * const component = createComponent(...);
+ * ...
+ * removeComponent(component);
+ * ```
  */
 export function removeComponent(component: AnyComponent) {
   const { parent, instance } = component;
@@ -187,6 +226,7 @@ let componentId = 0;
  * @param object - parent of the component
  * @param options
  * @param extension
+ * @example look in `examples/` dir
  */
 export function createComponent<
   Name extends string = string,

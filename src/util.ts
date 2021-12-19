@@ -3,7 +3,14 @@
 // deno-lint-ignore ban-types
 type DynamicValue<T> = T extends Function ? never : T | (() => T);
 
-/** Extract static value from DynamicValue */
+/**
+ * Extract static value from DynamicValue
+ * @example
+ * ```ts
+ * getStaticValue(() => "Hi"); // "Hi"
+ * getStaticValue("Hi"); // "Hi"
+ * ```
+ */
 export function getStaticValue<T>(value?: DynamicValue<T>): T {
   return typeof value === "function" ? value() : value;
 }
@@ -12,6 +19,11 @@ export function getStaticValue<T>(value?: DynamicValue<T>): T {
  * Function to get whether given character is full-width
  * - Originally created by sindresorhus https://github.com/sindresorhus/is-fullwidth-code-point/blob/main/index.js
  * @param char - 1 character long string
+ * @example
+ * ```ts
+ * isFullWidth("Ｈ"); // true
+ * isFullWidth("H"); // false
+ * ```
  */
 export function isFullWidth(char: string): boolean {
   if (char.length !== 1) {
@@ -44,6 +56,11 @@ export function isFullWidth(char: string): boolean {
 /**
  * Return actual width of the text expressed in columns of the terminal
  * @param text - text which width will be measured
+ * @example
+ * ```ts
+ * textWidth("Hello"); // -> 5
+ * textWidth("Ｈello"); // -> 6
+ * ```
  */
 export function textWidth(text: string): number {
   text = removeStyleCodes(text);
@@ -59,6 +76,12 @@ export function textWidth(text: string): number {
  * @param number - number to be clamped
  * @param min - minimal value of clamped number
  * @param max - maximal value of clamped number
+ * @example
+ * ```ts
+ * clamp(-5, 0, 10); // -> 0
+ * clamp(0.1, 0, 10); // -> 0.1
+ * clamp(11, 0, 10); // -> 10
+ * ```
  */
 export function clamp(number: number, min: number, max: number): number {
   return Math.min(Math.max(number, min), max);
@@ -69,6 +92,13 @@ export function clamp(number: number, min: number, max: number): number {
  * @param number - number to be rounded and clamped
  * @param min - minimal value of clamped number
  * @param max - maximal value of clamped number
+ * @example
+ * ```ts
+ * clamp(-5, 0, 10); // -> 0
+ * clamp(0.1, 0, 10); // -> 0
+ * clamp(0.6, 0, 10); // -> 1
+ * clamp(11, 0, 10); // -> 10
+ * ```
  */
 export function clampAndRound(
   number: number,
@@ -81,7 +111,10 @@ export function clampAndRound(
 /**
  * Capitalizes first letter of given text
  * @param text - text to be capitalized
- * @example "sesquipedalian" -> "Sesquipedalian"
+ * @example
+ * ```ts
+ * capitalize("sesquipedalian"); // -> "Sesquipedalian"
+ * ```
  */
 export function capitalize(text: string): string {
   return text[0].toUpperCase() + text.slice(1);
@@ -90,7 +123,10 @@ export function capitalize(text: string): string {
 /**
  * Removes style codes in text
  * @param text - text to be stripped out of style codes
- * @example "\x1b[32mHello!\x1b[0m" -> "Hello!"
+ * @example
+ * ```ts
+ * removeStyleCodes("\x1b[32mHello!\x1b[0m") // -> "Hello!"
+ * ```
  */
 export function removeStyleCodes(text: string): string {
   // deno-lint-ignore no-control-regex

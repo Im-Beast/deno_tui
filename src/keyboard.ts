@@ -8,6 +8,12 @@ import { clamp, getStaticValue } from "./util.ts";
  * Change focused component using 2 axis vector
  * @param instance – instance which components will be manipulated
  * @param vector – object which holds x and y (they should equal -1 or 0 or 1)
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * changeComponent(tui, { x: 1, y: 1});
+ * ```
  */
 export function changeComponent(
   instance: TuiInstance,
@@ -85,6 +91,13 @@ export function changeComponent(
  *  - Hold shift + press up/down/left/right to move between components
  *  - Press enter to activate item
  * @param instance – instance which components will be manipulated
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * handleKeypresses(tui);
+ * handleKeyboardControls(tui);
+ * ```
  */
 export function handleKeyboardControls(instance: TuiInstance): void {
   const handler = ({ meta, shift, ctrl, key }: KeyPress) => {

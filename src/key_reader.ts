@@ -128,6 +128,12 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
 /**
  * Emit pressed keys to instance and focused objects
  * @param instance - TuiInstance from which keys will be redirected to focused items
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * handleKeypresses(tui);
+ * ```
  */
 export function handleKeypresses(instance: TuiInstance): void {
   instance.emitter.on("key", (keyPress) => {
@@ -150,6 +156,11 @@ export function handleKeypresses(instance: TuiInstance): void {
  * They're both mouse and keyboard key presses.
  * @param reader - Reader from which keypresses will be read
  * @param emitter - EventEmitter to which keypresses will be redirected
+ * @example
+ * ```ts
+ * const emitter = createEventEmitter<"key" | "multiKey" | "mouse", KeyPress, MousePress>();
+ * readKeypressesEmitter(Deno.stdin, emitter);
+ * ```
  */
 export async function readKeypressesEmitter(
   reader: Reader,
@@ -188,6 +199,12 @@ export async function readKeypressesEmitter(
 /**
  * Read keypresses from stdin
  * @param reader - Reader from which keypresses will be read
+ * @example
+ * ```ts
+ * for await (const [keyPresses, mousePresses] of readKeypresses(Deno.stdin)) {
+ *  ...
+ * }
+ * ```
  */
 export async function* readKeypresses(
   reader: Reader,
@@ -207,6 +224,16 @@ export async function* readKeypresses(
 /**
  * Decodes Uint8Array buffer to easily usable array of KeyPress objects
  * @param buffer - raw keypress buffer
+ * @example
+ * ```ts
+ * const buffer = new Uint8Array(1024);
+ * const byteLength = Deno.stdin.read(buffer);
+ * if (typeof byteLength === "number") {
+ *  const [keyPresses, mousePresses] = decodeBuffer(
+ *    buffer.subarray(0, byteLength)
+ *  );
+ * }
+ * ```
  */
 export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
   const decodedBuffer = decoder.decode(buffer);
