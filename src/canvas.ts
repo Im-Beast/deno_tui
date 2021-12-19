@@ -35,7 +35,7 @@ export interface CanvasInstance {
   filler: string;
   /** Matrix which stores pixels which later will be used to render to the terminal */
   frameBuffer: [string, string][][];
-  /** Map of previously used frameBuffer, used to calculate changes q*/
+  /** Map of previously used frameBuffer, used to calculate changes */
   prevBuffer: Map<string, string>;
   /** Whether canvas should only redraw changes */
   smartRender: boolean;
@@ -177,11 +177,12 @@ export function renderFull(instance: CanvasInstance): void {
  */
 export function render(instance: CanvasInstance): void {
   const start = Date.now();
-  // Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
+  Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
 
   if (instance.smartRender) {
     renderChanges(instance);
 
+    /** Fix for full-width characters */
     if (!instance.refreshed && instance.fps > 0) {
       fillBuffer(instance);
       renderFull(instance);
