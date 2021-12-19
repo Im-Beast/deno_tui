@@ -66,11 +66,17 @@ export function createTextbox(
         textbox.rectangle,
       );
 
+      const offsetX = position.x >= width ? position.x - width + 1 : 0;
+      const offsetY = position.y >= height ? height - position.y - 1 : 0;
+
       for (let [i, line] of textbox.value.entries()) {
-        if (i >= height) break;
+        const y = i + offsetY;
+        if (y >= height || y < 0) continue;
         if (textbox.hidden) {
           line = "*".repeat(line.length);
         }
+
+        line = line.slice(offsetX);
 
         let tw = textWidth(line);
         while (tw > width) {
@@ -80,7 +86,7 @@ export function createTextbox(
 
         drawText(object.canvas, {
           column,
-          row: row + i,
+          row: row + y,
           text: line,
           styler: getCurrentStyler(textbox),
         });
@@ -89,9 +95,10 @@ export function createTextbox(
       if (textbox.instance.selected.item?.id === textbox.id) {
         const currentCharacter = textbox.value?.[position.y]?.[position.x];
         const cursorCol = column + Math.min(position.x, width - 1);
+        const cursorRow = row + Math.min(position.y, height - 1);
         drawPixel(object.canvas, {
           column: cursorCol,
-          row: row + position.y,
+          row: cursorRow,
           value: currentCharacter
             ? textbox.hidden ? "*" : currentCharacter
             : " ",
@@ -119,8 +126,6 @@ export function createTextbox(
     if (!key || shift) return;
 
     const startValue = [...textbox.value];
-    const rectangle = getStaticValue(textbox.rectangle);
-    const startY = position.y;
 
     if (!ctrl && !meta && key.length === 1) {
       textbox.value[position.y] ||= "";
@@ -141,7 +146,7 @@ export function createTextbox(
           : textbox.value[position.y].length;
         break;
       case "down":
-        position.y = Math.min(position.y + 1, rectangle.height - 1);
+        position.y = Math.min(position.y + 1, textbox.value.length - 1);
         textbox.value[position.y] ||= "";
         position.x = textbox.value[position.y].length >= position.x
           ? position.x
@@ -154,28 +159,50 @@ export function createTextbox(
         position.x = Math.min(position.x + 1, textbox.value[position.y].length);
         break;
       case "return":
-        position.y = Math.min(position.y + 1, rectangle.height - 1);
-        if (position.y !== startY) {
-          textbox.value[position.y] ||= "";
+        if (position.x === textbox.value[position.y].length) {
+          textbox.value.splice(position.y + 1, 0, "");
+          position.y = Math.min(position.y + 1, textbox.value.length);
           position.x = textbox.value[position.y].length;
+        } else {
+          const start = textbox.value[position.y].slice(0, position.x);
+          const end = textbox.value[position.y].slice(position.x);
+          textbox.value[position.y] = start;
+          textbox.value.splice(position.y + 1, 0, end);
+          position.y = Math.min(position.y + 1, textbox.value.length);
+          position.x = 0;
         }
+
         break;
       case "backspace":
-        if (position.x === 0) {
+        if (position.x === 0 && position.y !== 0) {
           position.y = Math.max(0, position.y - 1);
-          position.x = textbox.value[position.y].length;
+          const start = textbox.value[position.y] ?? "";
+          const end = textbox.value.splice(position.y + 1, 1);
+          if (end) {
+            textbox.value[position.y] = start + end;
+          }
+          position.x = start.length;
         } else {
           textbox.value[position.y] ||= "";
           textbox.value[position.y] =
-            textbox.value[position.y].substr(0, position.x - 1) +
-            textbox.value[position.y].substr(position.x);
+            textbox.value[position.y].substring(0, position.x - 1) +
+            textbox.value[position.y].substring(position.x);
           position.x = Math.max(0, position.x - 1);
         }
         break;
       case "delete":
-        textbox.value[position.y] =
-          textbox.value[position.y].substr(0, position.x) +
-          textbox.value[position.y].substr(position.x + 1);
+        if (position.x === textbox.value[position.y]?.length) {
+          const del = textbox.value.splice(position.y, 1);
+          if (del) {
+            textbox.value[position.y] = del + (textbox.value[position.y] ?? "");
+          }
+        } else if (!textbox.value[position.y]?.length) {
+          textbox.value.splice(position.y, 1);
+        } else {
+          textbox.value[position.y] =
+            textbox.value[position.y].substring(0, position.x) +
+            textbox.value[position.y].substring(position.x + 1);
+        }
         break;
       case "home":
         position.x = 0;
