@@ -20,8 +20,17 @@ import {
 import { getStaticValue } from "./util.ts";
 
 /**
- * Get interactive components
+ * Get interactive components from TuiInstance
  * @param instance – Tui to get components from
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * createButton(tui, ...);
+ * createCombobox(tui, ...);
+ * createBox(tui, ...);
+ * ...
+ * getInteractiveComponents(tui); // -> array containing button and combobox
+ * ```
  */
 export function getInteractiveComponents(
   instance: TuiInstance,
@@ -37,8 +46,19 @@ const timeoutHandle: { [id: number]: number } = {};
  * Consistently draws TuiInstance.
  * Returns function which stops drawing.
  * @param instance – Tui to be drawn
+ * @param refreshRate – How often tui should be redrawn (in ms)
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * const stop = draw(tui);
+ * setTimeout(stop, 1000); // -> tui will stop being drawn after 1s
+ * ```
  */
-export function draw(instance: TuiInstance): () => void {
+export function draw(
+  instance: TuiInstance,
+  refreshRate: Dynamic<number> = 32,
+): () => void {
   drawRectangle(instance.canvas, {
     ...instance.rectangle(),
     styler: getStaticValue(instance.styler),
@@ -53,8 +73,8 @@ export function draw(instance: TuiInstance): () => void {
   instance.selected.active = false;
 
   timeoutHandle[instance.id] = setTimeout(
-    () => draw(instance),
-    getStaticValue(instance.refreshRate) - instance.canvas.deltaTime,
+    () => draw(instance, refreshRate),
+    getStaticValue(refreshRate) - instance.canvas.deltaTime,
   );
 
   return () => clearTimeout(timeoutHandle[instance.id]);
@@ -78,8 +98,6 @@ export interface TuiInstance {
   readonly once: TuiInstance["emitter"]["once"];
   /** Size and position of tui */
   rectangle: () => TuiRectangle;
-  /** How often tui should be redrawn (in ms) */
-  refreshRate: Dynamic<number>;
   /** tui's children components */
   children: AnyComponent[];
   /** All of tui's components */
@@ -108,8 +126,6 @@ export interface TuiInstance {
 export type CreateTuiOptions = {
   /** Definition of tui's look */
   styler: TuiStyler;
-  /** How often tui should be redrawn (in ms) */
-  refreshRate?: Dynamic<number>;
   /** Size of the tui */
   size?: Dynamic<ConsoleSize>;
 } & (CreateTuiOptionsWithCanvas | CreateTuiOptionsWithoutCanvas);
@@ -140,7 +156,6 @@ export function createTui(
   {
     styler,
     filler,
-    refreshRate = 32,
     size,
     canvas = createCanvas({
       writer,
@@ -168,7 +183,6 @@ export function createTui(
         height,
       };
     },
-    refreshRate,
     children: [],
     components: [],
     selected: {
