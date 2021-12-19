@@ -11,6 +11,7 @@ import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createFrame, FrameComponent } from "./frame.ts";
 
+/** Not interactive box component */
 export type BoxComponent = TuiComponent<"box">;
 
 export type CreateBoxOptions = Omit<

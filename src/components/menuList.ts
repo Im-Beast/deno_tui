@@ -9,6 +9,7 @@ import {
 } from "./combobox.ts";
 import { MenuComponent } from "./menu.ts";
 
+/** Interactive menuList component */
 export type MenuListComponent = ExtendedTuiComponent<
   "menuList",
   {

@@ -10,6 +10,7 @@ interface MenuItemExtension {
   label: Dynamic<string>;
 }
 
+/** Interactive menuItem component */
 export type MenuItemComponent = ExtendedTuiComponent<
   "menuItem",
   MenuItemExtension

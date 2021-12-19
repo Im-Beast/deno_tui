@@ -21,6 +21,7 @@ export function getComboboxValueLabel(value: ComboboxValue): string {
 /** Type of value accepted by combobox */
 export type ComboboxValue = string | { label: string; value: unknown };
 
+/** Interactive combobox component */
 export type ComboboxComponent = ExtendedTuiComponent<
   "combobox",
   {

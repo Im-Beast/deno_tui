@@ -19,6 +19,7 @@ interface ButtonExtension {
   labelAlign?: Dynamic<TextAlign>;
 }
 
+/** Interactive button component */
 export type ButtonComponent = ExtendedTuiComponent<"button", ButtonExtension>;
 
 export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;

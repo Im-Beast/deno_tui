@@ -16,6 +16,7 @@ interface FrameExtension {
 
 export type CreateFrameOptions = CreateBoxOptions & FrameExtension;
 
+/** Not interactive frame component */
 export type FrameComponent = ExtendedTuiComponent<"frame", FrameExtension>;
 
 /**

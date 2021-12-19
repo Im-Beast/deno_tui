@@ -16,6 +16,7 @@ export type TextboxTuiStyler = TuiStyler & {
   cursor?: CanvasStyler;
 };
 
+/** Interactive textbox component */
 export type TextboxComponent = ExtendedTuiComponent<
   "textbox",
   {

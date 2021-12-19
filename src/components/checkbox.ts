@@ -14,6 +14,7 @@ interface CheckboxExtension {
   value?: boolean;
 }
 
+/** Interactive checkbox component */
 export type CheckboxComponent = ExtendedTuiComponent<
   "checkbox",
   CheckboxExtension,

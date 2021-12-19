@@ -19,6 +19,7 @@ interface LabelExtension {
   textAlign: Dynamic<TextAlign>;
 }
 
+/** Not interactive label (text) component */
 export type LabelComponent = ExtendedTuiComponent<"label", LabelExtension>;
 
 export type CreateLabelOptions = CreateBoxOptions & LabelExtension;

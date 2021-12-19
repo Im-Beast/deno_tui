@@ -15,6 +15,7 @@ export type CreateMenuOptions = Omit<
   "interactive" | "name" | "rectangle"
 >;
 
+/** Not interactive menu component */
 export type MenuComponent = ExtendedTuiComponent<
   "menu",
   /** Height of the menu */
