@@ -226,7 +226,7 @@ let componentId = 0;
  * @param object - parent of the component
  * @param options
  * @param extension
- * @example look in `examples/` dir
+ * @example look in `src/components/` dir for example components
  */
 export function createComponent<
   Name extends string = string,
