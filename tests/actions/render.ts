@@ -44,9 +44,6 @@ switch (option) {
   case "changes":
     renderChanges(canvas);
     break;
-  case "emptyChanges":
-    renderChanges(canvas);
-    break;
   case "full":
     renderFull(canvas);
     break;
