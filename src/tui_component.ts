@@ -15,6 +15,15 @@ import { getStaticValue } from "./util.ts";
 /**
  * Extract TuiInstance from TuiObject
  * @param object - object from which TuiInstance will be extracted
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * const component = createComponent(tui, ...);
+ * ...
+ * const a = getInstance(tui);
+ * const b = getInstance(component);
+ * // tui === a === b
+ * ```
  */
 export function getInstance(object: TuiInstance | AnyComponent): TuiInstance {
   return Object.hasOwn(object, "instance")

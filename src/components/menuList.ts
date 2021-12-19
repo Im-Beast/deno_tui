@@ -48,6 +48,16 @@ export interface CreateMenuListOptions
  * It gets automatically placed by menu
  * @param object - parent of the created box, must be MenuComponent
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * const menu = createMenu(...);
+ * createMenuList(menu, {
+ *  label: "File",
+ *  items: ["Open", "Save", "Close"],
+ * });
+ * ```
  */
 export function createMenuList(
   object: MenuComponent,

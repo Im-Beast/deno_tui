@@ -51,6 +51,20 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
  * It is interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * createTextbox(tui, {
+ *  column: 1,
+ *  row: 1,
+ *  width: 10,
+ *  height: 1,
+ *  value: ["one line"],
+ *  //multiline: true,
+ *  //hidden: true,
+ * })
+ * ```
  */
 export function createTextbox(
   object: TuiObject,

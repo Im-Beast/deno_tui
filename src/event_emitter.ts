@@ -40,6 +40,21 @@ export interface Listener<Event extends string, DataType> {
 
 /**
  * Create EventListener
+ * @example
+ * ```ts
+ * const emitter = createEventEmitter<"greeting" | "farewell", string>();
+ *
+ * emitter.on("greeting", console.log);
+ * emitter.on("farewell", console.log);
+ *
+ * setTimeout(() => {
+ *  emitter.emit("greeting", "hello!")
+ * }, 100);
+ *
+ * setTimeout(() => {
+ *   emitter.emit("farewell", "bye!")
+ * }, 500);
+ * ```
  */
 export function createEventEmitter<
   Event extends string,

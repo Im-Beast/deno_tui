@@ -28,6 +28,12 @@ export type MenuComponent = ExtendedTuiComponent<
  * It automatically distributes menu* components
  * @param object - parent of the created box, either Tui instance or other component
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * const menu = createMenu(tui, {});
+ * ```
  */
 export function createMenu(
   object: TuiObject,

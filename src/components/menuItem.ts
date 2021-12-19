@@ -26,6 +26,15 @@ export type CreateMenuItemOptions =
  * It gets automatically placed by menu
  * @param object - parent of the created box, must be MenuComponent
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * const menu = createMenu(tui, {});
+ * createMenuItem(menu, {
+ *  label: "Hello"
+ * });
+ * ```
  */
 export function createMenuItem(
   object: MenuComponent,

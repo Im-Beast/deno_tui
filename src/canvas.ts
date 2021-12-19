@@ -66,6 +66,18 @@ export interface CreateCanvasOptions {
  * Create CanvasInstance
  * It is used to render on terminal screen
  * @param options
+ * @example
+ * ```ts
+ * createCanvas({
+ *  writer: Deno.stdout,
+ *  filler: "\x1b[32m \x1b[0m",
+ *  //size: {
+ *  // columns: 10,
+ *  // rows: 10,
+ *  //},
+ *  //smartRender: false
+ * });
+ * ```
  */
 export function createCanvas(
   {
@@ -214,6 +226,19 @@ interface DrawPixelOptions {
  * Draw pixel on canvas
  * @param instance - canvas instance on which pixel will be drawn
  * @param options
+ * @example
+ * ```ts
+ * const canvas = createCanvas(...);
+ * ...
+ * drawPixel(canvas, {
+ *  column: 3,
+ *  row: 3,
+ *  value: "o",
+ *  styler: {
+ *    foreground: "\x1b[32m",
+ *  },
+ * });
+ * ```
  */
 export function drawPixel(
   instance: CanvasInstance,
@@ -261,6 +286,21 @@ export interface DrawRectangleOptions {
  * Draw rectangle on canvas
  * @param instance - canvas instance on which rectangle will be drawn
  * @param options
+ * @example
+ * ```ts
+ * const canvas = createCanvas(...);
+ * ...
+ * drawRectangle(canvas, {
+ *  column: 3,
+ *  row: 3,
+ *  width: 5,
+ *  height: 5,
+ *  value: "=",
+ *  styler: {
+ *    foreground: "\x1b[32m",
+ *  },
+ * });
+ * ```
  */
 export function drawRectangle(
   instance: CanvasInstance,
@@ -293,12 +333,25 @@ export interface DrawTextOptions {
  * Draw text on canvas
  * @param instance - canvas instance on which text will be drawn
  * @param options
+ * @example
+ * ```ts
+ * const canvas = createCanvas(...);
+ * ...
+ * drawText(canvas, {
+ *  column: 3,
+ *  row: 3,
+ *  text: "Hello world",
+ *  styler: {
+ *    foreground: "\x1b[32m",
+ *  },
+ * });
+ * ```
  */
 export function drawText(
   instance: CanvasInstance,
-  options: DrawTextOptions,
+  { column, row, text, styler }: DrawTextOptions,
 ): void {
-  const lines = options.text.split("\n");
+  const lines = text.split("\n");
 
   for (const [l, line] of lines.entries()) {
     let offset = 0;
@@ -306,10 +359,10 @@ export function drawText(
       const char = line[i];
 
       drawPixel(instance, {
-        column: options.column + i + offset,
-        row: options.row + l,
+        column: column + i + offset,
+        row: row + l,
         value: char,
-        styler: options.styler,
+        styler: styler,
       });
 
       if (isFullWidth(char)) offset += 1;
@@ -346,7 +399,10 @@ export type AnyStyler = {
  * Returns text with applied ANSI escape code
  * @param text - text that will be styled
  * @param style - ANSI escape code that will be applied to the text
- * @example ("Hi", "\x1b[32m") -> "\x1b[32mHi\x1b[0m"
+ * @example
+ * ```ts
+ * styleText("Hi", "\x1b[32m"); // -> "\x1b[32mHi\x1b[0m"
+ * ```
  */
 export function styleText(
   text: string,
@@ -359,6 +415,10 @@ export function styleText(
  * Compiles value found in styler to StyleCode
  * @param value - value that needs to be compiled
  * @param property - styler property name on which value is located
+ * @examples
+ * ```ts
+ * compileStylerValue("red", "background"); // -> "\x1b[41m"
+ * ```
  */
 export function compileStylerValue(value: string, property: string): StyleCode {
   if (!value?.includes) throw value;
@@ -372,6 +432,14 @@ export function compileStylerValue(value: string, property: string): StyleCode {
 /**
  * Compiles every parameter of a styler to ANSI escape code.
  * @param styler - styler that will be compiled
+ * @example
+ * ```ts
+ * compileStyler({
+ *  foreground: "red", // -> "\x1b[31m"
+ *  background: "blue", // -> "\x1b[44m"
+ *  foo: "magenta" // -> "\x1b[35m"
+ * });
+ * ```
  */
 export function compileStyler<T>(
   styler: T extends CanvasStyler ? T | AnyStyler : AnyStyler,
@@ -402,6 +470,11 @@ export function compileStyler<T>(
  * Applies ansi escape codesfrom styler to given string
  * @param string - string to be styled
  * @param styler - definition for styling string
+ * @example
+ * styleStringFromStyler("Hello", {
+ *   foreground: "\x1b[32m",
+ *   background: "\x1b[44m",
+ * }); // -> "\x1b[32m\x1b[44mHello\x1b[0m"
  */
 export function styleStringFromStyler(
   string: string,

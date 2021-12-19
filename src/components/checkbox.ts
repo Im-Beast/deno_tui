@@ -31,6 +31,20 @@ export type CreateCheckboxOptions =
  * It is interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * createCheckbox(tui, {
+ *  rectangle: {
+ *    column: 2,
+ *    row: 2,
+ *    width: 10,
+ *    height: 5
+ *  },
+ *  value: true,
+ * });
+ * ```
  */
 export function createCheckbox(
   object: TuiObject,

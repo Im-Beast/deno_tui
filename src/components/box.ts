@@ -24,6 +24,19 @@ export type CreateBoxOptions = Omit<
  * It is not interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * ...
+ * createBox(tui, {
+ *  rectangle: {
+ *    column: 2,
+ *    row: 2,
+ *    width: 10,
+ *    height: 5
+ *  }
+ * })
+ * ```
  */
 export function createBox(
   object: TuiObject,

@@ -46,7 +46,12 @@ export function handleMouseControls(instance: TuiInstance): void {
       instance.selected.active = true;
       instance.selected.item?.emitter.emit("active");
     }
+
     instance.selected.item = item;
     instance.selected.focused = true;
+
+    if (!instance.selected.active) {
+      instance.selected.item?.emitter.emit("focus");
+    }
   });
 }
