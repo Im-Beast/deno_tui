@@ -11,7 +11,8 @@ import {
   styleStringFromStyler,
   styleText,
 } from "../src/canvas.ts";
-import { getStaticValue } from "../src/util.ts";
+import { Color, colors } from "../src/colors.ts";
+import { capitalize, getStaticValue } from "../src/util.ts";
 import { assertEquals, assertThrows } from "./deps.ts";
 
 const decoder = new TextDecoder();
@@ -42,25 +43,45 @@ const _canvas = createCanvas({
   size: consoleSize,
 });
 
-console.clear();
+Deno.test("Canvas: create canvas", () => {
+  assertEquals(Object.getOwnPropertyNames(canvas), [
+    "size",
+    "filler",
+    "writer",
+    "smartRender",
+    "fps",
+    "lastTime",
+    "deltaTime",
+    "frameBuffer",
+    "prevBuffer",
+    "refreshed",
+  ]);
+});
 
 Deno.test("Canvas: styler", () => {
-  assertEquals(
-    compileStylerValue("black", "foreground"),
-    "\x1b[30m",
-  );
-  assertEquals(
-    compileStylerValue("black", "frame"),
-    "\x1b[30m",
-  );
-  assertEquals(
-    compileStylerValue("black", "background"),
-    "\x1b[40m",
-  );
-  assertEquals(
-    compileStylerValue("bgBlack", "background"),
-    "\x1b[40m",
-  );
+  for (const [color, code] of colors) {
+    if (color.startsWith("bg")) continue;
+
+    assertEquals(
+      compileStylerValue(color, "foreground"),
+      code,
+    );
+    assertEquals(
+      compileStylerValue(color, "frame"),
+      code,
+    );
+
+    const bgColor = `bg${capitalize(color)}` as Color;
+
+    assertEquals(
+      compileStylerValue(color, "background"),
+      colors.get(bgColor),
+    );
+    assertEquals(
+      compileStylerValue(bgColor, "background"),
+      colors.get(bgColor),
+    );
+  }
 
   const styler = compileStyler<CanvasStyler>({
     foreground: "blue",

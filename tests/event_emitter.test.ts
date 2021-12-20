@@ -4,6 +4,19 @@ import { createEventEmitter } from "../src/event_emitter.ts";
 
 const eventEmitter = createEventEmitter<"event", undefined>();
 
+Deno.test("EventEmitter: create eventEmitter", () => {
+  assertEquals(
+    Object.getOwnPropertyNames(eventEmitter),
+    [
+      "listeners",
+      "emit",
+      "on",
+      "once",
+      "off",
+    ],
+  );
+});
+
 Deno.test("EventEmitter: on", async () => {
   let passedTest = false;
 
