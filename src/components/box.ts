@@ -21,6 +21,7 @@ export type CreateBoxOptions = Omit<
 
 /**
  * Create BoxComponent
+ *
  * It is not interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options

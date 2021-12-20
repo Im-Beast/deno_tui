@@ -69,6 +69,7 @@ export type CreateComboboxOptions = CreateBoxOptions & {
 
 /**
  * Create ComboboxComponent
+ *
  * It is interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options

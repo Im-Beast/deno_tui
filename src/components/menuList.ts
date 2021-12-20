@@ -44,7 +44,9 @@ export interface CreateMenuListOptions
 
 /**
  * Create MenuList
+ *
  * It is interactive by default
+ *
  * It gets automatically placed by menu
  * @param object - parent of the created box, must be MenuComponent
  * @param options

@@ -48,6 +48,7 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
 
 /**
  * Create TextboxComponent
+ *
  * It is interactive by default
  * @param object - parent of the created box, either Tui instance or other component
  * @param options

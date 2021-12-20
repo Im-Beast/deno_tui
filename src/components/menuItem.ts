@@ -22,7 +22,9 @@ export type CreateMenuItemOptions =
 
 /**
  * Create MenuItem
+ *
  * It is interactive by default
+ *
  * It gets automatically placed by menu
  * @param object - parent of the created box, must be MenuComponent
  * @param options
