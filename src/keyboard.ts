@@ -2,7 +2,7 @@
 import { KeyPress } from "./key_reader.ts";
 import { getInteractiveComponents, TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
-import { clamp, getStaticValue } from "./util.ts";
+import { clamp } from "./util.ts";
 
 /**
  * Change focused component using 2 axis vector
@@ -21,27 +21,24 @@ export function changeComponent(
 ): AnyComponent {
   let item = instance.selected.item || instance.components[0];
 
-  const { row, column } = getStaticValue(item?.rectangle);
+  const { row, column } = item?.rectangle;
 
   const components = getInteractiveComponents(instance);
 
   if (vector.y !== 0) {
     let vertical = components
       .filter(
-        (a) => a === item || getStaticValue(a.rectangle).row !== row,
+        (a) => a === item || a.rectangle.row !== row,
       )
       .sort(
-        ({ rectangle: a }, { rectangle: b }) =>
-          getStaticValue(a).row - getStaticValue(b).row,
+        ({ rectangle: a }, { rectangle: b }) => a.row - b.row,
       );
 
     vertical = vertical.filter(({ rectangle: a }) =>
-      getStaticValue(a).row ===
-        getStaticValue(
-          vertical[
-            clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
-          ].rectangle,
-        ).row
+      a.row ===
+        vertical[
+          clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
+        ].rectangle.row
     );
 
     let closest!: AnyComponent;
@@ -52,9 +49,9 @@ export function changeComponent(
       }
 
       const distA = Math.abs(
-        column - getStaticValue(component.rectangle).column,
+        column - component.rectangle.column,
       );
-      const distB = Math.abs(column - getStaticValue(closest.rectangle).column);
+      const distB = Math.abs(column - closest.rectangle.column);
 
       if (distA < distB) {
         closest = component;
@@ -71,11 +68,10 @@ export function changeComponent(
   if (vector.x !== 0) {
     const horizontal = components
       .filter(
-        ({ rectangle: a }) => getStaticValue(a).row === row,
+        ({ rectangle: a }) => a.row === row,
       )
       .sort(
-        ({ rectangle: a }, { rectangle: b }) =>
-          getStaticValue(a).column - getStaticValue(b).column,
+        ({ rectangle: a }, { rectangle: b }) => a.column - b.column,
       );
 
     item = horizontal[

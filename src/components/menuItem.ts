@@ -1,13 +1,13 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { createComponent, ExtendedTuiComponent } from "../tui_component.ts";
-import { Dynamic } from "../types.ts";
-import { getStaticValue } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 import { MenuComponent } from "./menu.ts";
 
 interface MenuItemExtension {
-  label: Dynamic<string>;
+  label: {
+    text: string;
+  };
 }
 
 /** Interactive menuItem component */
@@ -58,9 +58,12 @@ export function createMenuItem(
 
   const button = createButton(menuItem, {
     ...options,
-    rectangle: () => getStaticValue(menuItem.rectangle),
-    label: () => getStaticValue(menuItem.label),
-    styler: () => ({ ...getStaticValue(menuItem.styler), frame: undefined }),
+    rectangle: menuItem.rectangle,
+    label: menuItem.label,
+    get styler() {
+      const styler = menuItem.styler;
+      return { ...styler, frame: undefined };
+    },
     focusedWithin: [menuItem, ...menuItem.focusedWithin],
   });
   button.interactive = false;

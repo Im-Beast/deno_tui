@@ -1,7 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { ExtendedTuiComponent } from "../tui_component.ts";
 import { Dynamic, TextAlign } from "../types.ts";
-import { getStaticValue } from "../util.ts";
 import {
   ComboboxValue,
   createCombobox,
@@ -29,17 +28,18 @@ export type MenuListComponent = ExtendedTuiComponent<
      * Position of the label
      * Requires `label` property to be set.
      */
-    labelAlign?: Dynamic<TextAlign>;
-    expandItemsWidth?: Dynamic<boolean>;
+    labelAlign?: TextAlign;
+    expandItemsWidth?: boolean;
   },
   "valueChange",
   ComboboxValue
 >;
 
 export interface CreateMenuListOptions
-  extends Omit<CreateComboboxOptions, "rectangle"> {
-  /** Label's text displayed on the button */
-  label: Dynamic<string>;
+  extends Omit<CreateComboboxOptions, "rectangle" | "label"> {
+  label: {
+    text: string;
+  };
 }
 
 /**
@@ -67,25 +67,23 @@ export function createMenuList(
 ): MenuListComponent {
   const menuList = createCombobox(object, {
     ...options,
-    styler: options.styler,
+    get styler() {
+      const styler = (options.styler ?? object.styler);
+      return {
+        ...styler,
+        frame: undefined,
+      };
+    },
     rectangle: {
       column: 0,
-      height: 0,
       row: 0,
       width: 0,
+      height: 0,
     },
-    labelAlign: {
-      horizontal: "left",
-      vertical: "top",
-    },
+    label: options.label,
     expandItemsWidth: true,
   }) as unknown as MenuListComponent;
   menuList.name = "menuList";
-  const prevStyler = menuList.styler;
-  menuList.styler = () => ({
-    ...getStaticValue(prevStyler),
-    frame: undefined,
-  });
 
   return menuList;
 }

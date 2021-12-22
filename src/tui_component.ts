@@ -3,14 +3,7 @@ import { CanvasInstance } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MultiKeyPress } from "./key_reader.ts";
 import { TuiInstance } from "./tui.ts";
-import {
-  AnyComponent,
-  Dynamic,
-  TuiObject,
-  TuiRectangle,
-  TuiStyler,
-} from "./types.ts";
-import { getStaticValue } from "./util.ts";
+import { AnyComponent, TuiObject, TuiRectangle, TuiStyler } from "./types.ts";
 
 /**
  * Extract TuiInstance from TuiObject
@@ -96,7 +89,7 @@ export function getCurrentStyler(
   component: AnyComponent,
   options?: GetCurrentStylerOptions,
 ): TuiStyler {
-  const styler = getStaticValue(component.styler);
+  const styler = component.styler;
   const { item, focused, active } = component.instance.selected;
 
   const isSelected = (item?.id == component.id) ||
@@ -149,14 +142,18 @@ export type TuiComponent<
   readonly once: TuiComponent<Name, Events, EventDataType>["emitter"]["once"];
   /** Disable handling specific functions on component events */
   readonly off: TuiComponent<Name, Events, EventDataType>["emitter"]["off"];
+  /** Size and position of the component*/
+  readonly rectangle: TuiRectangle;
+  /** Definition of components look */
+  readonly styler: TuiStyler;
   /** Component's name */
   name: Name;
   /** Function which draws component */
   draw: () => void;
+  /** Function which runs before components are drawn */
+  update: () => void;
   /** TuiInstance of component */
   instance: TuiInstance;
-  /** Size and position of the component*/
-  rectangle: Dynamic<TuiRectangle>;
   /** Parent object of the component (TuiInstance or AnyComponent) */
   parent: TuiObject;
   /** Component's children components */
@@ -165,8 +162,7 @@ export type TuiComponent<
   focusedWithin: AnyComponent[];
   /** Canvas on which component will be drawn */
   canvas: CanvasInstance;
-  /** Definition of components look */
-  styler: Dynamic<TuiStyler>;
+
   /** Priority by which component will be drawn */
   drawPriority: number;
   /** Whether component is interactive */
@@ -177,15 +173,17 @@ export interface CreateComponentOptions<Name extends string = string> {
   /** Name of the component */
   name: Name;
   /** Definition of components look */
-  styler?: Dynamic<TuiStyler>;
+  styler?: TuiStyler;
   /** Size and position of the component*/
-  rectangle: Dynamic<TuiRectangle>;
+  rectangle: TuiRectangle;
   /** Whether component is interactive */
   interactive?: boolean;
   /** Items which will gain components focus */
   focusedWithin?: AnyComponent[];
   /** Function which draws component */
   draw?: () => void;
+  /** Function which runs before components are drawn */
+  update?: () => void;
   /** Priority by which component will be drawn */
   drawPriority?: number;
 }
@@ -241,7 +239,8 @@ export function createComponent<
     styler = object.styler,
     rectangle,
     focusedWithin = [],
-    draw = (() => {}),
+    draw = () => {},
+    update = () => {},
     drawPriority = 0,
   }: CreateComponentOptions<Name>,
   extension?: Extension,
@@ -272,6 +271,7 @@ export function createComponent<
     drawPriority,
     interactive,
     draw,
+    update,
     ...extension,
   };
 

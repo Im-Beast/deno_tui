@@ -5,18 +5,20 @@ import {
   ExtendedTuiComponent,
   getCurrentStyler,
 } from "../tui_component.ts";
-import { Dynamic, TextAlign, TuiObject } from "../types.ts";
+import { TextAlign, TuiObject } from "../types.ts";
 import { getStaticValue, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 
 interface LabelExtension {
-  /** Label's text displayed on the button */
-  text: Dynamic<string>;
-  /**
-   * Position of the label
-   * Requires `label` property to be set.
-   */
-  textAlign: Dynamic<TextAlign>;
+  value: {
+    /** Value of the label */
+    text: string;
+    /**
+     * Position of the label
+     * Requires `label` property to be set.
+     */
+    align: TextAlign;
+  };
 }
 
 /** Not interactive label (text) component */
@@ -58,7 +60,8 @@ export function createLabel(
   let drawers: (() => void)[];
   const lastData = {
     text: "",
-    rect: options.rectangle,
+    align: "",
+    rectangle: JSON.stringify(options.rectangle),
   };
 
   const label: LabelComponent = createComponent(object, {
@@ -66,13 +69,17 @@ export function createLabel(
     interactive: false,
     ...options,
     draw() {
-      const currentText = getStaticValue(label.text);
-      const currentRect = getStaticValue(label.rectangle);
+      const { rectangle, value: { text, align } } = label;
 
-      if (currentText !== lastData.text || currentRect !== lastData.rect) {
-        updateDrawFuncs(currentText);
-        lastData.text = currentText;
-        lastData.rect = currentRect;
+      if (
+        text !== lastData.text ||
+        JSON.stringify(align) !== JSON.stringify(lastData.align) ||
+        JSON.stringify(rectangle) !== JSON.stringify(lastData.rectangle)
+      ) {
+        updateDrawFuncs(text);
+        lastData.text = text;
+        lastData.align = JSON.stringify(align);
+        lastData.rectangle = JSON.stringify(rectangle);
       }
 
       for (const draw of drawers) {
@@ -80,8 +87,7 @@ export function createLabel(
       }
     },
   }, {
-    text: options.text,
-    textAlign: options.textAlign,
+    value: options.value,
   });
 
   const updateDrawFuncs = (text: string) => {
@@ -90,7 +96,7 @@ export function createLabel(
     const { column, row, width, height } = getStaticValue(label.rectangle);
 
     const lines = text.split("\n");
-    const textAlign = getStaticValue(label.textAlign);
+    const { align } = label.value;
 
     for (let [i, line] of lines.entries()) {
       let tw = textWidth(line);
@@ -102,7 +108,7 @@ export function createLabel(
       let c = column;
       let r = row;
 
-      switch (textAlign.horizontal) {
+      switch (align.horizontal) {
         case "center":
           c = Math.floor(column + (width / 2) - (tw / 2));
           break;
@@ -111,7 +117,7 @@ export function createLabel(
           break;
       }
 
-      switch (textAlign.vertical) {
+      switch (align.vertical) {
         case "center":
           r = Math.floor(row + height / 2 - lines.length / 2);
           break;

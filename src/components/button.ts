@@ -4,19 +4,21 @@ import {
   ExtendedTuiComponent,
   removeComponent,
 } from "../tui_component.ts";
-import { Dynamic, TextAlign, TuiObject } from "../types.ts";
-import { getStaticValue } from "../util.ts";
+import { TextAlign, TuiObject } from "../types.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { createLabel, LabelComponent } from "./label.ts";
 
 interface ButtonExtension {
   /** Label's text displayed on the button */
-  label?: Dynamic<string>;
-  /**
-   * Position of the label
-   * Requires `label` property to be set.
-   */
-  labelAlign?: Dynamic<TextAlign>;
+  label?: {
+    /** Value of the label */
+    text?: string;
+    /**
+     * Position of the label
+     * Requires `label` property to be set.
+     */
+    align?: TextAlign;
+  };
 }
 
 /** Interactive button component */
@@ -59,39 +61,35 @@ export function createButton(
       if (!label && button.label) {
         label = createLabel(button, {
           drawPriority: button.drawPriority + 1,
-          text() {
-            const value = getStaticValue(button.label);
+          value: {
+            get text() {
+              const text = button.label?.text;
 
-            if (label && typeof value !== "string") {
-              removeComponent(label);
-              label = undefined;
-            }
+              if (label && typeof text !== "string") {
+                removeComponent(label);
+                label = undefined;
+              }
 
-            return value || "";
+              return text ?? "";
+            },
+            align: button.label?.align ?? ({
+              horizontal: "center",
+              vertical: "center",
+            }),
           },
           rectangle: button.rectangle,
-          textAlign: () =>
-            getStaticValue(
-              button.labelAlign || ({
-                horizontal: "center",
-                vertical: "center",
-              }),
-            ),
-          styler: () => getStaticValue(button.styler),
+          styler: button.styler,
           focusedWithin: [button, ...button.focusedWithin],
         });
       }
     },
   }, {
     label: options.label,
-    labelAlign: options.labelAlign,
   });
 
   createBox(button, {
     ...options,
     focusedWithin: [button, ...button.focusedWithin],
-    styler: () => getStaticValue(button.styler),
-    rectangle: () => getStaticValue(button.rectangle),
   });
 
   return button;

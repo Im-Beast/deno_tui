@@ -41,15 +41,19 @@ export function createMenu(
   object: TuiObject,
   options: CreateMenuOptions,
 ): MenuComponent {
+  let height = 1;
   const menu: MenuComponent = createComponent(object, {
     name: "menu",
     interactive: false,
-    rectangle: () => ({
-      ...getStaticValue(object.rectangle),
-      height: menu.height,
-    }),
+    get rectangle() {
+      return {
+        ...object.rectangle,
+        height,
+      };
+    },
     drawPriority: 1,
     draw() {
+      height = menu.height;
       drawRectangle(menu.canvas, {
         ...getStaticValue(menu.rectangle),
         height: menu.height,
@@ -63,18 +67,21 @@ export function createMenu(
         const child of menu.children
       ) {
         if (child.name === "menuItem" || child.name === "menuList") {
-          child.rectangle = {
-            column: offsetX,
-            row: offsetY,
-            width: textWidth(String(getStaticValue(child.label))),
-            height: 1,
-          };
+          Object.assign(
+            child.rectangle,
+            {
+              column: offsetX,
+              row: offsetY,
+              width: textWidth(String(child.label?.text ?? child.label)),
+              height: 1,
+            },
+          );
 
           if (offsetX + child.rectangle.width > width) {
             offsetX = 1;
             offsetY++;
           } else {
-            offsetX += getStaticValue(child.rectangle).width + 1;
+            offsetX += child.rectangle.width + 1;
           }
         }
       }

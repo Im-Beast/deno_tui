@@ -4,7 +4,6 @@ import {
   createBox,
   createTui,
   draw,
-  getStaticValue,
   hsl,
   TuiStyler,
 } from "../mod.ts";
@@ -25,9 +24,9 @@ const box = createBox(tui, {
     height: 5,
     width: 10,
   },
-  styler: () => ({
+  styler: {
     background: hsl(++hue % 360, 50, 50, true),
-  }),
+  },
 });
 
 const direction = {
@@ -36,20 +35,20 @@ const direction = {
 };
 
 tui.on("draw", () => {
-  const rectangle = getStaticValue(box.rectangle);
+  const rectangle = box.rectangle;
   rectangle.column += direction.x;
   rectangle.row += direction.y;
 
   if (
     rectangle.column < 0 ||
-    (rectangle.column + rectangle.width) > tui.rectangle().width
+    (rectangle.column + rectangle.width) > tui.rectangle.width
   ) {
     direction.x *= -1;
   }
 
   if (
     rectangle.row < 0 ||
-    (rectangle.row + rectangle.height) > tui.rectangle().height
+    (rectangle.row + rectangle.height) > tui.rectangle.height
   ) {
     direction.y *= -1;
   }

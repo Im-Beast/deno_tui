@@ -60,8 +60,8 @@ export function draw(
   refreshRate: Dynamic<number> = 32,
 ): () => void {
   drawRectangle(instance.canvas, {
-    ...instance.rectangle(),
-    styler: getStaticValue(instance.styler),
+    ...instance.rectangle,
+    styler: instance.styler,
   });
 
   for (const component of instance.components) {
@@ -99,7 +99,7 @@ export interface TuiInstance {
   /** Disable handling specific functions on tui events */
   readonly once: TuiInstance["emitter"]["once"];
   /** Size and position of tui */
-  rectangle: () => TuiRectangle;
+  rectangle: TuiRectangle;
   /** tui's children components */
   children: AnyComponent[];
   /** All of tui's components */
@@ -114,7 +114,7 @@ export interface TuiInstance {
     active: boolean;
   };
   /** Definition of tui's look */
-  styler: Dynamic<TuiStyler>;
+  styler: TuiStyler;
   /** Canvas to which tui will draw */
   canvas: CanvasInstance;
   /** Deno.stdin which can be used to read keypresses */
@@ -122,14 +122,14 @@ export interface TuiInstance {
   /** Deno.stdout to which canvas renders by default */
   writer: Writer;
   /** Size of the tui */
-  size: Dynamic<ConsoleSize>;
+  size: ConsoleSize;
 }
 
 export type CreateTuiOptions = {
   /** Definition of tui's look */
   styler: TuiStyler;
   /** Size of the tui */
-  size?: Dynamic<ConsoleSize>;
+  size?: ConsoleSize;
 } & (CreateTuiOptionsWithCanvas | CreateTuiOptionsWithoutCanvas);
 
 interface CreateTuiOptionsWithCanvas {
@@ -175,9 +175,11 @@ export function createTui(
     once: emitter.once,
     off: emitter.off,
     styler,
-    size: size || (() => getStaticValue(tui.canvas.size)),
-    rectangle() {
-      const { columns: width, rows: height } = getStaticValue(tui.size);
+    get size() {
+      return size ?? getStaticValue(tui.canvas.size);
+    },
+    get rectangle() {
+      const { columns: width, rows: height } = tui.size;
       return {
         column: 0,
         row: 0,

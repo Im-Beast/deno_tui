@@ -6,7 +6,6 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { getStaticValue } from "../util.ts";
 import { createButton } from "./button.ts";
 
 interface CheckboxExtension {
@@ -59,8 +58,17 @@ export function createCheckbox(
   });
 
   const button = createButton(checkbox, {
-    rectangle: () => getStaticValue(checkbox.rectangle),
-    styler: () => {
+    rectangle: checkbox.rectangle,
+    label: {
+      get text() {
+        return checkbox.value ? "✓" : "✗";
+      },
+      align: {
+        horizontal: "center",
+        vertical: "center",
+      },
+    },
+    get styler() {
       return getCurrentStyler(checkbox, {
         active: {
           value: !!checkbox.value,
@@ -68,10 +76,10 @@ export function createCheckbox(
         },
       });
     },
-    label: () => checkbox.value ? "✓" : "✗",
-    labelAlign: {
-      horizontal: "center",
-      vertical: "center",
+    update() {
+      if (button.label) {
+        button.label.text = checkbox.value ? "✓" : "✗";
+      }
     },
   });
 

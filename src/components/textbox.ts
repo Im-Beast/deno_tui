@@ -5,7 +5,7 @@ import {
   ExtendedTuiComponent,
   getCurrentStyler,
 } from "../tui_component.ts";
-import { Dynamic, TuiStyler } from "../types.ts";
+import { TuiStyler } from "../types.ts";
 import { TuiObject } from "../types.ts";
 import { getStaticValue } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
@@ -29,7 +29,7 @@ export type TextboxComponent = ExtendedTuiComponent<
     /** Whether textbox is multiline */
     multiline: boolean;
     /** Definition on how component looks like */
-    styler: Dynamic<TextboxTuiStyler>;
+    styler: TextboxTuiStyler;
   },
   "valueChange",
   string[]
@@ -43,7 +43,7 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
   /** Whether textbox is multiline */
   multiline: boolean;
   /** Definition on how component looks like */
-  styler: Dynamic<TextboxTuiStyler>;
+  styler: TextboxTuiStyler;
 }
 
 /**
@@ -134,7 +134,7 @@ export function createTextbox(
   createBox(textbox, {
     ...options,
     focusedWithin: [textbox, ...textbox.focusedWithin],
-    styler: () => getStaticValue(textbox.styler),
+    styler: textbox.styler,
   });
 
   textbox.on("key", ({ key, shift, ctrl, meta }) => {

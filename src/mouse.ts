@@ -1,7 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { getInteractiveComponents, TuiInstance } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
-import { clamp, getStaticValue } from "./util.ts";
+import { clamp } from "./util.ts";
 
 /** ASCII escape code to enable mouse handling */
 export const ENABLE_MOUSE = "\x1b[?1000h";
@@ -36,9 +36,7 @@ export function handleMouseControls(instance: TuiInstance): void {
     let item!: AnyComponent;
 
     for (const component of components) {
-      const { column, height, row, width } = getStaticValue(
-        component.rectangle,
-      );
+      const { column, height, row, width } = component.rectangle;
 
       if (
         clamp(x, column, column + width - 1) === x &&

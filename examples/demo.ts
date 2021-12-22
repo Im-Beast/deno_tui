@@ -15,10 +15,10 @@ import {
   createTextbox,
   createTui,
   draw,
-  getStaticValue,
   handleKeyboardControls,
   handleKeypresses,
   handleMouseControls,
+  hsl,
   removeComponent,
   textWidth,
   TuiStyler,
@@ -61,13 +61,17 @@ const menu = createMenu(tui, {
 });
 
 createMenuList(menu, {
-  label: "File",
+  label: {
+    text: "File",
+  },
   items: ["Open", "Save", "Close"],
   // When styler property is missing it is inherited from parent
 });
 
 const help = createMenuItem(menu, {
-  label: "Help",
+  label: {
+    text: "Help",
+  },
 });
 
 help.on("active", () => {
@@ -82,8 +86,8 @@ let helpMessage: ButtonComponent;
 const createHelpButton = () => {
   helpMessage = createButton(help, {
     // Set dynamic properties as functions so they'll be reactive!
-    rectangle() {
-      const { width, height } = tui.rectangle();
+    get rectangle() {
+      const { width, height } = tui.rectangle;
       return {
         column: ~~(width / 4),
         row: ~~((height - 1) / 4),
@@ -91,8 +95,10 @@ const createHelpButton = () => {
         height: ~~((height - 1) / 2),
       };
     },
-    label:
-      `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
+    label: {
+      text:
+        `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
+    },
     drawPriority: 4, // draw over components with lower priority (default 0)
   });
   helpMessage.interactive = false;
@@ -125,10 +131,12 @@ createLabel(tui, {
     width: 50,
     height: 2,
   },
-  text: "↓ This is label\nＱuick Ｂrown Ｆox\njumped over the lazy dog.",
-  textAlign: {
-    vertical: "top",
-    horizontal: "left",
+  value: {
+    text: "↓ This is label\nＱuick Ｂrown Ｆox\njumped over the lazy dog.",
+    align: {
+      vertical: "top",
+      horizontal: "left",
+    },
   },
 });
 
@@ -224,7 +232,9 @@ createButton(tui, {
     width: 7,
     height: 3,
   },
-  label: "click",
+  label: {
+    text: "click",
+  },
   styler: componentStyler,
 });
 
@@ -239,7 +249,7 @@ for (const component of tui.children) {
 
   specifiedComponents.push(component.name);
 
-  const rectangle = getStaticValue(component.rectangle);
+  const rectangle = component.rectangle;
   const message = `← This is ${capitalize(component.name)}`;
 
   createLabel(component, {
@@ -249,25 +259,30 @@ for (const component of tui.children) {
       width: textWidth(message),
       height: 1,
     },
-    text: message,
-    textAlign: {
-      horizontal: "center",
-      vertical: "center",
+    value: {
+      text: message,
+      align: {
+        horizontal: "center",
+        vertical: "center",
+      },
     },
     styler: tuiStyler,
   });
 }
 
-const label = createLabel(tui, {
-  text: () => `FPS: ${tui.canvas.fps.toFixed(2)}`,
-  textAlign: {
-    horizontal: "left",
-    vertical: "top",
+createLabel(tui, {
+  value: {
+    get text() {
+      return `FPS: ${tui.canvas.fps.toFixed(2)}`;
+    },
+    align: {
+      horizontal: "left",
+      vertical: "top",
+    },
   },
-  rectangle() {
-    const rectangle = tui.rectangle();
-    const width = textWidth(getStaticValue(label.text));
-
+  get rectangle() {
+    const rectangle = tui.rectangle;
+    const width = textWidth(this.value.text);
     return {
       ...rectangle,
       column: rectangle.width - width,
@@ -278,3 +293,11 @@ const label = createLabel(tui, {
   drawPriority: 1,
   styler: componentStyler,
 });
+
+let h = 0;
+setInterval(() => {
+  if (componentStyler.frame) {
+    componentStyler.background = hsl((++h + 180) % 360, 50, 50, true);
+    componentStyler.frame.background = hsl(++h % 360, 50, 50);
+  }
+}, 32);
