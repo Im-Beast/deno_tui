@@ -1,8 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 // In this module should be served types that aren't specific to only one function or module
-import { CanvasStyler } from "./canvas.ts";
-import { TuiInstance } from "./tui.ts";
-import { ExtendedTuiComponent } from "./tui_component.ts";
+import { Tui } from "./tui.ts";
+import { Component } from "./tui_component.ts";
 
 type _Range<
   From extends number,
@@ -19,12 +18,11 @@ export type Range<From extends number, To extends number> = number extends From
   : _Range<From, To, []>;
 
 /** Any possible component */
-// deno-fmt-ignore
 // deno-lint-ignore no-explicit-any
-export type AnyComponent = ExtendedTuiComponent< any,  { [x in any]: any;  },  any, any >;
+export type AnyComponent = Component<any, { [x in any]: any }, any, any>;
 
 /** Object which can be used as a parent to create other component */
-export type TuiObject = TuiInstance | AnyComponent;
+export type TuiObject = Tui | AnyComponent;
 
 /** stdin */
 export interface Reader extends Deno.Reader {
@@ -34,17 +32,6 @@ export interface Reader extends Deno.Reader {
 /** stdout */
 export interface Writer extends Deno.Writer {
   readonly rid: number;
-}
-
-/** Definition on how Tui or TuiComponent should look like */
-export interface TuiStyler extends CanvasStyler {
-  active?: CanvasStyler;
-  focused?: CanvasStyler;
-  frame?: CanvasStyler & {
-    active?: CanvasStyler;
-    focused?: CanvasStyler;
-    label?: Dynamic<string>;
-  };
 }
 
 /** Positioning of text */
