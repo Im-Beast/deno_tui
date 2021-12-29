@@ -65,15 +65,10 @@ export function createMenuList(
   parent: MenuComponent,
   options: CreateMenuListOptions,
 ): MenuListComponent {
-  let styler = options.styler ?? parent.styler;
-
   const menuList = createCombobox(parent, {
     ...options,
     get styler() {
-      return styler;
-    },
-    set styler(value) {
-      styler = value;
+      return options.styler ?? parent.styler;
     },
     rectangle: {
       column: 0,
