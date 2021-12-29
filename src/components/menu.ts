@@ -66,23 +66,23 @@ export function createMenu(
       for (
         const child of menu.children
       ) {
-        if (child.name === "menuItem" || child.name === "menuList") {
-          Object.assign(
-            child.rectangle,
-            {
-              column: offsetX,
-              row: offsetY,
-              width: textWidth(String(child.label?.text ?? child.label)),
-              height: 1,
-            },
-          );
+        const text = child.label?.text;
 
-          if (offsetX + child.rectangle.width > width) {
-            offsetX = 1;
-            offsetY++;
-          } else {
-            offsetX += child.rectangle.width + 1;
-          }
+        Object.assign(
+          child.rectangle,
+          {
+            column: offsetX,
+            row: offsetY,
+            width: text ? textWidth(text) : child.width,
+            height: 1,
+          },
+        );
+
+        if (offsetX + child.rectangle.width > width) {
+          offsetX = 1;
+          offsetY++;
+        } else {
+          offsetX += child.rectangle.width + 1;
         }
       }
       menu.height = 1 + offsetY;
