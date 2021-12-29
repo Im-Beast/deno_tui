@@ -8,7 +8,9 @@ import {
   TuiStyler,
 } from "../mod.ts";
 
-const tui = createTui(Deno.stdin, Deno.stdout, {
+const tui = createTui({
+  reader: Deno.stdin,
+  writer: Deno.stdout,
   styler: compileStyler<TuiStyler>({
     background: "black",
   }),

@@ -224,7 +224,7 @@ interface DrawPixelOptions {
 
 /**
  * Draw pixel on canvas
- * @param instance - canvas instance on which pixel will be drawn
+ * @param canvas - canvas instance on which pixel will be drawn
  * @param options
  * @example
  * ```ts
@@ -241,12 +241,12 @@ interface DrawPixelOptions {
  * ```
  */
 export function drawPixel(
-  instance: CanvasInstance,
+  canvas: CanvasInstance,
   { column, row, styler, value }: DrawPixelOptions,
 ): void {
   const index = column % 2;
   column = ~~(column / 2);
-  const pos = instance.frameBuffer?.[row]?.[column];
+  const pos = canvas.frameBuffer?.[row]?.[column];
   if (!pos) return;
 
   const fullWidth = isFullWidth(value);
@@ -258,13 +258,13 @@ export function drawPixel(
   const revIndex = (index - 1) * -1;
   if (fullWidth) {
     if (index === 1) {
-      instance.frameBuffer[row][column + 1][0] = "";
+      canvas.frameBuffer[row][column + 1][0] = "";
     } else {
-      instance.frameBuffer[row][column][revIndex] = "";
+      canvas.frameBuffer[row][column][revIndex] = "";
     }
   }
 
-  instance.frameBuffer[row][column][index] = value;
+  canvas.frameBuffer[row][column][index] = value;
 }
 
 export interface DrawRectangleOptions {
@@ -284,7 +284,7 @@ export interface DrawRectangleOptions {
 
 /**
  * Draw rectangle on canvas
- * @param instance - canvas instance on which rectangle will be drawn
+ * @param canvas - canvas instance on which rectangle will be drawn
  * @param options
  * @example
  * ```ts
@@ -303,12 +303,12 @@ export interface DrawRectangleOptions {
  * ```
  */
 export function drawRectangle(
-  instance: CanvasInstance,
+  canvas: CanvasInstance,
   { column, row, width, height, value = " ", styler }: DrawRectangleOptions,
 ): void {
   for (let r = row; r < row + height; ++r) {
     for (let c = column; c < column + width; ++c) {
-      drawPixel(instance, {
+      drawPixel(canvas, {
         column: c,
         row: r,
         value,
@@ -331,7 +331,7 @@ export interface DrawTextOptions {
 
 /**
  * Draw text on canvas
- * @param instance - canvas instance on which text will be drawn
+ * @param canvas - canvas instance on which text will be drawn
  * @param options
  * @example
  * ```ts
@@ -348,7 +348,7 @@ export interface DrawTextOptions {
  * ```
  */
 export function drawText(
-  instance: CanvasInstance,
+  canvas: CanvasInstance,
   { column, row, text, styler }: DrawTextOptions,
 ): void {
   const lines = text.split("\n");
@@ -358,7 +358,7 @@ export function drawText(
     for (let i = 0; i < line.length; ++i) {
       const char = line[i];
 
-      drawPixel(instance, {
+      drawPixel(canvas, {
         column: column + i + offset,
         row: row + l,
         value: char,

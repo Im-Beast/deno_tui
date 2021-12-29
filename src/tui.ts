@@ -8,61 +8,80 @@ import {
 } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import { AnyComponent, Dynamic, Reader, Writer } from "./types.ts";
+import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+/**
+ * Get interactive components from TuiInstance
+ * @param tui – Tui to get components from
+ * @example
+ * ```ts
+ * const tui = createTui(...);
+ * createButton(tui, ...);
+ * createCombobox(tui, ...);
+ * createBox(tui, ...);
+ * ...
+ * getInteractiveComponents(tui); // -> array containing button and combobox
+ * ```
+ */
+export function getInteractiveComponents(
+  tui: Tui,
+): AnyComponent[] {
+  return tui.components.filter((
+    { interactive },
+  ) => interactive);
+}
 const timeoutHandle: { [id: number]: number } = {};
 export function draw(
-  instance: Tui,
+  tui: Tui,
   refreshRate: Dynamic<number> = 32,
 ): (() => void) {
-  drawRectangle(instance.canvas, {
-    ...instance.rectangle,
-    styler: instance.styler,
+  drawRectangle(tui.canvas, {
+    ...tui.rectangle,
+    styler: tui.styler,
   });
 
-  for (const component of instance.components) {
-    component.update();
-    component.draw();
+  for (
+    const component of tui.components.sort((a, b) =>
+      a.drawPriority - b.drawPriority
+    )
+  ) {
+    component.update?.();
+    component.emit("update", Date.now());
+    component.draw?.();
     component.emit("draw", Date.now());
   }
 
-  render(instance.canvas);
-  instance.emit("draw", Date.now());
-  instance.focused.active = false;
+  render(tui.canvas);
+  tui.emit("draw", Date.now());
+  tui.focused.active = false;
 
-  timeoutHandle[instance.id] = setTimeout(
-    () => draw(instance, refreshRate),
-    getStaticValue(refreshRate) - instance.canvas.deltaTime,
+  timeoutHandle[tui.id] = setTimeout(
+    () => draw(tui, refreshRate),
+    getStaticValue(refreshRate) - tui.canvas.deltaTime,
   );
 
-  return () => clearTimeout(timeoutHandle[instance.id]);
+  return () => clearTimeout(timeoutHandle[tui.id]);
 }
 
 /** Definition on how Tui or TuiComponent should look like */
-export interface Styler extends CanvasStyler {
+export interface TuiStyler extends CanvasStyler {
   active?: CanvasStyler;
   focused?: CanvasStyler;
 }
 
-export interface Rectangle {
-  column: number;
-  row: number;
-
-  width: number;
-  height: number;
-}
-
+/** Private properties for Tui */
 export interface PrivateTui extends Tui {
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"mouse", MousePress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>
-    & EventEmitter<"draw", number>
+    & EventEmitter<"draw" | "update", number>
     & EventEmitter<"createComponent" | "removeComponent", AnyComponent>;
 }
 
+/** Main object – "root" of Tui */
 export interface Tui {
   readonly id: number;
 
@@ -78,7 +97,7 @@ export interface Tui {
     active: boolean;
   };
 
-  readonly styler: Styler;
+  readonly styler: TuiStyler;
   readonly rectangle: Rectangle;
 
   readonly on: PrivateTui["emitter"]["on"];
@@ -92,7 +111,7 @@ export interface CreateTuiOptions {
   writer?: Writer;
   rectangle?: Rectangle;
   canvas?: CanvasInstance;
-  styler: Styler;
+  styler: TuiStyler;
 }
 
 let id = 0;

@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { createComponent, ExtendedTuiComponent } from "../tui_component.ts";
+import { createComponent, ExtendedComponent } from "../tui_component.ts";
 import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 import { MenuComponent } from "./menu.ts";
@@ -11,7 +11,7 @@ interface MenuItemExtension {
 }
 
 /** Interactive menuItem component */
-export type MenuItemComponent = ExtendedTuiComponent<
+export type MenuItemComponent = ExtendedComponent<
   "menuItem",
   MenuItemExtension
 >;
@@ -26,7 +26,7 @@ export type CreateMenuItemOptions =
  * It is interactive by default
  *
  * It gets automatically placed by menu
- * @param object - parent of the created box, must be MenuComponent
+ * @param parent - parent of the created box, must be MenuComponent
  * @param options
  * @example
  * ```ts
@@ -39,10 +39,10 @@ export type CreateMenuItemOptions =
  * ```
  */
 export function createMenuItem(
-  object: MenuComponent,
+  parent: MenuComponent,
   options: CreateMenuItemOptions,
 ): MenuItemComponent {
-  const menuItem = createComponent(object, {
+  const menuItem = createComponent(parent, {
     name: "menuItem",
     interactive: true,
     rectangle: {
@@ -51,22 +51,26 @@ export function createMenuItem(
       column: 0,
       row: 0,
     },
+    drawPriority: 3,
     ...options,
   }, {
     label: options.label,
   });
 
-  const button = createButton(menuItem, {
+  createButton(menuItem, {
     ...options,
-    rectangle: menuItem.rectangle,
-    label: menuItem.label,
+    interactive: false,
+    get rectangle() {
+      return menuItem.rectangle;
+    },
+    get label() {
+      return menuItem.label;
+    },
     get styler() {
-      const styler = menuItem.styler;
-      return { ...styler, frame: undefined };
+      return menuItem.styler;
     },
     focusedWithin: [menuItem, ...menuItem.focusedWithin],
   });
-  button.interactive = false;
 
   return menuItem;
 }

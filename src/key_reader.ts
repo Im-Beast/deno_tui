@@ -1,6 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { EventEmitter } from "./event_emitter.ts";
-import { TuiInstance } from "./tui.ts";
+import { Tui } from "./tui.ts";
 import { Range, Reader } from "./types.ts";
 
 const decoder = new TextDecoder();
@@ -135,20 +135,20 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
  * handleKeypresses(tui);
  * ```
  */
-export function handleKeypresses(instance: TuiInstance): void {
-  instance.emitter.on("key", (keyPress) => {
-    instance.selected.item?.emitter.emit("key", keyPress);
+export function handleKeypresses(instance: Tui): void {
+  instance.on("key", (keyPress) => {
+    instance.focused.item?.emit("key", keyPress);
   });
 
-  instance.emitter.on("mouse", (mousePress) => {
-    instance.selected.item?.emitter.emit("mouse", mousePress);
+  instance.on("mouse", (mousePress) => {
+    instance.focused.item?.emit("mouse", mousePress);
   });
 
-  instance.emitter.on("multiKey", (keyPress) => {
-    instance.selected.item?.emitter.emit("key", keyPress);
+  instance.on("multiKey", (keyPress) => {
+    instance.focused.item?.emit("key", keyPress);
   });
 
-  readKeypressesEmitter(instance.reader, instance.emitter);
+  readKeypressesEmitter(instance.reader, Reflect.get(instance, "emitter"));
 }
 
 /**

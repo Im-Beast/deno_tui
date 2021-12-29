@@ -1,15 +1,14 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { CanvasStyler, drawPixel, drawText } from "../canvas.ts";
+import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   getCurrentStyler,
 } from "../tui_component.ts";
-import { TuiStyler } from "../types.ts";
 import { TuiObject } from "../types.ts";
-import { getStaticValue } from "../util.ts";
+import { getStaticValue, textWidth } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
-import { textWidth } from "../util.ts";
 
 /** Definition on how TextboxComponent should look like */
 export type TextboxTuiStyler = TuiStyler & {
@@ -17,7 +16,7 @@ export type TextboxTuiStyler = TuiStyler & {
 };
 
 /** Interactive textbox component */
-export type TextboxComponent = ExtendedTuiComponent<
+export type TextboxComponent = ExtendedComponent<
   "textbox",
   {
     /** Textbox content, each index of array starting by 1 represents newline */
@@ -50,7 +49,7 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
  * Create TextboxComponent
  *
  * It is interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either Tui instance or other component
  * @param options
  * @example
  * ```ts
@@ -68,18 +67,16 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
  * ```
  */
 export function createTextbox(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateTextboxOptions,
 ): TextboxComponent {
   const position = { x: 0, y: 0 };
 
-  const textbox: TextboxComponent = createComponent(object, {
+  const textbox: TextboxComponent = createComponent(parent, {
     name: "textbox",
     interactive: true,
     draw() {
-      const { row, column, width, height } = getStaticValue(
-        textbox.rectangle,
-      );
+      const { row, column, width, height } = textbox.rectangle;
 
       const offsetX = position.x >= width ? position.x - width + 1 : 0;
       const offsetY = position.y >= height ? height - position.y - 1 : 0;
@@ -99,7 +96,7 @@ export function createTextbox(
           tw = textWidth(line);
         }
 
-        drawText(object.canvas, {
+        drawText(textbox.tui.canvas, {
           column,
           row: row + y,
           text: line,
@@ -107,11 +104,11 @@ export function createTextbox(
         });
       }
 
-      if (textbox.instance.selected.item?.id === textbox.id) {
+      if (textbox.tui.focused.item === textbox) {
         const currentCharacter = textbox.value?.[position.y]?.[position.x];
         const cursorCol = column + Math.min(position.x, width - 1);
         const cursorRow = row + Math.min(position.y, height - 1);
-        drawPixel(object.canvas, {
+        drawPixel(textbox.tui.canvas, {
           column: cursorCol,
           row: cursorRow,
           value: currentCharacter
@@ -148,7 +145,7 @@ export function createTextbox(
         textbox.value[position.y].slice(0, position.x) + key +
         textbox.value[position.y].slice(position.x);
       ++position.x;
-      textbox.emitter.emit("valueChange", startValue);
+      textbox.emit("valueChange", startValue);
       return;
     }
 
@@ -233,7 +230,7 @@ export function createTextbox(
         return;
     }
 
-    textbox.emitter.emit("valueChange", startValue);
+    textbox.emit("valueChange", startValue);
   });
 
   return textbox;

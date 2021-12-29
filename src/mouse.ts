@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { getInteractiveComponents, TuiInstance } from "./tui.ts";
+import { getInteractiveComponents, Tui } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp } from "./util.ts";
 
@@ -23,7 +23,7 @@ const encoder = new TextEncoder();
  * handleMouseControls(tui);
  * ```
  */
-export function handleMouseControls(instance: TuiInstance): void {
+export function handleMouseControls(instance: Tui): void {
   Deno.writeSync(instance.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
   addEventListener("unload", () => {
     Deno.writeSync(instance.writer.rid, encoder.encode(DISABLE_MOUSE));
@@ -47,16 +47,15 @@ export function handleMouseControls(instance: TuiInstance): void {
       }
     }
 
-    if (instance.selected.item === item) {
-      instance.selected.active = true;
-      instance.selected.item?.emitter.emit("active");
+    if (instance.focused.item === item) {
+      instance.focused.active = true;
+      instance.focused.item?.emit("active");
     }
 
-    instance.selected.item = item;
-    instance.selected.focused = true;
+    instance.focused.item = item;
 
-    if (!instance.selected.active) {
-      instance.selected.item?.emitter.emit("focus");
+    if (!instance.focused.active) {
+      instance.focused.item?.emit("focus");
     }
   });
 }

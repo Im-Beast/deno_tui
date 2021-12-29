@@ -2,7 +2,7 @@
 import { KeyPress } from "../key_reader.ts";
 import {
   createComponent,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   removeComponent,
 } from "../tui_component.ts";
 import { TextAlign, TuiObject } from "../types.ts";
@@ -22,7 +22,7 @@ export function getComboboxValueLabel(value: ComboboxValue): string {
 export type ComboboxValue = string | { label: string; value: unknown };
 
 /** Interactive combobox component */
-export type ComboboxComponent = ExtendedTuiComponent<
+export type ComboboxComponent = ExtendedComponent<
   "combobox",
   {
     /** Items available to choose in combobox */
@@ -78,7 +78,7 @@ export type CreateComboboxOptions = CreateBoxOptions & {
  * Create ComboboxComponent
  *
  * It is interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either Tui instance or other component
  * @param options
  * @example
  * ```ts
@@ -96,7 +96,7 @@ export type CreateComboboxOptions = CreateBoxOptions & {
  * ```
  */
 export function createCombobox(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateComboboxOptions,
 ): ComboboxComponent {
   const value = typeof options.value === "undefined"
@@ -105,7 +105,7 @@ export function createCombobox(
     ? options.items[options.value % options.items.length]
     : options.value;
 
-  const combobox: ComboboxComponent = createComponent(object, {
+  const combobox: ComboboxComponent = createComponent(parent, {
     name: "combobox",
     interactive: true,
     ...options,
@@ -123,6 +123,7 @@ export function createCombobox(
 
   const main = createButton(combobox, {
     ...options,
+    interactive: false,
     rectangle: combobox.rectangle,
     label: {
       get text() {
@@ -139,7 +140,6 @@ export function createCombobox(
     focusedWithin: [combobox, ...combobox.focusedWithin],
     drawPriority: 1,
   });
-  main.interactive = false;
 
   let opened = false;
 
@@ -151,7 +151,7 @@ export function createCombobox(
       removeComponent(child);
     }
 
-    combobox.instance.selected.item = combobox;
+    combobox.tui.focused.item = combobox;
   };
 
   combobox.on("key", ({ key }: KeyPress) => {
@@ -188,17 +188,17 @@ export function createCombobox(
           };
         },
         get styler() {
-          return {
-            ...combobox.styler,
-            frame: undefined,
-          };
+          return combobox.styler;
+        },
+        frame: {
+          enabled: false,
         },
         drawPriority: 2,
       });
 
       button.on("active", () => {
         combobox.value = item;
-        combobox.emitter.emit("valueChange", item);
+        combobox.emit("valueChange", item);
         close();
       });
 

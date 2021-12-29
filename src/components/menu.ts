@@ -3,7 +3,7 @@ import { drawRectangle } from "../canvas.ts";
 import {
   createComponent,
   CreateComponentOptions,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
@@ -16,7 +16,7 @@ export type CreateMenuOptions = Omit<
 >;
 
 /** Not interactive menu component */
-export type MenuComponent = ExtendedTuiComponent<
+export type MenuComponent = ExtendedComponent<
   "menu",
   /** Height of the menu */
   { height: number }
@@ -28,7 +28,7 @@ export type MenuComponent = ExtendedTuiComponent<
  * It is not interactive by default
  *
  * It automatically distributes menu* components
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either Tui instance or other component
  * @param options
  * @example
  * ```ts
@@ -38,23 +38,23 @@ export type MenuComponent = ExtendedTuiComponent<
  * ```
  */
 export function createMenu(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateMenuOptions,
 ): MenuComponent {
   let height = 1;
-  const menu: MenuComponent = createComponent(object, {
+  const menu: MenuComponent = createComponent(parent, {
     name: "menu",
     interactive: false,
     get rectangle() {
       return {
-        ...object.rectangle,
+        ...parent.rectangle,
         height,
       };
     },
     drawPriority: 1,
     draw() {
       height = menu.height;
-      drawRectangle(menu.canvas, {
+      drawRectangle(menu.tui.canvas, {
         ...getStaticValue(menu.rectangle),
         height: menu.height,
         styler: getCurrentStyler(menu),

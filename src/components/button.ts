@@ -1,7 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
   createComponent,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   removeComponent,
 } from "../tui_component.ts";
 import { TextAlign, TuiObject } from "../types.ts";
@@ -22,7 +22,7 @@ interface ButtonExtension {
 }
 
 /** Interactive button component */
-export type ButtonComponent = ExtendedTuiComponent<"button", ButtonExtension>;
+export type ButtonComponent = ExtendedComponent<"button", ButtonExtension>;
 
 export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;
 
@@ -30,7 +30,7 @@ export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;
  * Create ButtonComponent
  *
  * It is interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either Tui instance or other component
  * @param options
  * @example
  * ```ts
@@ -48,40 +48,24 @@ export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;
  * ```
  */
 export function createButton(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateButtonOptions,
 ): ButtonComponent {
   let label: LabelComponent | undefined;
 
-  const button: ButtonComponent = createComponent(object, {
+  const button: ButtonComponent = createComponent(parent, {
     name: "button",
     interactive: true,
     ...options,
-    draw() {
-      if (!label && button.label) {
-        label = createLabel(button, {
-          drawPriority: button.drawPriority + 1,
-          value: {
-            get text() {
-              const text = button.label?.text;
-
-              if (label && typeof text !== "string") {
-                removeComponent(label);
-                label = undefined;
-              }
-
-              return text ?? "";
-            },
-            align: button.label?.align ?? ({
-              horizontal: "center",
-              vertical: "center",
-            }),
-          },
-          rectangle: button.rectangle,
-          styler: button.styler,
-          focusedWithin: [button, ...button.focusedWithin],
-        });
+    update() {
+      /*       if (label && !button.label) {
+        removeComponent(label);
       }
+
+      if (!label && button.label) {
+        console.log("a");
+        label =
+      } */
     },
   }, {
     label: options.label,
@@ -89,6 +73,29 @@ export function createButton(
 
   createBox(button, {
     ...options,
+    focusedWithin: [button, ...button.focusedWithin],
+  });
+
+  createLabel(button, {
+    drawPriority: button.drawPriority + 1,
+    value: {
+      get text() {
+        const text = button.label?.text;
+
+        if (label && typeof text !== "string") {
+          removeComponent(label);
+          label = undefined;
+        }
+
+        return text ?? "";
+      },
+      align: button.label?.align ?? ({
+        horizontal: "center",
+        vertical: "center",
+      }),
+    },
+    rectangle: button.rectangle,
+    styler: button.styler,
     focusedWithin: [button, ...button.focusedWithin],
   });
 

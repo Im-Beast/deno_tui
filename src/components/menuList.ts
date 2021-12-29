@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { ExtendedTuiComponent } from "../tui_component.ts";
+import { ExtendedComponent } from "../tui_component.ts";
 import { Dynamic, TextAlign } from "../types.ts";
 import {
   ComboboxValue,
@@ -9,7 +9,7 @@ import {
 import { MenuComponent } from "./menu.ts";
 
 /** Interactive menuList component */
-export type MenuListComponent = ExtendedTuiComponent<
+export type MenuListComponent = ExtendedComponent<
   "menuList",
   {
     /** Items available to choose in combobox */
@@ -48,7 +48,7 @@ export interface CreateMenuListOptions
  * It is interactive by default
  *
  * It gets automatically placed by menu
- * @param object - parent of the created box, must be MenuComponent
+ * @param parent - parent of the created box, must be MenuComponent
  * @param options
  * @example
  * ```ts
@@ -62,17 +62,18 @@ export interface CreateMenuListOptions
  * ```
  */
 export function createMenuList(
-  object: MenuComponent,
+  parent: MenuComponent,
   options: CreateMenuListOptions,
 ): MenuListComponent {
-  const menuList = createCombobox(object, {
+  let styler = options.styler ?? parent.styler;
+
+  const menuList = createCombobox(parent, {
     ...options,
     get styler() {
-      const styler = (options.styler ?? object.styler);
-      return {
-        ...styler,
-        frame: undefined,
-      };
+      return styler;
+    },
+    set styler(value) {
+      styler = value;
     },
     rectangle: {
       column: 0,
@@ -82,8 +83,12 @@ export function createMenuList(
     },
     label: options.label,
     expandItemsWidth: true,
+    drawPriority: 3,
   }) as unknown as MenuListComponent;
-  menuList.name = "menuList";
+
+  Object.defineProperty(menuList, "name", {
+    value: "menuList",
+  });
 
   return menuList;
 }

@@ -36,10 +36,6 @@ const tuiStyler = compileStyler<TuiStyler>({
     foreground: "black",
     background: "lightCyan",
   },
-  frame: {
-    foreground: "white",
-    background: "black",
-  },
 });
 
 const componentStyler = compileStyler<TuiStyler>({
@@ -47,7 +43,19 @@ const componentStyler = compileStyler<TuiStyler>({
   background: "blue",
 });
 
-const tui = createTui(Deno.stdin, Deno.stdout, {
+const frameStyler = compileStyler<TuiStyler>({
+  foreground: "white",
+  background: "black",
+});
+
+const frame = {
+  enabled: true,
+  styler: frameStyler,
+};
+
+const tui = createTui({
+  reader: Deno.stdin,
+  writer: Deno.stdout,
   styler: tuiStyler,
 });
 
@@ -85,6 +93,7 @@ let helpMessage: ButtonComponent;
 
 const createHelpButton = () => {
   helpMessage = createButton(help, {
+    interactive: false,
     // Set dynamic properties as functions so they'll be reactive!
     get rectangle() {
       const { width, height } = tui.rectangle;
@@ -100,8 +109,8 @@ const createHelpButton = () => {
         `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
     },
     drawPriority: 4, // draw over components with lower priority (default 0)
+    frame,
   });
-  helpMessage.interactive = false;
 };
 
 createBox(tui, {
@@ -121,7 +130,7 @@ createFrame(tui, {
     width: 6,
     height: 5,
   },
-  styler: componentStyler.frame,
+  styler: frameStyler,
 });
 
 createLabel(tui, {
@@ -149,6 +158,7 @@ createCheckbox(tui, {
   },
   value: false,
   styler: componentStyler,
+  frame,
 });
 
 createCheckbox(tui, {
@@ -160,6 +170,7 @@ createCheckbox(tui, {
   },
   value: true,
   styler: componentStyler,
+  frame,
 });
 
 createCombobox(tui, {
@@ -171,6 +182,7 @@ createCombobox(tui, {
     height: 1,
   },
   styler: componentStyler,
+  frame,
 });
 
 createTextbox(tui, {
@@ -184,6 +196,7 @@ createTextbox(tui, {
   hidden: false,
   multiline: false,
   styler: componentStyler,
+  frame,
 });
 
 createTextbox(tui, {
@@ -197,6 +210,7 @@ createTextbox(tui, {
   hidden: true,
   multiline: false,
   styler: componentStyler,
+  frame,
 });
 
 createTextbox(tui, {
@@ -210,6 +224,7 @@ createTextbox(tui, {
   hidden: false,
   multiline: true,
   styler: componentStyler,
+  frame,
 });
 
 createTextbox(tui, {
@@ -223,6 +238,7 @@ createTextbox(tui, {
   hidden: true,
   multiline: true,
   styler: componentStyler,
+  frame,
 });
 
 createButton(tui, {
@@ -236,6 +252,7 @@ createButton(tui, {
     text: "click",
   },
   styler: componentStyler,
+  frame,
 });
 
 const specifiedComponents: string[] = [];
@@ -267,6 +284,7 @@ for (const component of tui.children) {
       },
     },
     styler: tuiStyler,
+    frame,
   });
 }
 
@@ -292,12 +310,11 @@ createLabel(tui, {
   },
   drawPriority: 1,
   styler: componentStyler,
+  frame,
 });
 
 let h = 0;
 setInterval(() => {
-  if (componentStyler.frame) {
-    componentStyler.background = hsl((++h + 180) % 360, 50, 50, true);
-    componentStyler.frame.background = hsl(++h % 360, 50, 50);
-  }
+  componentStyler.background = hsl((++h + 180) % 360, 50, 50, true);
+  frameStyler.background = hsl(++h % 360, 50, 50);
 }, 32);
