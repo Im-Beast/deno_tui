@@ -3,29 +3,6 @@ import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { PrivateTui, Tui, TuiStyler } from "./tui.ts";
 import { AnyComponent, Rectangle, TuiObject } from "./types.ts";
 
-export interface GetCurrentStylerOptions {
-  /** Whether to overwrite focus value */
-  focused?: {
-    /**
-     * Status for which `focus` will be overwritten
-     * When `force` is set to false output will be OR'ed
-     */
-    value: boolean;
-    /** Whether to force status */
-    force?: boolean;
-  };
-  /** Whether to overwrite active value */
-  active?: {
-    /**
-     * Status for which `active` will be overwritten
-     * When `force` is set to false output will be OR'ed
-     */
-    value: boolean;
-    /** Whether to force status */
-    force?: boolean;
-  };
-}
-
 /**
  * Get current CanvasStyler of component from TuiStyler
  * @param component - Component for which styler will be gotten
@@ -66,7 +43,6 @@ export interface GetCurrentStylerOptions {
  */
 export function getCurrentStyler(
   component: AnyComponent,
-  options?: GetCurrentStylerOptions,
 ): TuiStyler {
   const styler = component.styler;
   const { item, active } = component.tui.focused;
@@ -76,21 +52,11 @@ export function getCurrentStyler(
 
   if (!isSelected) return styler;
 
-  if (
-    options?.active?.value ||
-    (!options?.active?.force && isSelected && active)
-  ) {
+  if (active) {
     return { ...styler, ...styler.focused, ...styler.active };
   }
 
-  if (
-    options?.focused?.value ||
-    (!options?.focused?.force && isSelected)
-  ) {
-    return { ...styler, ...styler.focused };
-  }
-
-  return styler;
+  return { ...styler, ...styler.focused };
 }
 
 /**

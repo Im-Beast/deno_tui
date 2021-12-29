@@ -4,7 +4,6 @@ import {
   createComponent,
   CreateComponentOptions,
   ExtendedComponent,
-  getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
 import { createButton, CreateButtonOptions } from "./button.ts";
@@ -60,7 +59,7 @@ export function createCheckbox(
 ): CheckboxComponent {
   const checkbox: CheckboxComponent = createComponent(parent, {
     name: "checkbox",
-    interactive: true,
+    interactive: false,
     ...options,
   }, {
     value: !!options.value,
@@ -70,7 +69,10 @@ export function createCheckbox(
   });
 
   const button = createButton(checkbox, {
-    rectangle: checkbox.rectangle,
+    interactive: true,
+    get rectangle() {
+      return checkbox.rectangle;
+    },
     label: {
       get text() {
         return checkbox.value ? "✓" : "✗";
@@ -81,12 +83,7 @@ export function createCheckbox(
       },
     },
     get styler() {
-      return getCurrentStyler(checkbox, {
-        active: {
-          value: !!checkbox.value,
-          force: true,
-        },
-      });
+      return checkbox.styler;
     },
     get frame() {
       return checkbox.frame;
