@@ -58,14 +58,35 @@ export function createButton(
     interactive: true,
     ...options,
     update() {
-      /*       if (label && !button.label) {
+      if (label && !button.label) {
         removeComponent(label);
       }
 
       if (!label && button.label) {
         console.log("a");
-        label =
-      } */
+        label = createLabel(button, {
+          drawPriority: button.drawPriority + 1,
+          value: {
+            get text() {
+              const text = button.label?.text;
+
+              if (label && typeof text !== "string") {
+                removeComponent(label);
+                label = undefined;
+              }
+
+              return text ?? "";
+            },
+            align: button.label?.align ?? ({
+              horizontal: "center",
+              vertical: "center",
+            }),
+          },
+          rectangle: button.rectangle,
+          styler: button.styler,
+          focusedWithin: [button, ...button.focusedWithin],
+        });
+      }
     },
   }, {
     label: options.label,
@@ -73,29 +94,6 @@ export function createButton(
 
   createBox(button, {
     ...options,
-    focusedWithin: [button, ...button.focusedWithin],
-  });
-
-  createLabel(button, {
-    drawPriority: button.drawPriority + 1,
-    value: {
-      get text() {
-        const text = button.label?.text;
-
-        if (label && typeof text !== "string") {
-          removeComponent(label);
-          label = undefined;
-        }
-
-        return text ?? "";
-      },
-      align: button.label?.align ?? ({
-        horizontal: "center",
-        vertical: "center",
-      }),
-    },
-    rectangle: button.rectangle,
-    styler: button.styler,
     focusedWithin: [button, ...button.focusedWithin],
   });
 
