@@ -63,7 +63,6 @@ export function createButton(
       }
 
       if (!label && button.label) {
-        console.log("a");
         label = createLabel(button, {
           drawPriority: button.drawPriority + 1,
           value: {
