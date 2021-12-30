@@ -6,7 +6,7 @@ import { clamp } from "./util.ts";
 
 /**
  * Change focused component using 2 axis vector
- * @param tui – instance which components will be manipulated
+ * @param tui – tui which components will be manipulated
  * @param vector – object which holds x and y (they should equal -1 or 0 or 1)
  * @example
  * ```ts
@@ -86,7 +86,7 @@ export function changeComponent(
  * Handle keyboard controls
  *  - Hold shift + press up/down/left/right to move between components
  *  - Press enter to activate item
- * @param instance – instance which components will be manipulated
+ * @param tui – Tui of which components will be manipulated
  * @example
  * ```ts
  * const tui = createTui(...);
@@ -95,11 +95,12 @@ export function changeComponent(
  * handleKeyboardControls(tui);
  * ```
  */
-export function handleKeyboardControls(instance: Tui): void {
+export function handleKeyboardControls(tui: Tui): void {
   const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
     if (key === "return") {
-      instance.focused.active = true;
-      instance.focused.item?.emit("active");
+      tui.focused.active = true;
+      tui.focused.item?.emit("active");
+      tui.focused.item?.active?.();
       return;
     }
 
@@ -122,11 +123,13 @@ export function handleKeyboardControls(instance: Tui): void {
         break;
     }
 
-    instance.focused.item = changeComponent(instance, vector);
+    tui.focused.item = changeComponent(tui, vector);
+    tui.focused.item?.focus?.();
+    tui.focused.item?.emit("focus");
   };
 
-  instance.on("key", handler);
-  instance.on("multiKey", ({ keys, meta, shift, ctrl, buffer }) => {
+  tui.on("key", handler);
+  tui.on("multiKey", ({ keys, meta, shift, ctrl, buffer }) => {
     for (const i in keys) {
       handler({
         key: keys[i],

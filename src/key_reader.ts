@@ -126,8 +126,8 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
 }
 
 /**
- * Emit pressed keys to instance and focused objects
- * @param instance - TuiInstance from which keys will be redirected to focused items
+ * Emit pressed keys to tui and its focused objects
+ * @param tui - Tui from which keys will be redirected to focused items
  * @example
  * ```ts
  * const tui = createTui(...);
@@ -135,20 +135,20 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
  * handleKeypresses(tui);
  * ```
  */
-export function handleKeypresses(instance: Tui): void {
-  instance.on("key", (keyPress) => {
-    instance.focused.item?.emit("key", keyPress);
+export function handleKeypresses(tui: Tui): void {
+  tui.on("key", (keyPress) => {
+    tui.focused.item?.emit("key", keyPress);
   });
 
-  instance.on("mouse", (mousePress) => {
-    instance.focused.item?.emit("mouse", mousePress);
+  tui.on("mouse", (mousePress) => {
+    tui.focused.item?.emit("mouse", mousePress);
   });
 
-  instance.on("multiKey", (keyPress) => {
-    instance.focused.item?.emit("key", keyPress);
+  tui.on("multiKey", (keyPress) => {
+    tui.focused.item?.emit("key", keyPress);
   });
 
-  readKeypressesEmitter(instance.reader, Reflect.get(instance, "emitter"));
+  readKeypressesEmitter(tui.reader, Reflect.get(tui, "emitter"));
 }
 
 /**

@@ -1,5 +1,5 @@
 import {
-  CanvasInstance,
+  Canvas,
   CanvasStyler,
   createCanvas,
   drawRectangle,
@@ -12,7 +12,7 @@ import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
 /**
- * Get interactive components from TuiInstance
+ * Get interactive components from tui
  * @param tui – Tui to get components from
  * @example
  * ```ts
@@ -72,6 +72,7 @@ export interface TuiStyler extends CanvasStyler {
 
 /** Private properties for Tui */
 export interface PrivateTui extends Tui {
+  /** TUI's EventEmitter */
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"mouse", MousePress>
@@ -81,40 +82,79 @@ export interface PrivateTui extends Tui {
     & EventEmitter<"createComponent" | "removeComponent", AnyComponent>;
 }
 
-/** Main object – "root" of Tui */
+/** Main object – "root" of tui components */
 export interface Tui {
+  /** Unique ID for tuis */
   readonly id: number;
 
+  /** Stdin from which tui can read keypresses */
   readonly reader: Reader;
+  /** Stdout to which tui will draw by default */
   readonly writer: Writer;
 
-  readonly canvas: CanvasInstance;
+  /** Tui's canvas instance */
+  readonly canvas: Canvas;
 
+  /** All components of tui */
   readonly components: AnyComponent[];
+  /** Children components of tui */
   readonly children: AnyComponent[];
+  /** Information about currently focused item */
   readonly focused: {
+    /** Which item is focused */
     item?: AnyComponent;
+    /** Whether focused item is active */
     active: boolean;
   };
 
+  /** Definition of tui's look */
   readonly styler: TuiStyler;
+  /** Size and position of tui */
   readonly rectangle: Rectangle;
 
+  /** Handle given functions on specific tui events */
   readonly on: PrivateTui["emitter"]["on"];
+  /** Handle given functions only once on specific tui events */
   readonly once: PrivateTui["emitter"]["once"];
+  /** Disable handling specific functions on tui events */
   readonly off: PrivateTui["emitter"]["off"];
+  /** Emit event which will fire functions specified to it */
   readonly emit: PrivateTui["emitter"]["emit"];
 }
 
 export interface CreateTuiOptions {
+  /** Stdin from which tui can read keypresses */
   reader?: Reader;
+  /** Stdout to which tui will draw by default */
   writer?: Writer;
+  /** Canvas which will be used for drawing to writer */
+  canvas?: Canvas;
+  /** Override position and sizing of tui */
   rectangle?: Rectangle;
-  canvas?: CanvasInstance;
+  /** Definition of tui's look */
   styler: TuiStyler;
 }
 
 let id = 0;
+/**
+ * Create new tui instance
+ *
+ * It's root of all other components
+ *
+ * Components create tree-like structure (by parent/child relationship)
+ * @param options
+ * @example
+ * ```ts
+ * const tui = createTui({
+ *  reader: Deno.stdin,
+ *  writer: Deno.stdout,
+ *  styler: {
+ *    foreground: "\x1b[32m",
+ *    background: "\x1b[43m"
+ *  }
+ * });
+ * ```
+ */
 export function createTui({
   reader = Deno.stdin,
   writer = Deno.stdout,

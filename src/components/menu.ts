@@ -28,7 +28,7 @@ export type MenuComponent = ExtendedComponent<
  * It is not interactive by default
  *
  * It automatically distributes menu* components
- * @param parent - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts

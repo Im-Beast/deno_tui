@@ -14,7 +14,7 @@ const encoder = new TextEncoder();
  * Handle mouse controls
  *  - Single click to focus component
  *  - Double click/Single click focused component to activate
- * @param instance – instance which components will be manipulated
+ * @param tui – tui which components will be manipulated
  * @example
  * ```ts
  * const tui = createTui(...);
@@ -23,16 +23,16 @@ const encoder = new TextEncoder();
  * handleMouseControls(tui);
  * ```
  */
-export function handleMouseControls(instance: Tui): void {
-  Deno.writeSync(instance.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
+export function handleMouseControls(tui: Tui): void {
+  Deno.writeSync(tui.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
   addEventListener("unload", () => {
-    Deno.writeSync(instance.writer.rid, encoder.encode(DISABLE_MOUSE));
+    Deno.writeSync(tui.writer.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  instance.on("mouse", ({ x, y, release, button }) => {
+  tui.on("mouse", ({ x, y, release, button }) => {
     if (release || button !== 0) return;
 
-    const components = getInteractiveComponents(instance);
+    const components = getInteractiveComponents(tui);
     let item!: AnyComponent;
 
     for (const component of components) {
@@ -47,15 +47,17 @@ export function handleMouseControls(instance: Tui): void {
       }
     }
 
-    if (instance.focused.item === item) {
-      instance.focused.active = true;
-      instance.focused.item?.emit("active");
+    if (tui.focused.item === item) {
+      tui.focused.active = true;
+      tui.focused.item?.emit("active");
+      tui.focused.item?.active?.();
     }
 
-    instance.focused.item = item;
+    tui.focused.item = item;
 
-    if (!instance.focused.active) {
-      instance.focused.item?.emit("focus");
+    if (!tui.focused.active) {
+      tui.focused.item?.emit("focus");
+      tui.focused.item?.focus?.();
     }
   });
 }

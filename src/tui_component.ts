@@ -62,7 +62,7 @@ export function getCurrentStyler(
 /**
  * Remove/Destroy component
  * - Disables all of its events
- * - Removes it from its parent and TuiInstance
+ * - Removes it from tui and its parent children
  * - Removes all of its children (recurses)
  * @param component - component that will be removed
  * @example
@@ -90,76 +90,118 @@ export function removeComponent(component: AnyComponent): void {
   tui.components.splice(tui.components.indexOf(component), 1);
 }
 
+/** Private properties for Component */
 export type PrivateComponent<
-  N extends string = string,
-  EXT extends Object = Record<never, never>,
-  EV extends string = never,
-  EDT = void,
-> = ExtendedComponent<N, EXT, EV, EDT> & {
+  Name extends string = string,
+  Extension extends Object = Record<never, never>,
+  Events extends string = never,
+  EventDataType = void,
+> = ExtendedComponent<Name, Extension, Events, EventDataType> & {
+  /** Component's EventEmitter */
   readonly emitter:
     & PrivateTui["emitter"]
-    & EventEmitter<EV, EDT>;
+    & EventEmitter<Events, EventDataType>;
 };
 
 type EmitterShortcut<
-  N extends string = string,
-  EV extends string = never,
-  EDT = void,
-> = PrivateComponent<N, Record<never, never>, EV, EDT>["emitter"];
+  Name extends string = string,
+  Events extends string = never,
+  EventDataType = void,
+> = PrivateComponent<
+  Name,
+  Record<never, never>,
+  Events,
+  EventDataType
+>["emitter"];
 
+/** Component but extended using object - has its own properties */
 export type ExtendedComponent<
-  N extends string = string,
-  EXT extends Object = Record<never, never>,
-  EV extends string = never,
-  EDT = void,
-> = Component<N, EV, EDT> & EXT;
+  Name extends string = string,
+  Extension extends Object = Record<never, never>,
+  Events extends string = never,
+  EventDataType = void,
+> = Component<Name, Events, EventDataType> & Extension;
 
+/** Basic component that tui is built upon */
 export type Component<
-  N extends string = string,
-  EV extends string = never,
-  EDT = void,
+  Name extends string = string,
+  Events extends string = never,
+  EventDataType = void,
 > = {
-  readonly name: N;
+  /** Unique ID for components */
+  readonly id: number;
+
+  /** Name of the component */
+  readonly name: Name;
+  /** Whether component is interactive */
   readonly interactive: boolean;
+  /** Priority of which component will be drawn */
   readonly drawPriority: number;
 
+  /** Tui instance of component */
   readonly tui: Tui;
+  /** Parent of component, either tui or other component */
   readonly parent: TuiObject;
+  /** Children components of component */
   readonly children: AnyComponent[];
+  /** When any of these components gets focused getCurrentStyler returns this object focused styler */
   readonly focusedWithin: AnyComponent[];
 
+  /** Definition of component's look */
   readonly styler: TuiStyler;
+  /** Size and position of component */
   readonly rectangle: Rectangle;
 
-  readonly on: EmitterShortcut<N, EV, EDT>["on"];
-  readonly once: EmitterShortcut<N, EV, EDT>["once"];
-  readonly off: EmitterShortcut<N, EV, EDT>["off"];
-  readonly emit: EmitterShortcut<N, EV, EDT>["emit"];
+  /** Handle given functions on specific tui events */
+  readonly on: EmitterShortcut<Name, Events, EventDataType>["on"];
+  /** Handle given functions only once on specific tui events */
+  readonly once: EmitterShortcut<Name, Events, EventDataType>["once"];
+  /** Disable handling specific functions on tui events */
+  readonly off: EmitterShortcut<Name, Events, EventDataType>["off"];
+  /** Emit event which will fire functions specified to it */
+  readonly emit: EmitterShortcut<Name, Events, EventDataType>["emit"];
 
+  /** Function fired when component gets focused */
   readonly focus?: () => void;
+  /** Function fired when component gets activated */
   readonly active?: () => void;
+  /** Function fired after component has been updated (before has been drawn) */
   readonly update?: () => void;
+  /** Function fired when component has been drawn */
   readonly draw?: () => void;
+  /** Function fired before component has been removed */
   readonly remove?: () => void;
 };
 
-export interface CreateComponentOptions<N extends string = string> {
-  name: N;
+export interface CreateComponentOptions<Name extends string = string> {
+  /** Name of the component */
+  name: Name;
+  /** Whether component is interactive */
   interactive: boolean;
+  /** Priority of which component will be drawn */
   drawPriority?: number;
 
+  /** When any of these components gets focused getCurrentStyler returns this object focused styler */
   focusedWithin?: AnyComponent[];
 
+  /** Definition of component's look */
   styler?: TuiStyler;
+  /** Size and position of component */
   rectangle: Rectangle;
 
+  /** Function fired when component gets focused */
   focus?: () => void;
+  /** Function fired when component gets activated */
   active?: () => void;
+  /** Function fired after component has been updated (before has been drawn) */
   update?: () => void;
+  /** Function fired when component has been drawn */
   draw?: () => void;
+  /** Function fired before component has been removed */
   remove?: () => void;
 }
 
+let id = 0;
 /**
  * Create Component or ExtendedComponent based on whether `extension` is present
  * @param parent - parent of the component
@@ -201,6 +243,8 @@ export function createComponent<
     : parent;
 
   const component = {
+    id: id++,
+
     name,
     interactive,
     drawPriority,

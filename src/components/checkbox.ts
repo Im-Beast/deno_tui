@@ -36,7 +36,7 @@ export type CreateCheckboxOptions =
  * Create CheckboxComponent
  *
  * It is interactive by default
- * @param parent - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts
