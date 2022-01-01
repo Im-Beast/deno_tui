@@ -32,7 +32,7 @@ export interface Canvas {
   /** Writer that canvas will write data to */
   writer: Writer;
   /** Size of canvas, limits size of frameBuffer too */
-  size: Dynamic<ConsoleSize>;
+  size: ConsoleSize;
   /** Character which will be used to fill empty space */
   filler: string;
   /** Matrix which stores pixels which later will be used to render to the terminal */
@@ -88,7 +88,12 @@ export function createCanvas(
   }: CreateCanvasOptions,
 ): Canvas {
   const canvas: Canvas = {
-    size,
+    get size() {
+      return getStaticValue(size);
+    },
+    set size(value) {
+      size = value;
+    },
     filler,
     writer,
     smartRender,
@@ -113,7 +118,9 @@ export function createCanvas(
     Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
   });
 
-  Deno.addSignalListener("SIGWINCH", () => updateCanvas(true));
+  Deno.addSignalListener("SIGWINCH", () => {
+    updateCanvas(true);
+  });
 
   return canvas;
 }
@@ -125,7 +132,7 @@ export function createCanvas(
 export function fillBuffer(canvas: Canvas): void {
   const fullWidth = isFullWidth(removeStyleCodes(canvas.filler));
 
-  const { rows, columns } = getStaticValue(canvas.size);
+  const { rows, columns } = canvas.size;
 
   for (let r = 0; r < rows; ++r) {
     canvas.frameBuffer[r] ||= [];
@@ -143,12 +150,14 @@ export function fillBuffer(canvas: Canvas): void {
  * @param canvas - canvas instance which will be rendered
  */
 export function renderChanges(canvas: Canvas): void {
-  const { rows, columns } = getStaticValue(canvas.size);
+  const { rows, columns } = canvas.size;
 
   let string = "";
   for (let r = 0; r < rows; ++r) {
     for (let c = 0; c < ~~(columns / 2); ++c) {
       const value = canvas.frameBuffer?.[r]?.[c];
+      if (!value?.join) break;
+
       if (
         canvas.prevBuffer.get(`${r}/${c}`) !=
           String(value)
@@ -169,7 +178,7 @@ export function renderChanges(canvas: Canvas): void {
  * @param canvas - canvas instance which will be rendered
  */
 export function renderFull(canvas: Canvas): void {
-  const { rows, columns } = getStaticValue(canvas.size);
+  const { rows, columns } = canvas.size;
 
   Deno.writeSync(canvas.writer.rid, encoder.encode(moveCursor(0, 0)));
 
