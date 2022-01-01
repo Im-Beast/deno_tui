@@ -2,6 +2,7 @@
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { PrivateTui, Tui, TuiStyler } from "./tui.ts";
 import { AnyComponent, Rectangle, TuiObject } from "./types.ts";
+import { cloneAndAssign } from "./util.ts";
 
 /**
  * Get current CanvasStyler of component from TuiStyler
@@ -235,40 +236,34 @@ export function createComponent<
     ? Reflect.get(parent, "tui")
     : parent;
 
-  const component = {
-    id: id++,
+  const component = cloneAndAssign(
+    {
+      id: id++,
 
-    parent,
-    tui,
-    children: [],
-    focusedWithin: [],
+      parent,
+      tui,
+      children: [],
+      focusedWithin: [],
 
-    styler: parent.styler,
-    rectangle: {
-      column: 0,
-      row: 0,
-      width: 0,
-      height: 0,
+      styler: parent.styler,
+      rectangle: {
+        column: 0,
+        row: 0,
+        width: 0,
+        height: 0,
+      },
+
+      emitter,
+      on: emitter.on,
+      once: emitter.once,
+      off: emitter.off,
+      emit: emitter.emit,
+
+      ...extension,
     },
-
-    emitter,
-    on: emitter.on,
-    once: emitter.once,
-    off: emitter.off,
-    emit: emitter.emit,
-
-    ...extension,
-  } as unknown as PrivateComp;
-
-  // Preserve getters and setters
-  Object.defineProperties(component, Object.getOwnPropertyDescriptors(options));
-
-  if (extension) {
-    Object.defineProperties(
-      component,
-      Object.getOwnPropertyDescriptors(extension),
-    );
-  }
+    options,
+    extension,
+  ) as PrivateComp;
 
   tui.components.push(component);
   parent.children.push(component);
