@@ -187,7 +187,7 @@ export interface CreateComponentOptions<Name extends string = string> {
   /** Definition of component's look */
   styler?: TuiStyler;
   /** Size and position of component */
-  rectangle: Rectangle;
+  rectangle?: Rectangle;
 
   /** Function fired when component gets focused */
   focus?: () => void;
@@ -216,22 +216,15 @@ export function createComponent<
   EventDataType = void,
 >(
   parent: TuiObject,
-  {
-    name,
-    interactive,
-    drawPriority = 0,
-    focusedWithin = [],
-    styler = parent.styler,
-    rectangle,
-    focus,
-    active,
-    update,
-    draw,
-    remove,
-  }: CreateComponentOptions<Name>,
-  extension?: Extension,
-): (Extension extends void ? Component<Name, Events, EventDataType>
-  : ExtendedComponent<Name, Extension, Events, EventDataType>) {
+  options: (
+    | CreateComponentOptions<Name>
+    | Omit<CreateComponentOptions<Name>, keyof Extension>
+  ),
+  extension: Extension,
+): (
+  Extension extends void ? Component<Name, Events, EventDataType>
+    : ExtendedComponent<Name, Extension, Events, EventDataType>
+) {
   type PrivateComp = Extension extends void
     ? PrivateComponent<Name, Record<never, never>, Events, EventDataType>
     : PrivateComponent<Name, Extension, Events, EventDataType>;
@@ -245,17 +238,18 @@ export function createComponent<
   const component = {
     id: id++,
 
-    name,
-    interactive,
-    drawPriority,
-
     parent,
     tui,
     children: [],
-    focusedWithin,
+    focusedWithin: [],
 
-    styler,
-    rectangle,
+    styler: parent.styler,
+    rectangle: {
+      column: 0,
+      row: 0,
+      width: 0,
+      height: 0,
+    },
 
     emitter,
     on: emitter.on,
@@ -263,14 +257,18 @@ export function createComponent<
     off: emitter.off,
     emit: emitter.emit,
 
-    focus,
-    active,
-    update,
-    draw,
-    remove,
-
     ...extension,
   } as unknown as PrivateComp;
+
+  // Preserve getters and setters
+  Object.defineProperties(component, Object.getOwnPropertyDescriptors(options));
+
+  if (extension) {
+    Object.defineProperties(
+      component,
+      Object.getOwnPropertyDescriptors(extension),
+    );
+  }
 
   tui.components.push(component);
   parent.children.push(component);

@@ -52,12 +52,11 @@ export function createFrame(
 ): FrameComponent {
   const frame: FrameComponent = {
     label: options.label,
-    ...createComponent(parent, {
+    ...createComponent(parent, options, {
       name: "frame",
       interactive: false,
       drawPriority: Reflect.get(parent, "drawPriority"),
-      ...options,
-      draw() {
+      draw(this: FrameComponent) {
         const styler = getCurrentStyler(frame);
         const { row, column, width, height } = frame.rectangle;
         const { canvas } = frame.tui;
@@ -94,26 +93,9 @@ export function createFrame(
           });
         }
 
-        drawPixel(canvas, {
-          column,
-          row,
-          value: "┌",
-          styler,
-        });
-
-        drawPixel(canvas, {
-          column,
-          row: row + height,
-          value: "└",
-          styler,
-        });
-
-        drawPixel(canvas, {
-          column: column + width,
-          row,
-          value: "┐",
-          styler,
-        });
+        drawPixel(canvas, { column, row, value: "┌", styler });
+        drawPixel(canvas, { column, row: row + height, value: "└", styler });
+        drawPixel(canvas, { column: column + width, row, value: "┐", styler });
 
         drawPixel(canvas, {
           column: column + width,
@@ -125,12 +107,7 @@ export function createFrame(
         if (frame.label?.text && width > 4) {
           let text = frame.label.text;
 
-          drawPixel(canvas, {
-            column: column + 1,
-            row,
-            value: "┤",
-            styler,
-          });
+          drawPixel(canvas, { column: column + 1, row, value: "┤", styler });
 
           let tw = textWidth(text);
           while (tw > width - 3) {
@@ -145,12 +122,7 @@ export function createFrame(
             styler,
           });
 
-          drawText(canvas, {
-            column: column + 2,
-            row,
-            text: text,
-            styler,
-          });
+          drawText(canvas, { column: column + 2, row, text: text, styler });
         }
       },
     }),

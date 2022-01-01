@@ -36,6 +36,8 @@ export function draw(
   tui: Tui,
   refreshRate: Dynamic<number> = 32,
 ): (() => void) {
+  tui.emit("update", Date.now());
+
   drawRectangle(tui.canvas, {
     ...tui.rectangle,
     styler: tui.styler,
@@ -129,8 +131,6 @@ export interface CreateTuiOptions {
   writer?: Writer;
   /** Canvas which will be used for drawing to writer */
   canvas?: Canvas;
-  /** Override position and sizing of tui */
-  rectangle?: Rectangle;
   /** Definition of tui's look */
   styler: TuiStyler;
 }
@@ -158,24 +158,10 @@ let id = 0;
 export function createTui({
   reader = Deno.stdin,
   writer = Deno.stdout,
-  rectangle = function () {
-    const { columns: width, rows: height } = Deno.consoleSize(writer.rid);
-
-    return {
-      column: 0,
-      row: 0,
-      width,
-      height,
-    };
-  }(),
   styler,
   canvas = createCanvas({
     writer,
     filler: styleStringFromStyler(" ", styler),
-    size: {
-      columns: rectangle!.width,
-      rows: rectangle!.height,
-    },
   }),
 }: CreateTuiOptions): Tui {
   const emitter = createEventEmitter() as PrivateTui["emitter"];
@@ -187,7 +173,16 @@ export function createTui({
     writer,
 
     styler,
-    rectangle,
+    get rectangle() {
+      const { columns, rows } = canvas.size;
+
+      return {
+        column: 0,
+        row: 0,
+        width: columns,
+        height: rows,
+      };
+    },
     canvas,
 
     emitter,

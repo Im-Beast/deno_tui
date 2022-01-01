@@ -8,7 +8,6 @@ import {
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
 import { textWidth } from "../util.ts";
-import { getStaticValue } from "../util.ts";
 
 export type CreateMenuOptions = Omit<
   CreateComponentOptions,
@@ -42,7 +41,7 @@ export function createMenu(
   options: CreateMenuOptions,
 ): MenuComponent {
   let height = 1;
-  const menu: MenuComponent = createComponent(parent, {
+  const menu: MenuComponent = createComponent(parent, options, {
     name: "menu",
     interactive: false,
     get rectangle() {
@@ -52,20 +51,21 @@ export function createMenu(
       };
     },
     drawPriority: 1,
-    draw() {
+    draw(this: MenuComponent) {
       height = menu.height;
+
       drawRectangle(menu.tui.canvas, {
-        ...getStaticValue(menu.rectangle),
+        ...menu.rectangle,
         height: menu.height,
         styler: getCurrentStyler(menu),
       });
 
       let offsetX = 1;
       let offsetY = 0;
-      const { width } = getStaticValue(menu.rectangle);
-      for (
-        const child of menu.children
-      ) {
+
+      const { width } = menu.rectangle;
+
+      for (const child of menu.children) {
         const text = child.label?.text;
 
         Object.assign(
@@ -87,8 +87,6 @@ export function createMenu(
       }
       menu.height = 1 + offsetY;
     },
-    ...options,
-  }, {
     height: 1,
   });
 

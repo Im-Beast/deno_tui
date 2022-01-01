@@ -6,7 +6,7 @@ import {
   removeComponent,
 } from "../tui_component.ts";
 import { TextAlign, TuiObject } from "../types.ts";
-import { textWidth } from "../util.ts";
+import { cloneAndAssign, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 
@@ -105,11 +105,9 @@ export function createCombobox(
     ? options.items[options.value % options.items.length]
     : options.value;
 
-  const combobox: ComboboxComponent = createComponent(parent, {
+  const combobox: ComboboxComponent = createComponent(parent, options, {
     name: "combobox",
     interactive: true,
-    ...options,
-  }, {
     value,
     items: options.items,
     label: options.label,
@@ -173,28 +171,27 @@ export function createCombobox(
         width = textWidth(label);
       }
 
-      const button = createButton(main, {
-        ...options,
-        label: {
-          text: label,
-          align: combobox.label?.align,
-        },
-        get rectangle() {
-          const rectangle = combobox.rectangle;
-          return {
-            ...rectangle,
-            row: rectangle.row + i + 1,
-            width,
-          };
-        },
-        get styler() {
-          return combobox.styler;
-        },
-        frame: {
-          enabled: false,
-        },
-        drawPriority: 2,
-      });
+      const button = createButton(
+        main,
+        cloneAndAssign(options, {
+          label: {
+            text: label,
+            align: combobox.label?.align,
+          },
+          frame: {
+            enabled: false,
+          },
+          drawPriority: 2,
+          get rectangle() {
+            const rectangle = combobox.rectangle;
+            return {
+              ...rectangle,
+              row: rectangle.row + i + 1,
+              width,
+            };
+          },
+        }),
+      );
 
       button.on("active", () => {
         combobox.value = item;

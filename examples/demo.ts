@@ -10,8 +10,6 @@ import {
   createFrame,
   createLabel,
   createMenu,
-  createMenuItem,
-  createMenuList,
   createTextbox,
   createTui,
   draw,
@@ -68,15 +66,16 @@ const menu = createMenu(tui, {
   styler: componentStyler,
 });
 
-createMenuList(menu, {
+createCombobox(menu, {
   label: {
     text: "File",
   },
   items: ["Open", "Save", "Close"],
+  expandItemsWidth: true,
   // When styler property is missing it is inherited from parent
 });
 
-const help = createMenuItem(menu, {
+const help = createButton(menu, {
   label: {
     text: "Help",
   },
@@ -300,6 +299,7 @@ createLabel(tui, {
   },
   get rectangle() {
     const rectangle = tui.rectangle;
+
     const width = textWidth(this.value.text);
     return {
       ...rectangle,
@@ -316,5 +316,5 @@ createLabel(tui, {
 let h = 0;
 setInterval(() => {
   componentStyler.background = hsl((++h + 180) % 360, 50, 50, true);
-  frameStyler.background = hsl(++h % 360, 50, 50);
+  frameStyler.foreground = hsl(++h % 360, 50, 50);
 }, 32);

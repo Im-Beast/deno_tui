@@ -5,6 +5,7 @@ import {
   removeComponent,
 } from "../tui_component.ts";
 import { TextAlign, TuiObject } from "../types.ts";
+import { cloneAndAssign } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 import { createLabel, LabelComponent } from "./label.ts";
 
@@ -53,11 +54,10 @@ export function createButton(
 ): ButtonComponent {
   let label: LabelComponent | undefined;
 
-  const button: ButtonComponent = createComponent(parent, {
+  const button: ButtonComponent = createComponent(parent, options, {
     name: "button",
     interactive: true,
-    ...options,
-    update() {
+    update(this: ButtonComponent) {
       if (label && !button.label) {
         removeComponent(label);
       }
@@ -87,14 +87,17 @@ export function createButton(
         });
       }
     },
-  }, {
     label: options.label,
   });
 
-  createBox(button, {
-    ...options,
-    focusedWithin: [button, ...button.focusedWithin],
-  });
+  createBox(
+    button,
+    cloneAndAssign(options, {
+      get focusedWithin() {
+        return [button, ...button.focusedWithin];
+      },
+    }),
+  );
 
   return button;
 }

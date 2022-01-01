@@ -7,7 +7,7 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { getStaticValue, textWidth } from "../util.ts";
+import { cloneAndAssign, getStaticValue, textWidth } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 
 /** Definition on how TextboxComponent should look like */
@@ -72,10 +72,10 @@ export function createTextbox(
 ): TextboxComponent {
   const position = { x: 0, y: 0 };
 
-  const textbox: TextboxComponent = createComponent(parent, {
+  const textbox: TextboxComponent = createComponent(parent, options, {
     name: "textbox",
     interactive: true,
-    draw() {
+    draw(this: TextboxComponent) {
       const { row, column, width, height } = textbox.rectangle;
 
       const offsetX = position.x >= width ? position.x - width + 1 : 0;
@@ -120,19 +120,20 @@ export function createTextbox(
       }
     },
     drawPriority: 1,
-    ...options,
-  }, {
     value: options?.value?.length ? options.value : [""],
     string: () => textbox.value.join("\n"),
     hidden: options.hidden,
     multiline: options.multiline,
   });
 
-  createBox(textbox, {
-    ...options,
-    focusedWithin: [textbox, ...textbox.focusedWithin],
-    styler: textbox.styler,
-  });
+  createBox(
+    textbox,
+    cloneAndAssign(options, {
+      focusedWithin: [textbox, ...textbox.focusedWithin],
+      styler: textbox.styler,
+      drawPriority: 0,
+    }),
+  );
 
   textbox.on("key", ({ key, shift, ctrl, meta }) => {
     if (!key || shift) return;

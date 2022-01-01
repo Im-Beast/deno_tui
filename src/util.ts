@@ -132,3 +132,33 @@ export function removeStyleCodes(text: string): string {
   // deno-lint-ignore no-control-regex
   return text.replace(/\x1b\[\d+m/g, "");
 }
+
+/**
+ * Creates new object and defines properties to it from `assignments` (including getters and setters!)
+ * @param assignments – objects to assign to new created object
+ * @example
+ * ```ts
+ * const one = {
+ *  get a() { return Math.random() },
+ * };
+ *
+ * const two = {
+ *  get b() { return Math.random() * 2 },
+ * };
+ *
+ * const three = cloneAndAssign(one, two);
+ * // Equivailent to:
+ * // const three = {
+ * //  get a() { return Math.random() },
+ * //  get b() { return Math.random() * 2},
+ * // };
+ * ```
+ */
+// deno-lint-ignore ban-types
+export function cloneAndAssign(...assignments: object[]): object {
+  const obj = {};
+  for (const assignment of assignments) {
+    Object.defineProperties(obj, Object.getOwnPropertyDescriptors(assignment));
+  }
+  return obj;
+}

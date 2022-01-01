@@ -58,11 +58,10 @@ export function createBox(
 ): BoxComponent {
   let frame: FrameComponent | undefined;
 
-  const box: BoxComponent = createComponent(parent, {
+  const box: BoxComponent = createComponent(parent, options, {
     name: "box",
     interactive: false,
-    ...options,
-    update() {
+    update(this: BoxComponent) {
       if (frame && !box.frame.enabled) {
         removeComponent(frame);
         frame = undefined;
@@ -86,13 +85,12 @@ export function createBox(
         },
       });
     },
-    draw() {
+    draw(this: BoxComponent) {
       drawRectangle(box.tui.canvas, {
         ...box.rectangle,
         styler: getCurrentStyler(box),
       });
     },
-  }, {
     frame: options.frame ?? {
       enabled: false,
     },

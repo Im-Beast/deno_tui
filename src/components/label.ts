@@ -6,7 +6,7 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TextAlign, TuiObject } from "../types.ts";
-import { getStaticValue, textWidth } from "../util.ts";
+import { textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 
 interface LabelExtension {
@@ -59,42 +59,23 @@ export function createLabel(
 ): LabelComponent {
   let drawers: (() => void)[];
 
-  const lastData = {
-    text: "",
-    align: "",
-    rectangle: JSON.stringify(options.rectangle),
-  };
-
-  const label: LabelComponent = createComponent(parent, {
+  const label: LabelComponent = createComponent(parent, options, {
     name: "label",
     interactive: false,
-    ...options,
-    draw() {
-      const { rectangle, value: { text, align } } = label;
-
-      if (
-        text !== lastData.text ||
-        JSON.stringify(align) !== JSON.stringify(lastData.align) ||
-        JSON.stringify(rectangle) !== JSON.stringify(lastData.rectangle)
-      ) {
-        updateDrawFuncs(text);
-        lastData.text = text;
-        lastData.align = JSON.stringify(align);
-        lastData.rectangle = JSON.stringify(rectangle);
-      }
+    draw(this: LabelComponent) {
+      updateDrawFuncs(label.value.text);
 
       for (const draw of drawers) {
         draw();
       }
     },
-  }, {
     value: options.value,
   });
 
   const updateDrawFuncs = (text: string) => {
     drawers = [];
 
-    const { column, row, width, height } = getStaticValue(label.rectangle);
+    const { column, row, width, height } = label.rectangle;
 
     const lines = text.split("\n");
     const { align } = label.value;

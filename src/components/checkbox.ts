@@ -6,6 +6,7 @@ import {
   ExtendedComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
+import { cloneAndAssign } from "../util.ts";
 import { createButton, CreateButtonOptions } from "./button.ts";
 
 /** Interactive checkbox component */
@@ -57,38 +58,30 @@ export function createCheckbox(
   parent: TuiObject,
   options: CreateCheckboxOptions,
 ): CheckboxComponent {
-  const checkbox: CheckboxComponent = createComponent(parent, {
+  const checkbox: CheckboxComponent = createComponent(parent, options, {
     name: "checkbox",
     interactive: false,
-    ...options,
-  }, {
     value: !!options.value,
     frame: options.frame ?? {
       enabled: false,
     },
   });
 
-  const button = createButton(checkbox, {
-    interactive: true,
-    get rectangle() {
-      return checkbox.rectangle;
-    },
-    label: {
-      get text() {
-        return checkbox.value ? "✓" : "✗";
+  const button = createButton(
+    checkbox,
+    cloneAndAssign(options, {
+      interactive: true,
+      label: {
+        get text() {
+          return checkbox.value ? "✓" : "✗";
+        },
+        align: {
+          horizontal: "center",
+          vertical: "center",
+        },
       },
-      align: {
-        horizontal: "center",
-        vertical: "center",
-      },
-    },
-    get styler() {
-      return checkbox.styler;
-    },
-    get frame() {
-      return checkbox.frame;
-    },
-  });
+    }),
+  );
 
   button.on("active", () => checkbox.value = !checkbox.value);
 
