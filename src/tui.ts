@@ -60,10 +60,12 @@ export function loopDrawing(
 export function draw(tui: Tui): void {
   tui.emit("update", Date.now());
 
-  drawRectangle(tui.canvas, {
-    ...tui.rectangle,
-    styler: tui.styler,
-  });
+  if (!debugMode) {
+    drawRectangle(tui.canvas, {
+      ...tui.rectangle,
+      styler: tui.styler,
+    });
+  }
 
   for (
     const component of tui.components.sort((a, b) =>

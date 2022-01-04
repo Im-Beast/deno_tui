@@ -2,9 +2,9 @@ import {
   createCanvas,
   createComponent,
   createTui,
+  draw,
   getCurrentStyler,
   getInteractiveComponents,
-  loopDrawing,
   removeComponent,
   setDebugMode,
 } from "../mod.ts";
@@ -63,7 +63,7 @@ Deno.test("Tui", async (t) => {
       "interactive",
     ]);
 
-    loopDrawing(tui);
+    draw(tui);
 
     assertEquals(encodeBuffer(tui.canvas.frameBuffer), emptyFrameBuffer);
 
