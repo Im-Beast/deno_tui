@@ -221,7 +221,7 @@ export function createComponent<
     | CreateComponentOptions<Name>
     | Omit<CreateComponentOptions<Name>, keyof Extension>
   ),
-  extension: Extension,
+  extension?: Extension,
 ): (
   Extension extends void ? Component<Name, Events, EventDataType>
     : ExtendedComponent<Name, Extension, Events, EventDataType>
@@ -262,7 +262,7 @@ export function createComponent<
       ...extension,
     },
     options,
-    extension,
+    extension || {},
   ) as PrivateComp;
 
   tui.components.push(component);
