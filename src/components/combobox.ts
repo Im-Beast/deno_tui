@@ -2,11 +2,11 @@
 import { KeyPress } from "../key_reader.ts";
 import {
   createComponent,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   removeComponent,
 } from "../tui_component.ts";
-import { Dynamic, TextAlign, TuiObject } from "../types.ts";
-import { getStaticValue, textWidth } from "../util.ts";
+import { TextAlign, TuiObject } from "../types.ts";
+import { cloneAndAssign, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
 import { createButton } from "./button.ts";
 
@@ -22,7 +22,7 @@ export function getComboboxValueLabel(value: ComboboxValue): string {
 export type ComboboxValue = string | { label: string; value: unknown };
 
 /** Interactive combobox component */
-export type ComboboxComponent = ExtendedTuiComponent<
+export type ComboboxComponent = ExtendedComponent<
   "combobox",
   {
     /** Items available to choose in combobox */
@@ -34,15 +34,19 @@ export type ComboboxComponent = ExtendedTuiComponent<
      */
     value: ComboboxValue | number;
     /** Index of currently selected item */
-    readonly valueIndex: (() => number);
-    /** Label's text displayed on the button */
-    label?: Dynamic<string>;
-    /**
-     * Position of the label
-     * Requires `label` property to be set.
-     */
-    labelAlign?: Dynamic<TextAlign>;
-    expandItemsWidth?: Dynamic<boolean>;
+    readonly valueIndex: number;
+    /** Label's text displayed on the combobox */
+    label?: {
+      /** Value of the label */
+      text?: string;
+      /**
+       * Position of the label
+       * Requires `label` property to be set.
+       */
+      align?: TextAlign;
+    };
+    /** TODO: note */
+    expandItemsWidth: boolean;
   },
   "valueChange",
   ComboboxValue
@@ -57,21 +61,24 @@ export type CreateComboboxOptions = CreateBoxOptions & {
    * - When component processes change it will return value of the item
    */
   value?: ComboboxValue | number;
-  /** Label's text displayed on the button */
-  label?: Dynamic<string>;
-  /**
-   * Position of the label
-   * Requires `label` property to be set.
-   */
-  labelAlign?: Dynamic<TextAlign>;
-  expandItemsWidth?: Dynamic<boolean>;
+  /** Label's text displayed on the combobox */
+  label?: {
+    /** Value of the label */
+    text?: string;
+    /**
+     * Position of the label
+     * Requires `label` property to be set.
+     */
+    align?: TextAlign;
+  };
+  expandItemsWidth?: boolean;
 };
 
 /**
  * Create ComboboxComponent
  *
  * It is interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts
@@ -89,7 +96,7 @@ export type CreateComboboxOptions = CreateBoxOptions & {
  * ```
  */
 export function createCombobox(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateComboboxOptions,
 ): ComboboxComponent {
   const value = typeof options.value === "undefined"
@@ -98,41 +105,39 @@ export function createCombobox(
     ? options.items[options.value % options.items.length]
     : options.value;
 
-  const combobox: ComboboxComponent = createComponent(object, {
+  const combobox: ComboboxComponent = createComponent(parent, options, {
     name: "combobox",
     interactive: true,
-    ...options,
-  }, {
     value,
     items: options.items,
     label: options.label,
-    valueIndex: () =>
-      typeof combobox.value === "number"
-        ? combobox.value
-        : combobox.items.indexOf(combobox.value),
-    labelAlign: options.labelAlign || {
-      horizontal: "center",
-      vertical: "center",
+    get valueIndex() {
+      return typeof this.value === "number"
+        ? this.value
+        : this.items.indexOf(this.value);
     },
-    expandItemsWidth: options.expandItemsWidth,
+    expandItemsWidth: options.expandItemsWidth ?? false,
   });
 
   const main = createButton(combobox, {
     ...options,
-    labelAlign: () => getStaticValue(combobox.labelAlign),
-    rectangle: () => getStaticValue(combobox.rectangle),
-    label: () =>
-      getStaticValue(combobox.label) ||
-      getComboboxValueLabel(
-        typeof combobox.value === "number"
-          ? combobox.items[combobox.value % combobox.items.length]
-          : combobox.value,
-      ),
-    styler: () => getStaticValue(combobox.styler),
+    interactive: false,
+    rectangle: combobox.rectangle,
+    label: {
+      get text() {
+        return combobox.label?.text ??
+          getComboboxValueLabel(
+            typeof combobox.value === "number"
+              ? combobox.items[combobox.value % combobox.items.length]
+              : combobox.value,
+          );
+      },
+      align: combobox.label?.align,
+    },
+    styler: combobox.styler,
     focusedWithin: [combobox, ...combobox.focusedWithin],
     drawPriority: 1,
   });
-  main.interactive = false;
 
   let opened = false;
 
@@ -144,7 +149,7 @@ export function createCombobox(
       removeComponent(child);
     }
 
-    combobox.instance.selected.item = combobox;
+    combobox.tui.focused.item = combobox;
   };
 
   combobox.on("key", ({ key }: KeyPress) => {
@@ -157,37 +162,40 @@ export function createCombobox(
       return close();
     }
 
-    let width = () => getStaticValue(main.rectangle).width;
+    let width = main.rectangle.width;
 
     for (const [i, item] of combobox.items.entries()) {
       const label = typeof item === "string" ? item : item.label;
 
-      if (combobox.expandItemsWidth && textWidth(label) > width()) {
-        width = () => textWidth(label);
+      if (combobox.expandItemsWidth && textWidth(label) > width) {
+        width = textWidth(label);
       }
 
-      const button = createButton(main, {
-        ...options,
-        label,
-        labelAlign: () => getStaticValue(combobox.labelAlign),
-        styler: () => ({
-          ...getStaticValue(combobox.styler),
-          frame: undefined,
+      const button = createButton(
+        main,
+        cloneAndAssign(options, {
+          label: {
+            text: label,
+            align: combobox.label?.align,
+          },
+          frame: {
+            enabled: false,
+          },
+          drawPriority: 2,
+          get rectangle() {
+            const rectangle = combobox.rectangle;
+            return {
+              ...rectangle,
+              row: rectangle.row + i + 1,
+              width,
+            };
+          },
         }),
-        rectangle() {
-          const rectangle = getStaticValue(combobox.rectangle);
-          return {
-            ...rectangle,
-            width: width(),
-            row: rectangle.row + i + 1,
-          };
-        },
-        drawPriority: 2,
-      });
+      );
 
       button.on("active", () => {
         combobox.value = item;
-        combobox.emitter.emit("valueChange", item);
+        combobox.emit("valueChange", item);
         close();
       });
 

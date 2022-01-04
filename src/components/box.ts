@@ -1,29 +1,42 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { drawRectangle } from "../canvas.ts";
+import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
   CreateComponentOptions,
+  ExtendedComponent,
   getCurrentStyler,
   removeComponent,
-  TuiComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { getStaticValue } from "../util.ts";
 import { createFrame, FrameComponent } from "./frame.ts";
 
 /** Not interactive box component */
-export type BoxComponent = TuiComponent<"box">;
+export type BoxComponent = ExtendedComponent<"box", {
+  frame: { enabled: true; styler: TuiStyler } | {
+    enabled: false;
+    styler?: TuiStyler;
+  };
+}>;
 
-export type CreateBoxOptions = Omit<
-  CreateComponentOptions,
-  "interactive" | "name" | "draw"
->;
+export type CreateBoxOptions =
+  & Omit<
+    CreateComponentOptions,
+    "interactive" | "name" | "draw"
+  >
+  & {
+    interactive?: boolean;
+    frame?: { enabled: true; styler: TuiStyler } | {
+      enabled: false;
+      styler?: TuiStyler;
+    };
+  };
 
 /**
  * Create BoxComponent
  *
  * It is not interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts
@@ -40,48 +53,46 @@ export type CreateBoxOptions = Omit<
  * ```
  */
 export function createBox(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateBoxOptions,
 ): BoxComponent {
   let frame: FrameComponent | undefined;
 
-  const box = createComponent(object, {
+  const box: BoxComponent = createComponent(parent, options, {
     name: "box",
     interactive: false,
-    ...options,
-    draw() {
-      const styler = getStaticValue(box.styler);
-      if (!frame && styler.frame) {
-        frame = createFrame(box, {
-          ...options,
-          label: styler.frame.label,
-          rectangle() {
-            const rectangle = getStaticValue(box.rectangle);
-            return {
-              column: rectangle.column - 1,
-              row: rectangle.row - 1,
-              width: rectangle.width + 1,
-              height: rectangle.height + 1,
-            };
-          },
-          styler() {
-            const styler = getStaticValue(box.styler);
-
-            if (frame && !styler.frame) {
-              removeComponent(frame);
-              frame = undefined;
-            }
-
-            return styler.frame || {};
-          },
-          focusedWithin: [box, ...box.focusedWithin],
-        });
+    update(this: BoxComponent) {
+      if (frame && !box.frame.enabled) {
+        removeComponent(frame);
+        frame = undefined;
+        return;
       }
 
-      drawRectangle(object.canvas, {
-        ...getStaticValue(box.rectangle),
+      if (!!frame === !!box.frame?.enabled) return;
+
+      frame = createFrame(box, {
+        get rectangle() {
+          const { column, row, width, height } = box.rectangle;
+          return {
+            column: column - 1,
+            row: row - 1,
+            width: width + 1,
+            height: height + 1,
+          };
+        },
+        get styler() {
+          return box.frame.styler ?? box.styler;
+        },
+      });
+    },
+    draw(this: BoxComponent) {
+      drawRectangle(box.tui.canvas, {
+        ...box.rectangle,
         styler: getCurrentStyler(box),
       });
+    },
+    frame: options.frame ?? {
+      enabled: false,
     },
   });
 

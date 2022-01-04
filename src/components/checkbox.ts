@@ -1,36 +1,43 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
+import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
   CreateComponentOptions,
-  ExtendedTuiComponent,
-  getCurrentStyler,
+  ExtendedComponent,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { getStaticValue } from "../util.ts";
-import { createButton } from "./button.ts";
-
-interface CheckboxExtension {
-  /** Whether checkbox is checked or not */
-  value?: boolean;
-}
+import { cloneAndAssign } from "../util.ts";
+import { createButton, CreateButtonOptions } from "./button.ts";
 
 /** Interactive checkbox component */
-export type CheckboxComponent = ExtendedTuiComponent<
+export type CheckboxComponent = ExtendedComponent<
   "checkbox",
-  CheckboxExtension,
+  {
+    /** Whether checkbox is checked or not */
+    value: boolean;
+    frame: { enabled: true; styler: TuiStyler } | {
+      enabled: false;
+      styler?: TuiStyler;
+    };
+  },
   "valueChange",
   boolean
 >;
 
 export type CreateCheckboxOptions =
-  & Omit<CreateComponentOptions, "interactive" | "name">
-  & CheckboxExtension;
+  & Omit<CreateComponentOptions, "name" | "interactive">
+  & Pick<CreateButtonOptions, "frame">
+  & {
+    /** Whether checkbox is checked or not */
+    value?: boolean;
+    interactive?: boolean;
+  };
 
 /**
  * Create CheckboxComponent
  *
  * It is interactive by default
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts
@@ -48,38 +55,39 @@ export type CreateCheckboxOptions =
  * ```
  */
 export function createCheckbox(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateCheckboxOptions,
 ): CheckboxComponent {
-  const checkbox: CheckboxComponent = createComponent(object, {
+  const checkbox: CheckboxComponent = createComponent(parent, options, {
     name: "checkbox",
-    ...options,
-  }, {
+    interactive: false,
     value: !!options.value,
+    frame: options.frame ?? {
+      enabled: false,
+    },
   });
 
-  const button = createButton(checkbox, {
-    rectangle: () => getStaticValue(checkbox.rectangle),
-    styler: () => {
-      return getCurrentStyler(checkbox, {
-        active: {
-          value: !!checkbox.value,
-          force: true,
+  const button = createButton(
+    checkbox,
+    cloneAndAssign(options, {
+      interactive: true,
+      label: {
+        get text() {
+          return checkbox.value ? "✓" : "✗";
         },
-      });
-    },
-    label: () => checkbox.value ? "✓" : "✗",
-    labelAlign: {
-      horizontal: "center",
-      vertical: "center",
-    },
-  });
+        align: {
+          horizontal: "center",
+          vertical: "center",
+        },
+      },
+    }),
+  );
 
   button.on("active", () => checkbox.value = !checkbox.value);
 
   checkbox.on("active", () => {
     checkbox.value = !checkbox.value;
-    checkbox.emitter.emit("valueChange", !checkbox.value);
+    checkbox.emit("valueChange", !checkbox.value);
   });
 
   return checkbox;

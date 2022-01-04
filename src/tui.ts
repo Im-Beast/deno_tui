@@ -1,6 +1,6 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import {
-  CanvasInstance,
+  Canvas,
+  CanvasStyler,
   createCanvas,
   drawRectangle,
   render,
@@ -8,20 +8,22 @@ import {
 } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import {
-  AnyComponent,
-  ConsoleSize,
-  Dynamic,
-  Reader,
-  TuiRectangle,
-  TuiStyler,
-  Writer,
-} from "./types.ts";
+import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+export let debugMode = false;
+
 /**
- * Get interactive components from TuiInstance
- * @param instance – Tui to get components from
+ * Enable/disable debug mode
+ *  - when debug mode is enabled tui doesn't render canvas on screen
+ */
+export const setDebugMode = (value: boolean): void => {
+  debugMode = value;
+};
+
+/**
+ * Get interactive components from tui
+ * @param tui – Tui to get components from
  * @example
  * ```ts
  * const tui = createTui(...);
@@ -33,168 +35,187 @@ import { getStaticValue } from "./util.ts";
  * ```
  */
 export function getInteractiveComponents(
-  instance: TuiInstance,
+  tui: Tui,
 ): AnyComponent[] {
-  return instance.components.filter((
+  return tui.components.filter((
     { interactive },
   ) => interactive);
 }
-
 const timeoutHandle: { [id: number]: number } = {};
 
-/**
- * Consistently draws TuiInstance.
- * Returns function which stops drawing.
- * @param instance – Tui to be drawn
- * @param refreshRate – How often tui should be redrawn (in ms)
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * const stop = draw(tui);
- * setTimeout(stop, 1000); // -> tui will stop being drawn after 1s
- * ```
- */
-export function draw(
-  instance: TuiInstance,
+export function loopDrawing(
+  tui: Tui,
   refreshRate: Dynamic<number> = 32,
-): () => void {
-  drawRectangle(instance.canvas, {
-    ...instance.rectangle(),
-    styler: getStaticValue(instance.styler),
-  });
+): (() => void) {
+  draw(tui);
 
-  for (const component of instance.components) {
-    component.draw();
-  }
-
-  render(instance.canvas);
-  instance.emitter.emit("draw", Date.now());
-
-  instance.selected.active = false;
-
-  timeoutHandle[instance.id] = setTimeout(
-    () => draw(instance, refreshRate),
-    getStaticValue(refreshRate) - instance.canvas.deltaTime,
+  timeoutHandle[tui.id] = setTimeout(
+    () => loopDrawing(tui, refreshRate),
+    getStaticValue(refreshRate) - tui.canvas.deltaTime,
   );
 
-  return () => clearTimeout(timeoutHandle[instance.id]);
+  return () => clearTimeout(timeoutHandle[tui.id]);
 }
 
-/** Main object – "root" of Tui */
-export interface TuiInstance {
-  /** Unique ID for TuiInstance */
-  readonly id: number;
+export function draw(tui: Tui): void {
+  tui.emit("update", Date.now());
+
+  if (!debugMode) {
+    drawRectangle(tui.canvas, {
+      ...tui.rectangle,
+      styler: tui.styler,
+    });
+  }
+
+  for (
+    const component of tui.components.sort((a, b) =>
+      a.drawPriority - b.drawPriority
+    )
+  ) {
+    component.update?.();
+    component.emit("update", Date.now());
+    component.draw?.();
+    component.emit("draw", Date.now());
+  }
+
+  if (!debugMode) {
+    render(tui.canvas);
+  }
+  tui.emit("draw", Date.now());
+  tui.focused.active = false;
+}
+
+/** Definition on how Tui or TuiComponent should look like */
+export interface TuiStyler extends CanvasStyler {
+  active?: CanvasStyler;
+  focused?: CanvasStyler;
+}
+
+/** Private properties for Tui */
+export interface PrivateTui extends Tui {
   /** TUI's EventEmitter */
   readonly emitter:
     & EventEmitter<"key", KeyPress>
     & EventEmitter<"mouse", MousePress>
     & EventEmitter<"multiKey", MultiKeyPress>
     & EventEmitter<"focus" | "active", undefined>
-    & EventEmitter<"draw", number>;
-  /** Handle given functions on specific tui events */
-  readonly on: TuiInstance["emitter"]["on"];
-  /** Handle given functions only once on specific tui events */
-  readonly off: TuiInstance["emitter"]["off"];
-  /** Disable handling specific functions on tui events */
-  readonly once: TuiInstance["emitter"]["once"];
-  /** Size and position of tui */
-  rectangle: () => TuiRectangle;
-  /** tui's children components */
-  children: AnyComponent[];
-  /** All of tui's components */
-  components: AnyComponent[];
-  /** Currently selected item info */
-  selected: {
-    /** Currently selected item component */
+    & EventEmitter<"draw" | "update", number>
+    & EventEmitter<"createComponent" | "removeComponent", AnyComponent>;
+}
+
+/** Main object – "root" of tui components */
+export interface Tui {
+  /** Unique ID for tuis */
+  readonly id: number;
+
+  /** Stdin from which tui can read keypresses */
+  readonly reader: Reader;
+  /** Stdout to which tui will draw by default */
+  readonly writer: Writer;
+
+  /** Tui's canvas instance */
+  readonly canvas: Canvas;
+
+  /** All components of tui */
+  readonly components: AnyComponent[];
+  /** Children components of tui */
+  readonly children: AnyComponent[];
+  /** Information about currently focused item */
+  readonly focused: {
+    /** Which item is focused */
     item?: AnyComponent;
-    /** Whether it's focused */
-    focused: boolean;
-    /** Whether it's active */
+    /** Whether focused item is active */
     active: boolean;
   };
+
   /** Definition of tui's look */
-  styler: Dynamic<TuiStyler>;
-  /** Canvas to which tui will draw */
-  canvas: CanvasInstance;
-  /** Deno.stdin which can be used to read keypresses */
-  reader: Reader;
-  /** Deno.stdout to which canvas renders by default */
-  writer: Writer;
-  /** Size of the tui */
-  size: Dynamic<ConsoleSize>;
+  readonly styler: TuiStyler;
+  /** Size and position of tui */
+  readonly rectangle: Rectangle;
+
+  /** Handle given functions on specific tui events */
+  readonly on: PrivateTui["emitter"]["on"];
+  /** Handle given functions only once on specific tui events */
+  readonly once: PrivateTui["emitter"]["once"];
+  /** Disable handling specific functions on tui events */
+  readonly off: PrivateTui["emitter"]["off"];
+  /** Emit event which will fire functions specified to it */
+  readonly emit: PrivateTui["emitter"]["emit"];
 }
 
-export type CreateTuiOptions = {
+export interface CreateTuiOptions {
+  /** Stdin from which tui can read keypresses */
+  reader?: Reader;
+  /** Stdout to which tui will draw by default */
+  writer?: Writer;
+  /** Canvas which will be used for drawing to writer */
+  canvas?: Canvas;
   /** Definition of tui's look */
   styler: TuiStyler;
-  /** Size of the tui */
-  size?: Dynamic<ConsoleSize>;
-} & (CreateTuiOptionsWithCanvas | CreateTuiOptionsWithoutCanvas);
-
-interface CreateTuiOptionsWithCanvas {
-  /** Canvas to which tui will draw */
-  canvas: CanvasInstance;
-  filler?: never;
 }
 
-interface CreateTuiOptionsWithoutCanvas {
-  canvas?: never;
-  /** Character which canvas will use to fill empty space */
-  filler?: string;
-}
-
-let instanceId = 0;
-
+let id = 0;
 /**
- * Create TuiInstance
- * @param reader - stdin from which tui can read keypresses
- * @param writer - stdout to which tui will draw by default
+ * Create new tui instance
+ *
+ * It's root of all other components
+ *
+ * Components create tree-like structure (by parent/child relationship)
  * @param options
+ * @example
+ * ```ts
+ * const tui = createTui({
+ *  reader: Deno.stdin,
+ *  writer: Deno.stdout,
+ *  styler: {
+ *    foreground: "\x1b[32m",
+ *    background: "\x1b[43m"
+ *  }
+ * });
+ * ```
  */
-export function createTui(
-  reader: Reader,
-  writer: Writer,
-  {
-    styler,
-    filler,
-    size,
-    canvas = createCanvas({
-      writer,
-      filler: styleStringFromStyler(filler || " ", styler),
-      size,
-    }),
-  }: CreateTuiOptions,
-): TuiInstance {
-  const emitter = createEventEmitter() as TuiInstance["emitter"];
+export function createTui({
+  reader = Deno.stdin,
+  writer = Deno.stdout,
+  styler,
+  canvas = createCanvas({
+    writer,
+    filler: styleStringFromStyler(" ", styler),
+  }),
+}: CreateTuiOptions): Tui {
+  const emitter = createEventEmitter() as PrivateTui["emitter"];
 
-  const tui: TuiInstance = {
-    id: instanceId++,
+  const tui: PrivateTui = {
+    id: id++,
+
+    reader,
+    writer,
+
+    styler,
+    get rectangle() {
+      const { columns, rows } = canvas.size;
+
+      return {
+        column: 0,
+        row: 0,
+        width: columns,
+        height: rows,
+      };
+    },
+    canvas,
+
     emitter,
     on: emitter.on,
     once: emitter.once,
     off: emitter.off,
-    styler,
-    size: size || (() => getStaticValue(tui.canvas.size)),
-    rectangle() {
-      const { columns: width, rows: height } = getStaticValue(tui.size);
-      return {
-        column: 0,
-        row: 0,
-        width,
-        height,
-      };
-    },
-    children: [],
+    emit: emitter.emit,
+
     components: [],
-    selected: {
-      active: false,
-      focused: false,
+    children: [],
+    focused: {
       item: undefined,
+      active: false,
     },
-    canvas,
-    reader,
-    writer,
   };
 
   Deno.addSignalListener("SIGINT", () => {

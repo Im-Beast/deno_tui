@@ -16,6 +16,4 @@ export * from "./src/components/combobox.ts";
 export * from "./src/components/frame.ts";
 export * from "./src/components/label.ts";
 export * from "./src/components/menu.ts";
-export * from "./src/components/menuItem.ts";
-export * from "./src/components/menuList.ts";
 export * from "./src/components/textbox.ts";

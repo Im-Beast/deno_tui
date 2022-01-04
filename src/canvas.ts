@@ -1,5 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { Attribute, Color, keyword, Style, StyleCode } from "./colors.ts";
+import { debugMode } from "./tui.ts";
 import { ConsoleSize, Dynamic, Writer } from "./types.ts";
 import {
   capitalize,
@@ -28,11 +29,11 @@ export function moveCursor(
 }
 
 /** Canvas is object which manages high-level "painting" on the terminal */
-export interface CanvasInstance {
+export interface Canvas {
   /** Writer that canvas will write data to */
   writer: Writer;
   /** Size of canvas, limits size of frameBuffer too */
-  size: Dynamic<ConsoleSize>;
+  size: ConsoleSize;
   /** Character which will be used to fill empty space */
   filler: string;
   /** Matrix which stores pixels which later will be used to render to the terminal */
@@ -63,7 +64,7 @@ export interface CreateCanvasOptions {
 }
 
 /**
- * Create CanvasInstance
+ * Create new canvas instance
  * It is used to render on terminal screen
  * @param options
  * @example
@@ -86,9 +87,14 @@ export function createCanvas(
     size = () => Deno.consoleSize(writer.rid),
     smartRender = true,
   }: CreateCanvasOptions,
-): CanvasInstance {
-  const canvas: CanvasInstance = {
-    size,
+): Canvas {
+  const canvas: Canvas = {
+    get size() {
+      return getStaticValue(size);
+    },
+    set size(value) {
+      size = value;
+    },
     filler,
     writer,
     smartRender,
@@ -113,26 +119,28 @@ export function createCanvas(
     Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
   });
 
-  Deno.addSignalListener("SIGWINCH", () => updateCanvas(true));
+  Deno.addSignalListener("SIGWINCH", () => {
+    updateCanvas(true);
+  });
 
   return canvas;
 }
 
 /**
  * Fills empty spaces in canvas frameBuffer
- * @param instance - canvas instance which frameBuffer will be filled
+ * @param canvas - canvas instance which frameBuffer will be filled
  */
-export function fillBuffer(instance: CanvasInstance): void {
-  const fullWidth = isFullWidth(removeStyleCodes(instance.filler));
+export function fillBuffer(canvas: Canvas): void {
+  const fullWidth = isFullWidth(removeStyleCodes(canvas.filler));
 
-  const { rows, columns } = getStaticValue(instance.size);
+  const { rows, columns } = canvas.size;
 
   for (let r = 0; r < rows; ++r) {
-    instance.frameBuffer[r] ||= [];
+    canvas.frameBuffer[r] ||= [];
     for (let c = 0; c < ~~(columns / 2); ++c) {
-      instance.frameBuffer[r][c] ||= [
-        instance.filler,
-        fullWidth ? "" : instance.filler,
+      canvas.frameBuffer[r][c] ||= [
+        canvas.filler,
+        fullWidth ? "" : canvas.filler,
       ];
     }
   }
@@ -140,20 +148,22 @@ export function fillBuffer(instance: CanvasInstance): void {
 
 /**
  * Compares changes between frames and then renders only them on terminal screen
- * @param instance - canvas instance which will be rendered
+ * @param canvas - canvas instance which will be rendered
  */
-export function renderChanges(instance: CanvasInstance): void {
-  const { rows, columns } = getStaticValue(instance.size);
+export function renderChanges(canvas: Canvas): void {
+  const { rows, columns } = canvas.size;
 
   let string = "";
   for (let r = 0; r < rows; ++r) {
     for (let c = 0; c < ~~(columns / 2); ++c) {
-      const value = instance.frameBuffer?.[r]?.[c];
+      const value = canvas.frameBuffer?.[r]?.[c];
+      if (!value?.join) break;
+
       if (
-        instance.prevBuffer.get(`${r}/${c}`) !=
+        canvas.prevBuffer.get(`${r}/${c}`) !=
           String(value)
       ) {
-        instance.prevBuffer.set(`${r}/${c}`, String(value));
+        canvas.prevBuffer.set(`${r}/${c}`, String(value));
 
         string += moveCursor(r + 1, (c * 2) + 1) +
           value.join("");
@@ -161,25 +171,31 @@ export function renderChanges(instance: CanvasInstance): void {
     }
   }
 
-  Deno.writeSync(instance.writer.rid, encoder.encode(string));
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+  }
 }
 
 /**
  * Renders canvas frameBuffer on terminal screen
- * @param instance - canvas instance which will be rendered
+ * @param canvas - canvas instance which will be rendered
  */
-export function renderFull(instance: CanvasInstance): void {
-  const { rows, columns } = getStaticValue(instance.size);
+export function renderFull(canvas: Canvas): void {
+  const { rows, columns } = canvas.size;
 
-  Deno.writeSync(instance.writer.rid, encoder.encode(moveCursor(0, 0)));
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(moveCursor(0, 0)));
+  }
 
   for (let r = 0; r < rows; ++r) {
     let string = `\r`;
     for (let c = 0; c < ~~(columns / 2); ++c) {
-      string += instance.frameBuffer[r][c].join("");
+      string += canvas.frameBuffer[r][c].join("");
     }
     if (r < rows - 1) string += "\n";
-    Deno.writeSync(instance.writer.rid, encoder.encode(string));
+    if (!debugMode) {
+      Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+    }
   }
 }
 
@@ -187,28 +203,30 @@ export function renderFull(instance: CanvasInstance): void {
  * Render terminal depending to its options
  *
  * Calculate running metrics (fps/lastTime/deltaTime)
- * @param instance - canvas instance which will be rendered
+ * @param canvas - canvas instance which will be rendered
  */
-export function render(instance: CanvasInstance): void {
+export function render(canvas: Canvas): void {
   const start = Date.now();
-  Deno.writeSync(instance.writer.rid, encoder.encode(HIDE_CURSOR));
-
-  if (instance.smartRender) {
-    renderChanges(instance);
-
-    /** Fix for full-width characters */
-    if (!instance.refreshed && instance.fps > 0) {
-      fillBuffer(instance);
-      renderFull(instance);
-      instance.refreshed = true;
-    }
-  } else {
-    renderFull(instance);
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(HIDE_CURSOR));
   }
 
-  instance.fps = 1000 / (Date.now() - instance.lastTime);
-  instance.lastTime = Date.now();
-  instance.deltaTime = Date.now() - start;
+  if (canvas.smartRender) {
+    renderChanges(canvas);
+
+    /** Fix for full-width characters */
+    if (!canvas.refreshed && canvas.fps > 0) {
+      fillBuffer(canvas);
+      renderFull(canvas);
+      canvas.refreshed = true;
+    }
+  } else {
+    renderFull(canvas);
+  }
+
+  canvas.fps = 1000 / (Date.now() - canvas.lastTime);
+  canvas.lastTime = Date.now();
+  canvas.deltaTime = Date.now() - start;
 }
 
 interface DrawPixelOptions {
@@ -224,7 +242,7 @@ interface DrawPixelOptions {
 
 /**
  * Draw pixel on canvas
- * @param instance - canvas instance on which pixel will be drawn
+ * @param canvas - canvas instance on which pixel will be drawn
  * @param options
  * @example
  * ```ts
@@ -241,12 +259,12 @@ interface DrawPixelOptions {
  * ```
  */
 export function drawPixel(
-  instance: CanvasInstance,
+  canvas: Canvas,
   { column, row, styler, value }: DrawPixelOptions,
 ): void {
   const index = column % 2;
   column = ~~(column / 2);
-  const pos = instance.frameBuffer?.[row]?.[column];
+  const pos = canvas.frameBuffer?.[row]?.[column];
   if (!pos) return;
 
   const fullWidth = isFullWidth(value);
@@ -258,13 +276,13 @@ export function drawPixel(
   const revIndex = (index - 1) * -1;
   if (fullWidth) {
     if (index === 1) {
-      instance.frameBuffer[row][column + 1][0] = "";
+      canvas.frameBuffer[row][column + 1][0] = "";
     } else {
-      instance.frameBuffer[row][column][revIndex] = "";
+      canvas.frameBuffer[row][column][revIndex] = "";
     }
   }
 
-  instance.frameBuffer[row][column][index] = value;
+  canvas.frameBuffer[row][column][index] = value;
 }
 
 export interface DrawRectangleOptions {
@@ -284,7 +302,7 @@ export interface DrawRectangleOptions {
 
 /**
  * Draw rectangle on canvas
- * @param instance - canvas instance on which rectangle will be drawn
+ * @param canvas - canvas instance on which rectangle will be drawn
  * @param options
  * @example
  * ```ts
@@ -303,12 +321,12 @@ export interface DrawRectangleOptions {
  * ```
  */
 export function drawRectangle(
-  instance: CanvasInstance,
+  canvas: Canvas,
   { column, row, width, height, value = " ", styler }: DrawRectangleOptions,
 ): void {
   for (let r = row; r < row + height; ++r) {
     for (let c = column; c < column + width; ++c) {
-      drawPixel(instance, {
+      drawPixel(canvas, {
         column: c,
         row: r,
         value,
@@ -331,7 +349,7 @@ export interface DrawTextOptions {
 
 /**
  * Draw text on canvas
- * @param instance - canvas instance on which text will be drawn
+ * @param canvas - canvas instance on which text will be drawn
  * @param options
  * @example
  * ```ts
@@ -348,7 +366,7 @@ export interface DrawTextOptions {
  * ```
  */
 export function drawText(
-  instance: CanvasInstance,
+  canvas: Canvas,
   { column, row, text, styler }: DrawTextOptions,
 ): void {
   const lines = text.split("\n");
@@ -358,7 +376,7 @@ export function drawText(
     for (let i = 0; i < line.length; ++i) {
       const char = line[i];
 
-      drawPixel(instance, {
+      drawPixel(canvas, {
         column: column + i + offset,
         row: row + l,
         value: char,

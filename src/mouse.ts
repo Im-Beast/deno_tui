@@ -1,7 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { getInteractiveComponents, TuiInstance } from "./tui.ts";
+import { getInteractiveComponents, Tui } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
-import { clamp, getStaticValue } from "./util.ts";
+import { clamp } from "./util.ts";
 
 /** ASCII escape code to enable mouse handling */
 export const ENABLE_MOUSE = "\x1b[?1000h";
@@ -14,7 +14,7 @@ const encoder = new TextEncoder();
  * Handle mouse controls
  *  - Single click to focus component
  *  - Double click/Single click focused component to activate
- * @param instance – instance which components will be manipulated
+ * @param tui – tui which components will be manipulated
  * @example
  * ```ts
  * const tui = createTui(...);
@@ -23,22 +23,20 @@ const encoder = new TextEncoder();
  * handleMouseControls(tui);
  * ```
  */
-export function handleMouseControls(instance: TuiInstance): void {
-  Deno.writeSync(instance.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
+export function handleMouseControls(tui: Tui): void {
+  Deno.writeSync(tui.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
   addEventListener("unload", () => {
-    Deno.writeSync(instance.writer.rid, encoder.encode(DISABLE_MOUSE));
+    Deno.writeSync(tui.writer.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  instance.on("mouse", ({ x, y, release, button }) => {
+  tui.on("mouse", ({ x, y, release, button }) => {
     if (release || button !== 0) return;
 
-    const components = getInteractiveComponents(instance);
+    const components = getInteractiveComponents(tui);
     let item!: AnyComponent;
 
     for (const component of components) {
-      const { column, height, row, width } = getStaticValue(
-        component.rectangle,
-      );
+      const { column, height, row, width } = component.rectangle;
 
       if (
         clamp(x, column, column + width - 1) === x &&
@@ -49,16 +47,17 @@ export function handleMouseControls(instance: TuiInstance): void {
       }
     }
 
-    if (instance.selected.item === item) {
-      instance.selected.active = true;
-      instance.selected.item?.emitter.emit("active");
+    if (tui.focused.item === item) {
+      tui.focused.active = true;
+      tui.focused.item?.emit("active");
+      tui.focused.item?.active?.();
     }
 
-    instance.selected.item = item;
-    instance.selected.focused = true;
+    tui.focused.item = item;
 
-    if (!instance.selected.active) {
-      instance.selected.item?.emitter.emit("focus");
+    if (!tui.focused.active) {
+      tui.focused.item?.emit("focus");
+      tui.focused.item?.focus?.();
     }
   });
 }

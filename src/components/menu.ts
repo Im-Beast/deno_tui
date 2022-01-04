@@ -3,12 +3,11 @@ import { drawRectangle } from "../canvas.ts";
 import {
   createComponent,
   CreateComponentOptions,
-  ExtendedTuiComponent,
+  ExtendedComponent,
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
 import { textWidth } from "../util.ts";
-import { getStaticValue } from "../util.ts";
 
 export type CreateMenuOptions = Omit<
   CreateComponentOptions,
@@ -16,7 +15,7 @@ export type CreateMenuOptions = Omit<
 >;
 
 /** Not interactive menu component */
-export type MenuComponent = ExtendedTuiComponent<
+export type MenuComponent = ExtendedComponent<
   "menu",
   /** Height of the menu */
   { height: number }
@@ -28,7 +27,7 @@ export type MenuComponent = ExtendedTuiComponent<
  * It is not interactive by default
  *
  * It automatically distributes menu* components
- * @param object - parent of the created box, either Tui instance or other component
+ * @param parent - parent of the created box, either tui or other component
  * @param options
  * @example
  * ```ts
@@ -38,50 +37,56 @@ export type MenuComponent = ExtendedTuiComponent<
  * ```
  */
 export function createMenu(
-  object: TuiObject,
+  parent: TuiObject,
   options: CreateMenuOptions,
 ): MenuComponent {
-  const menu: MenuComponent = createComponent(object, {
+  let height = 1;
+  const menu: MenuComponent = createComponent(parent, options, {
     name: "menu",
     interactive: false,
-    rectangle: () => ({
-      ...getStaticValue(object.rectangle),
-      height: menu.height,
-    }),
+    get rectangle() {
+      return {
+        ...parent.rectangle,
+        height,
+      };
+    },
     drawPriority: 1,
-    draw() {
-      drawRectangle(menu.canvas, {
-        ...getStaticValue(menu.rectangle),
+    draw(this: MenuComponent) {
+      height = menu.height;
+
+      drawRectangle(menu.tui.canvas, {
+        ...menu.rectangle,
         height: menu.height,
         styler: getCurrentStyler(menu),
       });
 
       let offsetX = 1;
       let offsetY = 0;
-      const { width } = getStaticValue(menu.rectangle);
-      for (
-        const child of menu.children
-      ) {
-        if (child.name === "menuItem" || child.name === "menuList") {
-          child.rectangle = {
+
+      const { width } = menu.rectangle;
+
+      for (const child of menu.children) {
+        const text = child.label?.text;
+
+        Object.assign(
+          child.rectangle,
+          {
             column: offsetX,
             row: offsetY,
-            width: textWidth(String(getStaticValue(child.label))),
+            width: text ? textWidth(text) : child.width,
             height: 1,
-          };
+          },
+        );
 
-          if (offsetX + child.rectangle.width > width) {
-            offsetX = 1;
-            offsetY++;
-          } else {
-            offsetX += getStaticValue(child.rectangle).width + 1;
-          }
+        if (offsetX + child.rectangle.width > width) {
+          offsetX = 1;
+          offsetY++;
+        } else {
+          offsetX += child.rectangle.width + 1;
         }
       }
       menu.height = 1 + offsetY;
     },
-    ...options,
-  }, {
     height: 1,
   });
 

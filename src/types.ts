@@ -1,8 +1,7 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 // In this module should be served types that aren't specific to only one function or module
-import { CanvasStyler } from "./canvas.ts";
-import { TuiInstance } from "./tui.ts";
-import { ExtendedTuiComponent } from "./tui_component.ts";
+import { Tui } from "./tui.ts";
+import { ExtendedComponent } from "./tui_component.ts";
 
 type _Range<
   From extends number,
@@ -21,10 +20,10 @@ export type Range<From extends number, To extends number> = number extends From
 /** Any possible component */
 // deno-fmt-ignore
 // deno-lint-ignore no-explicit-any
-export type AnyComponent = ExtendedTuiComponent< any,  { [x in any]: any;  },  any, any >;
+export type AnyComponent = ExtendedComponent<any, { [x in any]: any }, any, any>;
 
 /** Object which can be used as a parent to create other component */
-export type TuiObject = TuiInstance | AnyComponent;
+export type TuiObject = Tui | AnyComponent;
 
 /** stdin */
 export interface Reader extends Deno.Reader {
@@ -36,17 +35,6 @@ export interface Writer extends Deno.Writer {
   readonly rid: number;
 }
 
-/** Definition on how Tui or TuiComponent should look like */
-export interface TuiStyler extends CanvasStyler {
-  active?: CanvasStyler;
-  focused?: CanvasStyler;
-  frame?: CanvasStyler & {
-    active?: CanvasStyler;
-    focused?: CanvasStyler;
-    label?: Dynamic<string>;
-  };
-}
-
 /** Positioning of text */
 export interface TextAlign {
   horizontal: "left" | "center" | "right";
@@ -54,7 +42,7 @@ export interface TextAlign {
 }
 
 /** Position and size of TuiObject */
-export interface TuiRectangle {
+export interface Rectangle {
   column: number;
   row: number;
   width: number;
