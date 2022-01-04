@@ -1,9 +1,10 @@
 import {
+  createCanvas,
   createComponent,
   createTui,
-  draw,
   getCurrentStyler,
   getInteractiveComponents,
+  loopDrawing,
   removeComponent,
   setDebugMode,
 } from "../mod.ts";
@@ -22,6 +23,14 @@ Deno.test("Tui", async (t) => {
     },
     reader: Deno.stdin,
     writer: Deno.stdout,
+    canvas: createCanvas({
+      filler: " ",
+      writer: Deno.stdout,
+      size: {
+        rows: 30,
+        columns: 30,
+      },
+    }),
   });
 
   const emptyFrameBuffer = encodeBuffer(tui.canvas.frameBuffer);
@@ -54,7 +63,7 @@ Deno.test("Tui", async (t) => {
       "interactive",
     ]);
 
-    draw(tui);
+    loopDrawing(tui);
 
     assertEquals(encodeBuffer(tui.canvas.frameBuffer), emptyFrameBuffer);
 
