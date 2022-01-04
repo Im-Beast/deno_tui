@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { createEventEmitter } from "../mod.ts";
 import { assert, assertEquals, sleep } from "./deps.ts";
 

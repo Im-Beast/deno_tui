@@ -1,3 +1,4 @@
+// Copyright 2021 Im-Beast. All rights reserved. MIT license.
 // deno-lint-ignore-file ban-types
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { PrivateTui, Tui, TuiStyler } from "./tui.ts";
