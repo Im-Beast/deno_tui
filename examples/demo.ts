@@ -12,11 +12,11 @@ import {
   createMenu,
   createTextbox,
   createTui,
-  draw,
   handleKeyboardControls,
   handleKeypresses,
   handleMouseControls,
   hsl,
+  loopDrawing,
   removeComponent,
   textWidth,
   TuiStyler,
@@ -60,7 +60,7 @@ const tui = createTui({
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 handleMouseControls(tui);
-draw(tui);
+loopDrawing(tui);
 
 const menu = createMenu(tui, {
   styler: componentStyler,

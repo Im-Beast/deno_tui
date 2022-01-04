@@ -11,6 +11,16 @@ import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+export let debugMode = false;
+
+/**
+ * Enable/disable debug mode
+ *  - when debug mode is enabled tui doesn't render canvas on screen
+ */
+export const setDebugMode = (value: boolean): void => {
+  debugMode = value;
+};
+
 /**
  * Get interactive components from tui
  * @param tui – Tui to get components from
@@ -32,10 +42,22 @@ export function getInteractiveComponents(
   ) => interactive);
 }
 const timeoutHandle: { [id: number]: number } = {};
-export function draw(
+
+export function loopDrawing(
   tui: Tui,
   refreshRate: Dynamic<number> = 32,
 ): (() => void) {
+  draw(tui);
+
+  timeoutHandle[tui.id] = setTimeout(
+    () => loopDrawing(tui, refreshRate),
+    getStaticValue(refreshRate) - tui.canvas.deltaTime,
+  );
+
+  return () => clearTimeout(timeoutHandle[tui.id]);
+}
+
+export function draw(tui: Tui): void {
   tui.emit("update", Date.now());
 
   drawRectangle(tui.canvas, {
@@ -54,16 +76,11 @@ export function draw(
     component.emit("draw", Date.now());
   }
 
-  render(tui.canvas);
+  if (!debugMode) {
+    render(tui.canvas);
+  }
   tui.emit("draw", Date.now());
   tui.focused.active = false;
-
-  timeoutHandle[tui.id] = setTimeout(
-    () => draw(tui, refreshRate),
-    getStaticValue(refreshRate) - tui.canvas.deltaTime,
-  );
-
-  return () => clearTimeout(timeoutHandle[tui.id]);
 }
 
 /** Definition on how Tui or TuiComponent should look like */

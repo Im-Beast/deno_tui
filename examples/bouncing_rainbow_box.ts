@@ -3,8 +3,8 @@ import {
   compileStyler,
   createBox,
   createTui,
-  draw,
   hsl,
+  loopDrawing,
   TuiStyler,
 } from "../mod.ts";
 
@@ -16,7 +16,7 @@ const tui = createTui({
   }),
 });
 
-draw(tui);
+loopDrawing(tui);
 
 let hue = 0;
 const box = createBox(tui, {

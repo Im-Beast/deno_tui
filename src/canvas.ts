@@ -1,5 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 import { Attribute, Color, keyword, Style, StyleCode } from "./colors.ts";
+import { debugMode } from "./tui.ts";
 import { ConsoleSize, Dynamic, Writer } from "./types.ts";
 import {
   capitalize,
@@ -170,7 +171,9 @@ export function renderChanges(canvas: Canvas): void {
     }
   }
 
-  Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+  }
 }
 
 /**
@@ -180,7 +183,9 @@ export function renderChanges(canvas: Canvas): void {
 export function renderFull(canvas: Canvas): void {
   const { rows, columns } = canvas.size;
 
-  Deno.writeSync(canvas.writer.rid, encoder.encode(moveCursor(0, 0)));
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(moveCursor(0, 0)));
+  }
 
   for (let r = 0; r < rows; ++r) {
     let string = `\r`;
@@ -188,7 +193,9 @@ export function renderFull(canvas: Canvas): void {
       string += canvas.frameBuffer[r][c].join("");
     }
     if (r < rows - 1) string += "\n";
-    Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+    if (!debugMode) {
+      Deno.writeSync(canvas.writer.rid, encoder.encode(string));
+    }
   }
 }
 
@@ -200,7 +207,9 @@ export function renderFull(canvas: Canvas): void {
  */
 export function render(canvas: Canvas): void {
   const start = Date.now();
-  Deno.writeSync(canvas.writer.rid, encoder.encode(HIDE_CURSOR));
+  if (!debugMode) {
+    Deno.writeSync(canvas.writer.rid, encoder.encode(HIDE_CURSOR));
+  }
 
   if (canvas.smartRender) {
     renderChanges(canvas);
