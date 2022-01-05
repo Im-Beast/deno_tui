@@ -1,6 +1,7 @@
 # ⌨️ Tui
 
 [![Deno](https://github.com/Im-Beast/deno_tui/actions/workflows/deno.yml/badge.svg)](https://github.com/Im-Beast/deno_tui/actions/workflows/deno.yml)
+[![Deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/tui/mod.ts)
 
 <img src="docs/logo-transparent.png" align="right" width="250" height="250" alt="deno mascot but in ascii" />
 
