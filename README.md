@@ -74,6 +74,7 @@ import { ..., createButton } from "https://deno.land/x/tui@version/mod.ts";
 
 const componentStyler = compileStyler<TuiStyler>({
   ...tui.styler,
+  background: "blue",
   focused: {
     attributes: ["bold"],
     background: "green",
@@ -89,11 +90,11 @@ let counter = 0;
 const button = createButton(tui, {
   label: {
     get text() {
-      return counter;
+      return String(counter);
     },
     align: {
-      vertical: center,
-      horizontal: center,
+      vertical: "center",
+      horizontal: "center",
     },
   },
   rectangle: {
