@@ -11,12 +11,16 @@ import {
 import { TuiObject } from "../types.ts";
 import { createFrame, FrameComponent } from "./frame.ts";
 
-/** Not interactive box component */
-export type BoxComponent = ExtendedComponent<"box", {
-  frame: { enabled: true; styler: TuiStyler } | {
+export type FrameAssignment =
+  & ({ enabled: true; styler: TuiStyler } | {
     enabled: false;
     styler?: TuiStyler;
-  };
+  })
+  & { rounded?: boolean };
+
+/** Not interactive box component */
+export type BoxComponent = ExtendedComponent<"box", {
+  frame: FrameAssignment;
 }>;
 
 export type CreateBoxOptions =
@@ -26,10 +30,7 @@ export type CreateBoxOptions =
   >
   & {
     interactive?: boolean;
-    frame?: { enabled: true; styler: TuiStyler } | {
-      enabled: false;
-      styler?: TuiStyler;
-    };
+    frame?: FrameAssignment;
   };
 
 /**
@@ -82,6 +83,9 @@ export function createBox(
         },
         get styler() {
           return box.frame.styler ?? box.styler;
+        },
+        get rounded() {
+          return box.frame.rounded ?? false;
         },
       });
     },

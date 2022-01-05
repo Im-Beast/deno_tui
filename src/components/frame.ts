@@ -15,6 +15,7 @@ interface FrameExtension {
     /** Value of the label */
     text?: string;
   };
+  rounded?: boolean;
 }
 
 export type CreateFrameOptions =
@@ -53,10 +54,17 @@ export function createFrame(
   const frame: FrameComponent = {
     label: options.label,
     ...createComponent(parent, options, {
+      rounded: !!options.rounded,
       name: "frame",
       interactive: false,
-      drawPriority: Reflect.get(parent, "drawPriority"),
+      get drawPriority() {
+        return Reflect.get(parent, "drawPriority") ?? 0;
+      },
       draw(this: FrameComponent) {
+        const corners = frame.rounded
+          ? ["╭", "╮", "╰", "╯"]
+          : ["┌", "┐", "└", "┘"];
+
         const styler = getCurrentStyler(frame);
         const { row, column, width, height } = frame.rectangle;
         const { canvas } = frame.tui;
@@ -93,14 +101,24 @@ export function createFrame(
           });
         }
 
-        drawPixel(canvas, { column, row, value: "┌", styler });
-        drawPixel(canvas, { column, row: row + height, value: "└", styler });
-        drawPixel(canvas, { column: column + width, row, value: "┐", styler });
+        drawPixel(canvas, { column, row, value: corners[0], styler });
+        drawPixel(canvas, {
+          column,
+          row: row + height,
+          value: corners[2],
+          styler,
+        });
+        drawPixel(canvas, {
+          column: column + width,
+          row,
+          value: corners[1],
+          styler,
+        });
 
         drawPixel(canvas, {
           column: column + width,
           row: row + height,
-          value: "┘",
+          value: corners[3],
           styler,
         });
 

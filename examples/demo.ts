@@ -48,6 +48,7 @@ const frameStyler = compileStyler<TuiStyler>({
 
 const frame = {
   enabled: true,
+  rounded: true,
   styler: frameStyler,
 };
 
