@@ -269,7 +269,7 @@ export function drawPixel(
 
   const fullWidth = isFullWidth(value);
 
-  if (styler) {
+  if (styler && !Deno.noColor) {
     value = styleStringFromStyler(value, styler);
   }
 
@@ -464,6 +464,8 @@ export function compileStyler<T>(
 ): T extends CanvasStyler ? T : AnyStyler {
   // @ts-expect-error Creating new object which will be expanded
   const obj: T extends CanvasStyler ? T : AnyStyler = {};
+
+  if (Deno.noColor) return obj;
 
   for (const [index, value] of Object.entries(styler)) {
     if (typeof value === "number") continue;
