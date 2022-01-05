@@ -433,7 +433,7 @@ export function styleText(
  * Compiles value found in styler to StyleCode
  * @param value - value that needs to be compiled
  * @param property - styler property name on which value is located
- * @examples
+ * @example
  * ```ts
  * compileStylerValue("red", "background"); // -> "\x1b[41m"
  * ```

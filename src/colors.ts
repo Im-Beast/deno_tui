@@ -8,7 +8,16 @@ export type StyleCode =
   | `\x1b[${number};5;${number}m`
   | `\x1b[${number};2;${number};${number};${number}m`;
 
-/** Converts rgb value to 8bit ansi code */
+/**
+ * Converts RGB value to 8bit code
+ * @param r - Red (0-255)
+ * @param g - Green (0-255)
+ * @param b - Blue (0-255)
+ * @example
+ * ```ts
+ * rgbToAnsi8(255, 127, 127); // -> 210
+ * ```
+ */
 export function rgbToAnsi8(r: number, g: number, b: number): number {
   r = Math.round(r);
   g = Math.round(g);
@@ -22,7 +31,16 @@ export function rgbToAnsi8(r: number, g: number, b: number): number {
       Math.round((b / 255) * 5);
 }
 
-/** Converts hsl value to rgb */
+/**
+ * Converts HSL to RGB
+ * @param h - Hue (0-360)
+ * @param s - Saturation (0-100)
+ * @param l - Light (0-100)
+ * @example
+ * ```ts
+ * hslToRgb(90, 100, 50); // -> [128, 255, 0]
+ * ```
+ */
 export function hslToRgb(
   h: number,
   s: number,
@@ -65,28 +83,6 @@ export type Style =
   | Color
   | Attribute;
 
-/** Names for attributes */
-export type Attribute =
-  | "reset"
-  | "bold"
-  | "dim"
-  | "italic"
-  | "underline"
-  | "blink"
-  | "fastBlink"
-  | "invert"
-  | "hidden"
-  | "strikethrough"
-  | "boldOff"
-  | "doubleUnderline"
-  | "boldOrDimOff"
-  | "italicOff"
-  | "underlineOff"
-  | "blinkOff"
-  | "invertOff"
-  | "hiddenOff"
-  | "strikethroughOff";
-
 /** Map containing all 4bit colors */
 export const colors = new Map<Color, StyleCode>();
 
@@ -99,27 +95,32 @@ for (const [i, color] of baseColors.entries()) {
 }
 
 /** Map containing attributes */
-export const attributes = new Map<Attribute, StyleCode>([
-  ["reset", "\x1b[0m"],
-  ["bold", "\x1b[1m"],
-  ["dim", "\x1b[2m"],
-  ["italic", "\x1b[3m"],
-  ["underline", "\x1b[4m"],
-  ["blink", "\x1b[5m"],
-  ["fastBlink", "\x1b[6m"],
-  ["invert", "\x1b[7m"],
-  ["hidden", "\x1b[8m"],
-  ["strikethrough", "\x1b[9m"],
-  ["boldOff", "\x1b[21m"],
-  ["doubleUnderline", "\x1b[21m"],
-  ["boldOrDimOff", "\x1b[22m"],
-  ["italicOff", "\x1b[23m"],
-  ["underlineOff", "\x1b[24m"],
-  ["blinkOff", "\x1b[25m"],
-  ["invertOff", "\x1b[26m"],
-  ["hiddenOff", "\x1b[27m"],
-  ["strikethroughOff", "\x1b[28m"],
-]);
+export const attributes = new Map(
+  [
+    ["reset", "\x1b[0m"],
+    ["bold", "\x1b[1m"],
+    ["dim", "\x1b[2m"],
+    ["italic", "\x1b[3m"],
+    ["underline", "\x1b[4m"],
+    ["blink", "\x1b[5m"],
+    ["fastBlink", "\x1b[6m"],
+    ["invert", "\x1b[7m"],
+    ["hidden", "\x1b[8m"],
+    ["strikethrough", "\x1b[9m"],
+    ["boldOff", "\x1b[21m"],
+    ["doubleUnderline", "\x1b[21m"],
+    ["boldOrDimOff", "\x1b[22m"],
+    ["italicOff", "\x1b[23m"],
+    ["underlineOff", "\x1b[24m"],
+    ["blinkOff", "\x1b[25m"],
+    ["invertOff", "\x1b[26m"],
+    ["hiddenOff", "\x1b[27m"],
+    ["strikethroughOff", "\x1b[28m"],
+  ] as const,
+);
+
+/** Names for attributes */
+export type Attribute = Parameters<typeof attributes.get>[0];
 
 /** Map containing both attributes and 4bit colors */
 export const styles = new Map<Style, StyleCode>([...colors, ...attributes]);

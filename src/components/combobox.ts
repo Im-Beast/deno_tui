@@ -13,6 +13,14 @@ import { createButton } from "./button.ts";
 /**
  * Get label from ComboboxValue
  * @param value - item to get label from
+ * @example
+ * ```ts
+ * getComboboxValueLabel("Hi"); // -> "Hi"
+ * getComboboxValueLabel({
+ *  label: "Hello",
+ *  value: "Welcoming"
+ * }); // -> "Hello"
+ * ```
  */
 export function getComboboxValueLabel(value: ComboboxValue): string {
   return typeof value === "string" ? value : value.label;

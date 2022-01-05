@@ -12,15 +12,16 @@ import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
+/** Whether debugMode is enabled */
 export let debugMode = false;
 
 /**
  * Enable/disable debug mode
  *  - when debug mode is enabled tui doesn't render canvas on screen
  */
-export const setDebugMode = (value: boolean): void => {
+export function setDebugMode(value: boolean): void {
   debugMode = value;
-};
+}
 
 /**
  * Get interactive components from tui
@@ -44,6 +45,12 @@ export function getInteractiveComponents(
 }
 const timeoutHandle: { [id: number]: number } = {};
 
+/**
+ * Render tui and its components every refreshRate ms
+ *  - Also emits update and draw events to tui and components
+ *  - When debugMode is enabled tui isn't rendered on terminal
+ * @param tui - Tui to be rendered
+ */
 export function loopDrawing(
   tui: Tui,
   refreshRate: Dynamic<number> = 32,
@@ -58,6 +65,12 @@ export function loopDrawing(
   return () => clearTimeout(timeoutHandle[tui.id]);
 }
 
+/**
+ * Render tui and its components only once
+ *  - Also emits update and draw events to tui and components
+ *  - When debugMode is enabled tui isn't rendered on terminal
+ * @param tui - Tui to be rendered
+ */
 export function draw(tui: Tui): void {
   tui.emit("update", Date.now());
 
