@@ -16,9 +16,6 @@ const tui = createTui({
   }),
 });
 
-loopDrawing(tui);
-
-let hue = 0;
 const box = createBox(tui, {
   rectangle: {
     column: 0,
@@ -26,9 +23,7 @@ const box = createBox(tui, {
     height: 5,
     width: 10,
   },
-  styler: {
-    background: hsl(++hue % 360, 50, 50, true),
-  },
+  styler: {},
 });
 
 const direction = {
@@ -36,7 +31,10 @@ const direction = {
   y: 1,
 };
 
-tui.on("draw", () => {
+let hue = 0;
+box.on("update", () => {
+  box.styler.background = hsl(++hue % 360, 50, 50, true);
+
   const rectangle = box.rectangle;
   rectangle.column += direction.x;
   rectangle.row += direction.y;
@@ -55,3 +53,5 @@ tui.on("draw", () => {
     direction.y *= -1;
   }
 });
+
+loopDrawing(tui);

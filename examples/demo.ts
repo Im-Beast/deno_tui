@@ -15,7 +15,6 @@ import {
   handleKeyboardControls,
   handleKeypresses,
   handleMouseControls,
-  hsl,
   loopDrawing,
   removeComponent,
   textWidth,
@@ -61,7 +60,6 @@ const tui = createTui({
 handleKeypresses(tui);
 handleKeyboardControls(tui);
 handleMouseControls(tui);
-loopDrawing(tui);
 
 const menu = createMenu(tui, {
   styler: componentStyler,
@@ -314,8 +312,4 @@ createLabel(tui, {
   frame,
 });
 
-let h = 0;
-setInterval(() => {
-  componentStyler.background = hsl((++h + 180) % 360, 50, 50, true);
-  frameStyler.foreground = hsl(++h % 360, 50, 50);
-}, 32);
+loopDrawing(tui);
