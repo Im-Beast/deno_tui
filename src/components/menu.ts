@@ -11,7 +11,7 @@ import { textWidth } from "../util.ts";
 
 export type CreateMenuOptions = Omit<
   CreateComponentOptions,
-  "interactive" | "name" | "rectangle"
+  "interactive" | "name" | "rectangle" | "draw" | "update"
 >;
 
 /** Not interactive menu component */
@@ -51,14 +51,8 @@ export function createMenu(
       };
     },
     drawPriority: 1,
-    draw(this: MenuComponent) {
+    update(this: MenuComponent) {
       height = menu.height;
-
-      drawRectangle(menu.tui.canvas, {
-        ...menu.rectangle,
-        height: menu.height,
-        styler: getCurrentStyler(menu),
-      });
 
       let offsetX = 1;
       let offsetY = 0;
@@ -86,6 +80,13 @@ export function createMenu(
         }
       }
       menu.height = 1 + offsetY;
+    },
+    draw(this: MenuComponent) {
+      drawRectangle(menu.tui.canvas, {
+        ...menu.rectangle,
+        height: menu.height,
+        styler: getCurrentStyler(menu),
+      });
     },
     height: 1,
   });

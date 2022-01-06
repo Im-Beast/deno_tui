@@ -24,7 +24,10 @@ interface LabelExtension {
 /** Not interactive label (text) component */
 export type LabelComponent = ExtendedComponent<"label", LabelExtension>;
 
-export type CreateLabelOptions = CreateBoxOptions & LabelExtension;
+export type CreateLabelOptions = Omit<
+  CreateBoxOptions & LabelExtension,
+  "update"
+>;
 
 /**
  * Create LabelComponent
@@ -62,9 +65,10 @@ export function createLabel(
   const label: LabelComponent = createComponent(parent, options, {
     name: "label",
     interactive: false,
-    draw(this: LabelComponent) {
+    update(this: LabelComponent) {
       updateDrawFuncs(label.value.text);
-
+    },
+    draw(this: LabelComponent) {
       for (const draw of drawers) {
         draw();
       }

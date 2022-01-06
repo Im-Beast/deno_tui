@@ -26,7 +26,7 @@ export type BoxComponent = ExtendedComponent<"box", {
 export type CreateBoxOptions =
   & Omit<
     CreateComponentOptions,
-    "interactive" | "name" | "draw"
+    "interactive" | "name" | "draw" | "update"
   >
   & {
     interactive?: boolean;

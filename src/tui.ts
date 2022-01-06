@@ -95,6 +95,7 @@ export function draw(tui: Tui): void {
   if (!debugMode) {
     render(tui.canvas);
   }
+
   tui.emit("draw", Date.now());
   tui.focused.active = false;
 }

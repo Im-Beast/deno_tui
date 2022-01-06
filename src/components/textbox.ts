@@ -119,7 +119,7 @@ export function createTextbox(
         });
       }
     },
-    drawPriority: 1,
+    drawPriority: options.drawPriority ?? 1,
     value: options?.value?.length ? options.value : [""],
     string: () => textbox.value.join("\n"),
     hidden: options.hidden,
@@ -130,8 +130,12 @@ export function createTextbox(
     textbox,
     cloneAndAssign(options, {
       focusedWithin: [textbox, ...textbox.focusedWithin],
-      styler: textbox.styler,
-      drawPriority: 0,
+      get styler() {
+        return textbox.styler;
+      },
+      get drawPriority() {
+        return textbox.drawPriority - 1;
+      },
     }),
   );
 
@@ -140,17 +144,29 @@ export function createTextbox(
 
     const startValue = [...textbox.value];
 
+    const insertValue = (value: string) => {
+      textbox.value[position.y] =
+        textbox.value[position.y].slice(0, position.x) + value +
+        textbox.value[position.y].slice(position.x);
+    };
+
     if (!ctrl && !meta && key.length === 1) {
       textbox.value[position.y] ||= "";
-      textbox.value[position.y] =
-        textbox.value[position.y].slice(0, position.x) + key +
-        textbox.value[position.y].slice(position.x);
+      insertValue(key);
       ++position.x;
       textbox.emit("valueChange", startValue);
       return;
     }
 
     switch (key) {
+      case "space":
+        insertValue(" ");
+        ++position.x;
+        break;
+      case "tab":
+        insertValue("  ");
+        position.x += 2;
+        break;
       case "up":
         position.y = Math.max(0, position.y - 1);
         textbox.value[position.y] ||= "";
