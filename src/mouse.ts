@@ -10,6 +10,13 @@ export const DISABLE_MOUSE = "\x1b[?1000l";
 
 const encoder = new TextEncoder();
 
+const selections: { [id: number]: number } = {};
+
+export interface HandleMouseControlsOptions {
+  /** Maximum delay between two clicks that allows activating component */
+  doubleClickDelay?: number;
+}
+
 /**
  * Handle mouse controls
  *  - Single click to focus component
@@ -23,7 +30,10 @@ const encoder = new TextEncoder();
  * handleMouseControls(tui);
  * ```
  */
-export function handleMouseControls(tui: Tui): void {
+export function handleMouseControls(
+  tui: Tui,
+  options?: HandleMouseControlsOptions,
+): void {
   Deno.writeSync(tui.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
   addEventListener("unload", () => {
     Deno.writeSync(tui.writer.rid, encoder.encode(DISABLE_MOUSE));
@@ -47,13 +57,17 @@ export function handleMouseControls(tui: Tui): void {
       }
     }
 
-    if (tui.focused.item === item) {
+    if (
+      tui.focused.item === item &&
+      Date.now() - selections[tui.id] < (options?.doubleClickDelay ?? 300)
+    ) {
       tui.focused.active = true;
       tui.focused.item?.emit("active");
       tui.focused.item?.active?.();
     }
 
     tui.focused.item = item;
+    selections[tui.id] = Date.now();
 
     if (!tui.focused.active) {
       tui.focused.item?.emit("focus");
