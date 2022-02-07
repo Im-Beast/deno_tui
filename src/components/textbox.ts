@@ -28,7 +28,7 @@ export type TextboxComponent = ExtendedComponent<
     /** Whether textbox is multiline */
     multiline: boolean;
     /** Definition on how component looks like */
-    styler: TextboxTuiStyler;
+    styler?: TextboxTuiStyler;
   },
   "valueChange",
   string[]
@@ -188,6 +188,8 @@ export function createTextbox(
         position.x = Math.min(position.x + 1, textbox.value[position.y].length);
         break;
       case "return":
+        if (!textbox.multiline) break;
+
         if (position.x === textbox.value[position.y].length) {
           if (textbox.multiline) {
             textbox.value.splice(position.y + 1, 0, "");
