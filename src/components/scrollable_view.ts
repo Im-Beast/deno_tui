@@ -92,70 +92,70 @@ export function createScrollableView(
         }
       },
       draw(this: ScrollableViewComponent) {
-        if (viewCanvas) {
-          render(viewCanvas);
+        if (!viewCanvas) return;
 
-          const { width, height } = scrollableView.rectangle;
-          const { styler } = scrollableView;
+        render(viewCanvas);
 
-          drawRectangle(viewCanvas, {
-            column: 0,
-            row: 0,
-            width: width,
-            height: height,
-            styler,
-          });
+        const { width, height } = this.rectangle;
+        const { styler } = this;
+
+        drawRectangle(viewCanvas, {
+          column: 0,
+          row: 0,
+          width: width,
+          height: height,
+          styler,
+        });
+        drawRectangle(parent.canvas, {
+          ...scrollableView.rectangle,
+          styler,
+        });
+
+        if (maxOffsetX > 0) {
           drawRectangle(parent.canvas, {
-            ...scrollableView.rectangle,
-            styler,
+            column: this.rectangle.column,
+            row: this.rectangle.row + this.rectangle.height,
+            width: this.rectangle.width,
+            height: 1,
+            styler: options.styler?.horizontal?.track,
           });
 
-          if (maxOffsetX > 0) {
-            drawRectangle(parent.canvas, {
-              column: this.rectangle.column,
-              row: this.rectangle.row + this.rectangle.height,
-              width: this.rectangle.width,
-              height: 1,
-              styler: options.styler?.horizontal?.track,
-            });
+          drawRectangle(parent.canvas, {
+            column: this.rectangle.column +
+              ~~((offsetX / maxOffsetX) * (this.rectangle.width - 1)),
+            row: this.rectangle.row + this.rectangle.height,
+            width: 1,
+            height: 1,
+            styler: options.styler?.horizontal?.thumb,
+          });
+        }
 
-            drawRectangle(parent.canvas, {
-              column: this.rectangle.column +
-                ~~((offsetX / maxOffsetX) * (this.rectangle.width - 1)),
-              row: this.rectangle.row + this.rectangle.height,
-              width: 1,
-              height: 1,
-              styler: options.styler?.horizontal?.thumb,
-            });
-          }
+        if (maxOffsetY > 0) {
+          drawRectangle(parent.canvas, {
+            column: this.rectangle.column + this.rectangle.width,
+            row: this.rectangle.row,
+            width: 1,
+            height: this.rectangle.height,
+            styler: options.styler?.vertical?.track,
+          });
 
-          if (maxOffsetY > 0) {
-            drawRectangle(parent.canvas, {
-              column: this.rectangle.column + this.rectangle.width,
-              row: this.rectangle.row,
-              width: 1,
-              height: this.rectangle.height,
-              styler: options.styler?.vertical?.track,
-            });
+          drawRectangle(parent.canvas, {
+            column: this.rectangle.column + this.rectangle.width,
+            row: this.rectangle.row +
+              ~~((offsetY / maxOffsetY) * (this.rectangle.height - 1)),
+            width: 1,
+            height: 1,
+            styler: options.styler?.vertical?.thumb,
+          });
+        }
 
-            drawRectangle(parent.canvas, {
-              column: this.rectangle.column + this.rectangle.width,
-              row: this.rectangle.row +
-                ~~((offsetY / maxOffsetY) * (this.rectangle.height - 1)),
-              width: 1,
-              height: 1,
-              styler: options.styler?.vertical?.thumb,
-            });
-          }
-
-          if (maxOffsetX > 0 && maxOffsetY > 0) {
-            drawPixel(parent.canvas, {
-              column: this.rectangle.column + this.rectangle.width,
-              row: this.rectangle.row + this.rectangle.height,
-              styler: options.styler?.corner,
-              value: "+",
-            });
-          }
+        if (maxOffsetX > 0 && maxOffsetY > 0) {
+          drawPixel(parent.canvas, {
+            column: this.rectangle.column + this.rectangle.width,
+            row: this.rectangle.row + this.rectangle.height,
+            styler: options.styler?.corner,
+            value: "+",
+          });
         }
       },
     },
