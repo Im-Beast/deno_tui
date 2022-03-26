@@ -1,5 +1,6 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
 // deno-lint-ignore-file ban-types
+import { Canvas, CompileStyler } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
 import { PrivateTui, Tui, TuiStyler } from "./tui.ts";
 import { AnyComponent, Rectangle, TuiObject } from "./types.ts";
@@ -45,7 +46,7 @@ import { cloneAndAssign } from "./util.ts";
  */
 export function getCurrentStyler(
   component: AnyComponent,
-): TuiStyler {
+): CompileStyler<TuiStyler> {
   const styler = component.styler;
   const { item, active } = component.tui.focused;
 
@@ -149,8 +150,10 @@ export type Component<
   /** When any of these components gets focused getCurrentStyler returns this object focused styler */
   readonly focusedWithin: AnyComponent[];
 
+  /** Canvas on which component is rendered */
+  canvas: Canvas;
   /** Definition of component's look */
-  readonly styler: TuiStyler;
+  readonly styler: CompileStyler<TuiStyler>;
   /** Size and position of component */
   readonly rectangle: Rectangle;
 
@@ -186,8 +189,10 @@ export interface CreateComponentOptions<Name extends string = string> {
   /** When any of these components gets focused getCurrentStyler returns this object focused styler */
   focusedWithin?: AnyComponent[];
 
+  /** Overwrite drawing canvas */
+  canvas?: Canvas;
   /** Definition of component's look */
-  styler?: TuiStyler;
+  styler?: CompileStyler<TuiStyler>;
   /** Size and position of component */
   rectangle?: Rectangle;
 
@@ -219,8 +224,8 @@ export function createComponent<
 >(
   parent: TuiObject,
   options: (
-    | CreateComponentOptions<Name>
-    | Omit<CreateComponentOptions<Name>, keyof Extension>
+    Extension extends void ? CreateComponentOptions<Name>
+      : Omit<CreateComponentOptions<Name>, keyof Extension>
   ),
   extension?: Extension,
 ): (
@@ -246,6 +251,7 @@ export function createComponent<
       children: [],
       focusedWithin: [],
 
+      canvas: options.canvas ?? parent.canvas,
       styler: parent.styler,
       rectangle: {
         column: 0,

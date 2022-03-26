@@ -82,7 +82,7 @@ export function createMenu(
       menu.height = 1 + offsetY;
     },
     draw(this: MenuComponent) {
-      drawRectangle(menu.tui.canvas, {
+      drawRectangle(menu.canvas, {
         ...menu.rectangle,
         height: menu.height,
         styler: getCurrentStyler(menu),

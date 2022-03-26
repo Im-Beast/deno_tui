@@ -67,7 +67,7 @@ export function createFrame(
 
         const styler = getCurrentStyler(frame);
         const { row, column, width, height } = frame.rectangle;
-        const { canvas } = frame.tui;
+        const { canvas } = frame;
 
         for (let w = 0; w < width; ++w) {
           drawPixel(canvas, {

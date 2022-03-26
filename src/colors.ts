@@ -71,6 +71,16 @@ const baseColors = [
 
 type BaseColors = typeof baseColors[number];
 
+/** Names for all foreground 4bit colors */
+export type FgColor =
+  | BaseColors
+  | `light${Capitalize<BaseColors>}`;
+
+/** Names for all background 4bit colors */
+export type BgColor =
+  | `bg${Capitalize<BaseColors>}`
+  | `bgLight${Capitalize<BaseColors>}`;
+
 /** Names for all 4bit colors */
 export type Color =
   | BaseColors

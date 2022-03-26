@@ -113,7 +113,7 @@ export function createLabel(
       }
 
       drawers.push(() =>
-        drawText(label.tui.canvas, {
+        drawText(label.canvas, {
           column: c,
           row: r + i,
           text: line,

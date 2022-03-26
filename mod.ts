@@ -17,3 +17,4 @@ export * from "./src/components/frame.ts";
 export * from "./src/components/label.ts";
 export * from "./src/components/menu.ts";
 export * from "./src/components/textbox.ts";
+export * from "./src/components/scrollable_view.ts";

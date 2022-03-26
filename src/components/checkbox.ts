@@ -1,4 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
+import { CompileStyler } from "../canvas.ts";
 import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
@@ -15,9 +16,9 @@ export type CheckboxComponent = ExtendedComponent<
   {
     /** Whether checkbox is checked or not */
     value: boolean;
-    frame: { enabled: true; styler: TuiStyler } | {
+    frame: { enabled: true; styler: CompileStyler<TuiStyler> } | {
       enabled: false;
-      styler?: TuiStyler;
+      styler?: CompileStyler<TuiStyler>;
     };
   },
   "valueChange",

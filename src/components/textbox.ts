@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { CanvasStyler, drawPixel, drawText } from "../canvas.ts";
+import { CanvasStyler, CompileStyler, drawPixel, drawText } from "../canvas.ts";
 import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
@@ -7,11 +7,11 @@ import {
   getCurrentStyler,
 } from "../tui_component.ts";
 import { TuiObject } from "../types.ts";
-import { cloneAndAssign, getStaticValue, textWidth } from "../util.ts";
+import { cloneAndAssign, textWidth } from "../util.ts";
 import { createBox, CreateBoxOptions } from "./box.ts";
 
 /** Definition on how TextboxComponent should look like */
-export type TextboxTuiStyler = TuiStyler & {
+export type TextboxStyler = TuiStyler & {
   cursor?: CanvasStyler;
 };
 
@@ -28,7 +28,7 @@ export type TextboxComponent = ExtendedComponent<
     /** Whether textbox is multiline */
     multiline: boolean;
     /** Definition on how component looks like */
-    styler?: TextboxTuiStyler;
+    styler?: CompileStyler<TextboxStyler>;
   },
   "valueChange",
   string[]
@@ -38,11 +38,11 @@ export interface CreateTextboxOptions extends CreateBoxOptions {
   /** Textbox content, each index of array starting by 1 represents newline */
   value?: string[];
   /** Whether textbox content is hidden by asteriks (*) */
-  hidden: boolean;
+  hidden?: boolean;
   /** Whether textbox is multiline */
-  multiline: boolean;
+  multiline?: boolean;
   /** Definition on how component looks like */
-  styler: TextboxTuiStyler;
+  styler?: CompileStyler<TextboxStyler>;
 }
 
 /**
@@ -108,13 +108,13 @@ export function createTextbox(
         const currentCharacter = textbox.value?.[position.y]?.[position.x];
         const cursorCol = column + Math.min(position.x, width - 1);
         const cursorRow = row + Math.min(position.y, height - 1);
-        drawPixel(textbox.tui.canvas, {
+        drawPixel(textbox.canvas, {
           column: cursorCol,
           row: cursorRow,
           value: currentCharacter
             ? textbox.hidden ? "*" : currentCharacter
             : " ",
-          styler: (getStaticValue<TextboxTuiStyler>(textbox.styler)?.cursor) ||
+          styler: textbox.styler?.cursor ||
             { foreground: "\x1b[30m", background: "\x1b[47m" },
         });
       }
@@ -122,8 +122,8 @@ export function createTextbox(
     drawPriority: options.drawPriority ?? 1,
     value: options?.value?.length ? options.value : [""],
     string: () => textbox.value.join("\n"),
-    hidden: options.hidden,
-    multiline: options.multiline,
+    hidden: options.hidden ?? false,
+    multiline: options.multiline ?? false,
   });
 
   createBox(

@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { drawRectangle } from "../canvas.ts";
+import { CompileStyler, drawRectangle } from "../canvas.ts";
 import { TuiStyler } from "../tui.ts";
 import {
   createComponent,
@@ -12,9 +12,9 @@ import { TuiObject } from "../types.ts";
 import { createFrame, FrameComponent } from "./frame.ts";
 
 export type FrameAssignment =
-  & ({ enabled: true; styler: TuiStyler } | {
+  & ({ enabled: true; styler: CompileStyler<TuiStyler> } | {
     enabled: false;
-    styler?: TuiStyler;
+    styler?: CompileStyler<TuiStyler>;
   })
   & { rounded?: boolean };
 
@@ -90,7 +90,7 @@ export function createBox(
       });
     },
     draw(this: BoxComponent) {
-      drawRectangle(box.tui.canvas, {
+      drawRectangle(box.canvas, {
         ...box.rectangle,
         styler: getCurrentStyler(box),
       });

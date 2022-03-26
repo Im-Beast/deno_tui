@@ -1,5 +1,12 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { Attribute, Color, keyword, Style, StyleCode } from "./colors.ts";
+import {
+  Attribute,
+  Color,
+  FgColor,
+  keyword,
+  Style,
+  StyleCode,
+} from "./colors.ts";
 import { debugMode } from "./tui.ts";
 import { ConsoleSize, Dynamic, Writer } from "./types.ts";
 import {
@@ -34,6 +41,8 @@ export interface Canvas {
   writer: Writer;
   /** Size of canvas, limits size of frameBuffer too */
   size: ConsoleSize;
+  /** Offset of canvas rendering */
+  offset: ConsoleSize;
   /** Character which will be used to fill empty space */
   filler: string;
   /** Matrix which stores pixels which later will be used to render to the terminal */
@@ -57,6 +66,8 @@ export interface CreateCanvasOptions {
   writer: Writer;
   /** Size of canvas, limits size of frameBuffer too */
   size?: Dynamic<ConsoleSize>;
+  /** Offset of canvas rendering */
+  offset?: Dynamic<ConsoleSize>;
   /** Character which will be used to fill empty space */
   filler: string;
   /** Whether canvas should only redraw changes, defaults to true */
@@ -86,6 +97,10 @@ export function createCanvas(
     filler,
     size = () => Deno.consoleSize(writer.rid),
     smartRender = true,
+    offset = {
+      columns: 0,
+      rows: 0,
+    },
   }: CreateCanvasOptions,
 ): Canvas {
   const canvas: Canvas = {
@@ -94,6 +109,12 @@ export function createCanvas(
     },
     set size(value) {
       size = value;
+    },
+    get offset() {
+      return getStaticValue(offset);
+    },
+    set offset(value) {
+      offset = value;
     },
     filler,
     writer,
@@ -159,13 +180,13 @@ export function renderChanges(canvas: Canvas): void {
       const value = canvas.frameBuffer?.[r]?.[c];
       if (!value?.join) break;
 
-      if (
-        canvas.prevBuffer.get(`${r}/${c}`) !=
-          String(value)
-      ) {
+      if (canvas.prevBuffer.get(`${r}/${c}`) != String(value)) {
         canvas.prevBuffer.set(`${r}/${c}`, String(value));
 
-        string += moveCursor(r + 1, (c * 2) + 1) +
+        string += moveCursor(
+          r + canvas.offset.rows + 1,
+          (c * 2) + canvas.offset.columns + 1,
+        ) +
           value.join("");
       }
     }
@@ -183,12 +204,17 @@ export function renderChanges(canvas: Canvas): void {
 export function renderFull(canvas: Canvas): void {
   const { rows, columns } = canvas.size;
 
+  const { rows: offsetRows, columns: offsetCols } = canvas.offset;
+
   if (!debugMode) {
-    Deno.writeSync(canvas.writer.rid, encoder.encode(moveCursor(0, 0)));
+    Deno.writeSync(
+      canvas.writer.rid,
+      encoder.encode(moveCursor(offsetRows, offsetCols)),
+    );
   }
 
   for (let r = 0; r < rows; ++r) {
-    let string = `\r`;
+    let string = `\r` + moveCursor(offsetRows + r + 1, offsetCols + 1);
     for (let c = 0; c < ~~(columns / 2); ++c) {
       string += canvas.frameBuffer[r][c].join("");
     }
@@ -202,7 +228,7 @@ export function renderFull(canvas: Canvas): void {
 /**
  * Render terminal depending to its options
  *
- * Calculate running metrics (fps/lastTime/deltaTime)
+ * Calculates running metrics (fps/lastTime/deltaTime)
  * @param canvas - canvas instance which will be rendered
  */
 export function render(canvas: Canvas): void {
@@ -237,7 +263,7 @@ interface DrawPixelOptions {
   /** String that will be set as pixel */
   value: string;
   /** Definition on how pixel will look like */
-  styler?: CanvasStyler;
+  styler?: CompileStyler<CanvasStyler>;
 }
 
 /**
@@ -297,7 +323,7 @@ export interface DrawRectangleOptions {
   /** String that will be set as pixel */
   value?: string;
   /** Definition on how pixel will look like */
-  styler?: CanvasStyler;
+  styler?: CompileStyler<CanvasStyler>;
 }
 
 /**
@@ -344,7 +370,7 @@ export interface DrawTextOptions {
   /** String that will be drawn */
   text: string;
   /** Definition on how drawn text will look like */
-  styler?: CanvasStyler;
+  styler?: CompileStyler<CanvasStyler>;
 }
 
 /**
@@ -393,25 +419,53 @@ export function drawText(
  */
 export interface CanvasStyler {
   /** ANSI escape code sequence specifying foreground color of characters that ill be drawn */
-  foreground?: StyleCode;
+  foreground?: FgColor;
   /** ANSI escape code sequence specifying background color of characters that will be drawn */
-  background?: StyleCode;
+  background?: Color;
   /** ANSI escape code sequence specifying attributes of characters that will be drawn */
-  attributes?: StyleCode[];
+  attributes?: Attribute[];
 }
 
-/** Any possible styler */
-export type AnyStyler = {
-  [key: string]: StyleCode | Style | (StyleCode | Attribute)[] | {
-    foreground?: StyleCode | Color;
-    background?: StyleCode | Color;
-    attributes?: (StyleCode | Attribute)[];
-  };
-} & {
-  foreground?: StyleCode | Color;
-  background?: StyleCode | Color;
-  attributes?: (StyleCode | Attribute)[];
+export type CompileStyler<T> = {
+  // deno-lint-ignore ban-types
+  [key in keyof T]?: T[key] extends (object | undefined) ? CompileStyler<T[key]>
+    : // deno-lint-ignore ban-types
+    T[key] extends object ? CompileStyler<T[key]>
+    : StyleCode;
 };
+
+/**
+ * Compiles every parameter of a styler to ANSI escape code.
+ * @param styler - styler that will be compiled
+ * @example
+ * ```ts
+ * compileStyler({
+ *  foreground: "red", // -> "\x1b[31m"
+ *  background: "blue", // -> "\x1b[44m"
+ *  foo: "magenta" // -> "\x1b[35m"
+ * });
+ * ```
+ */
+export function compileStyler<T extends CanvasStyler>(
+  styler: T,
+): CompileStyler<T> {
+  const obj: CompileStyler<T> = {};
+  if (Deno.noColor) return obj;
+
+  for (const [index, value] of Object.entries(styler)) {
+    if (typeof value === "number") continue;
+
+    if (Array.isArray(value)) {
+      Reflect.set(obj, index, value.map((v) => compileStylerValue(v, index)));
+    } else if (typeof value === "object") {
+      Reflect.set(obj, index, compileStyler(value));
+    } else {
+      Reflect.set(obj, index, compileStylerValue(value, index));
+    }
+  }
+
+  return obj;
+}
 
 /**
  * Returns text with applied ANSI escape code
@@ -448,45 +502,6 @@ export function compileStylerValue(value: string, property: string): StyleCode {
 }
 
 /**
- * Compiles every parameter of a styler to ANSI escape code.
- * @param styler - styler that will be compiled
- * @example
- * ```ts
- * compileStyler({
- *  foreground: "red", // -> "\x1b[31m"
- *  background: "blue", // -> "\x1b[44m"
- *  foo: "magenta" // -> "\x1b[35m"
- * });
- * ```
- */
-export function compileStyler<T>(
-  styler: T extends CanvasStyler ? T | AnyStyler : AnyStyler,
-): T extends CanvasStyler ? T : AnyStyler {
-  // @ts-expect-error Creating new object which will be expanded
-  const obj: T extends CanvasStyler ? T : AnyStyler = {};
-
-  if (Deno.noColor) return obj;
-
-  for (const [index, value] of Object.entries(styler)) {
-    if (typeof value === "number") continue;
-
-    if (Array.isArray(value)) {
-      Reflect.set(obj, index, value.map((v) => compileStylerValue(v, index)));
-    } else if (typeof value === "object") {
-      Reflect.set(obj, index, compileStyler(value));
-    } else {
-      Reflect.set(
-        obj,
-        index,
-        compileStylerValue(value, index),
-      );
-    }
-  }
-
-  return obj;
-}
-
-/**
  * Applies ansi escape codesfrom styler to given string
  * @param string - string to be styled
  * @param styler - definition for styling string
@@ -498,7 +513,7 @@ export function compileStyler<T>(
  */
 export function styleStringFromStyler(
   string: string,
-  styler: CanvasStyler,
+  styler: CompileStyler<CanvasStyler>,
 ): string {
   let style = "";
   if (styler.foreground) {

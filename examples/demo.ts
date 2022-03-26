@@ -36,7 +36,7 @@ const tuiStyler = compileStyler<TuiStyler>({
 });
 
 const componentStyler = compileStyler<TuiStyler>({
-  ...tuiStyler,
+  ...tuiStyler as TuiStyler,
   background: "blue",
 });
 

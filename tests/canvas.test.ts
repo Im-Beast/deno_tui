@@ -51,6 +51,7 @@ Deno.test("Canvas", async (t) => {
   await t.step("Canvas: create canvas", () => {
     assertEquals(Object.getOwnPropertyNames(canvas), [
       "size",
+      "offset",
       "filler",
       "writer",
       "smartRender",

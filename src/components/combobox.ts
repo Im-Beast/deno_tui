@@ -53,7 +53,7 @@ export type ComboboxComponent = ExtendedComponent<
        */
       align?: TextAlign;
     };
-    /** TODO: note */
+    /** When set, items will be allowed to overflow text over specified parent width */
     expandItemsWidth: boolean;
   },
   "valueChange",

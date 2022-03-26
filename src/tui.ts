@@ -2,6 +2,7 @@
 import {
   Canvas,
   CanvasStyler,
+  CompileStyler,
   createCanvas,
   drawRectangle,
   render,
@@ -144,7 +145,7 @@ export interface Tui {
   };
 
   /** Definition of tui's look */
-  readonly styler: TuiStyler;
+  readonly styler: CompileStyler<TuiStyler>;
   /** Size and position of tui */
   readonly rectangle: Rectangle;
 
@@ -166,7 +167,7 @@ export interface CreateTuiOptions {
   /** Canvas which will be used for drawing to writer */
   canvas?: Canvas;
   /** Definition of tui's look */
-  styler: TuiStyler;
+  styler: CompileStyler<TuiStyler>;
 }
 
 let id = 0;
