@@ -4,9 +4,9 @@ import { AnyComponent } from "./types.ts";
 import { clamp } from "./util.ts";
 
 /** ASCII escape code to enable mouse handling */
-export const ENABLE_MOUSE = "\x1b[?1000h";
+export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h";
 /** ASCII escape code to disable mouse handling */
-export const DISABLE_MOUSE = "\x1b[?1000l";
+export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1002l";
 
 const encoder = new TextEncoder();
 

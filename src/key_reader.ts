@@ -108,12 +108,13 @@ export interface KeyPress {
   ctrl: boolean;
 }
 
-/** KeyPress is an object that stores data about MousePress issued to stdin */
+/** MousePress is an object that stores data about MousePress issued to stdin */
 export interface MousePress extends KeyPress {
   x: number;
   y: number;
   button: number | undefined;
   release: boolean;
+  drag: boolean;
   scroll: 1 | 0 | -1;
 }
 
@@ -257,36 +258,20 @@ export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
      * https://github.com/TooTallNate/keypress/blob/9f1cc0ec7ac98a4aad0e0612ec14bf1b18c32eed/index.js#L370
      */
     if (code.startsWith("[M")) {
+      const b = code.charCodeAt(2);
       const mousePress: MousePress = {
         buffer,
         key: "mouse",
-        meta: false,
-        shift: false,
-        ctrl: false,
+        meta: !!(1 << 3 & b),
+        shift: !!(1 << 2 & b),
+        ctrl: !!(1 << 4 & b),
         button: undefined,
-        release: false,
-        scroll: 0,
-        x: -1,
-        y: -1,
+        release: (3 & b) === 3,
+        drag: !(1 << 5 & b),
+        scroll: 1 << 6 & b ? 1 & b ? 1 : -1 : 0,
+        x: code.charCodeAt(3) - 33,
+        y: code.charCodeAt(4) - 33,
       };
-
-      mousePress.key = "mouse";
-
-      mousePress.x = code.charCodeAt(3) - 33;
-      mousePress.y = code.charCodeAt(4) - 33;
-
-      const b = code.charCodeAt(2);
-      mousePress.ctrl = !!(1 << 4 & b);
-      mousePress.meta = !!(1 << 3 & b);
-      mousePress.shift = !!(1 << 2 & b);
-
-      mousePress.release = (3 & b) === 3;
-
-      if (1 << 6 & b) {
-        mousePress.scroll = 1 & b ? 1 : -1;
-      } else {
-        mousePress.scroll = 0;
-      }
 
       if (!mousePress.release && !mousePress.scroll) {
         mousePress.button = b & 3;
