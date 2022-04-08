@@ -44,9 +44,9 @@ import { cloneAndAssign } from "./util.ts";
  * getCurrentStyler(component); // -> component.styler.active
  * ```
  */
-export function getCurrentStyler(
-  component: AnyComponent,
-): CompileStyler<TuiStyler> {
+export function getCurrentStyler<C extends AnyComponent>(
+  component: C,
+): C["styler"] {
   const styler = component.styler;
   const { item, active } = component.tui.focused;
 
@@ -228,13 +228,13 @@ export function createComponent<
       : Omit<CreateComponentOptions<Name>, keyof Extension>
   ),
   extension?: Extension,
-): (
-  Extension extends void ? Component<Name, Events, EventDataType>
-    : ExtendedComponent<Name, Extension, Events, EventDataType>
-) {
+): (Extension extends void ? Component<Name, Events, EventDataType>
+  : ExtendedComponent<Name, Extension, Events, EventDataType>) {
   type PrivateComp = Extension extends void
     ? PrivateComponent<Name, Record<never, never>, Events, EventDataType>
     : PrivateComponent<Name, Extension, Events, EventDataType>;
+
+  type CurrentOptions = typeof options;
 
   const emitter = createEventEmitter() as PrivateComp["emitter"];
 
@@ -242,7 +242,7 @@ export function createComponent<
     ? Reflect.get(parent, "tui")
     : parent;
 
-  const component = cloneAndAssign(
+  const component = cloneAndAssign<unknown, CurrentOptions>(
     {
       id: id++,
 
@@ -268,8 +268,10 @@ export function createComponent<
 
       ...extension,
     },
-    options,
-    extension || {},
+    cloneAndAssign<Extension | Record<never, never>, CurrentOptions>(
+      extension || {},
+      options,
+    ),
   ) as PrivateComp;
 
   tui.components.push(component);
