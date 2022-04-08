@@ -102,10 +102,17 @@ export function draw(tui: Tui): void {
 }
 
 /** Definition on how Tui or TuiComponent should look like */
-export interface TuiStyler extends CanvasStyler {
-  active?: CanvasStyler;
-  focused?: CanvasStyler;
-}
+export type TuiStyler<
+  E extends Record<string, CanvasStyler> = Record<never, never>,
+> =
+  & CanvasStyler
+  & {
+    active?: CanvasStyler & E;
+    focused?: CanvasStyler & E;
+  }
+  & {
+    [key in keyof E]: E[key];
+  };
 
 /** Private properties for Tui */
 export interface PrivateTui extends Tui {
@@ -234,10 +241,19 @@ export function createTui({
     },
   };
 
-  Deno.addSignalListener("SIGINT", () => {
-    dispatchEvent(new Event("unload"));
-    Deno.exit(0);
-  });
+  if (Deno.build.os !== "windows") {
+    Deno.addSignalListener("SIGINT", () => {
+      dispatchEvent(new Event("unload"));
+      Deno.exit(0);
+    });
+  } else {
+    tui.on("key", ({ buffer }) => {
+      if (buffer[0] === 3) {
+        dispatchEvent(new Event("unload"));
+        Deno.exit(0);
+      }
+    });
+  }
 
   return tui;
 }
