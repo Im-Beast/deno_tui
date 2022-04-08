@@ -8,7 +8,7 @@ import {
 import { TextAlign, TuiObject } from "../types.ts";
 import { cloneAndAssign, textWidth } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
-import { createButton } from "./button.ts";
+import { createButton, CreateButtonOptions } from "./button.ts";
 
 /**
  * Get label from ComboboxValue
@@ -181,7 +181,7 @@ export function createCombobox(
 
       const button = createButton(
         main,
-        cloneAndAssign(options, {
+        cloneAndAssign<CreateComboboxOptions, CreateButtonOptions>(options, {
           label: {
             text: label,
             align: combobox.label?.align,
