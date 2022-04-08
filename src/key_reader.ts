@@ -110,11 +110,17 @@ export interface KeyPress {
 
 /** MousePress is an object that stores data about MousePress issued to stdin */
 export interface MousePress extends KeyPress {
+  /** Horizontal position of mouse click */
   x: number;
+  /** Vertical position of mouse click */
   y: number;
-  button: number | undefined;
+  /** Mouse button that has been pressed (0 - Left, 1 - Middle, 2 - Right) */
+  button: 0 | 1 | 2 | undefined;
+  /** Whether mouse button(s) have been released */
   release: boolean;
+  /** Whether mouse cursor is dragged */
   drag: boolean;
+  /** Whether user scroll (1 - Scrolls downwards, 0 - Doesn't scroll, -1 - Scrolls upwards)*/
   scroll: 1 | 0 | -1;
 }
 
@@ -210,7 +216,11 @@ export async function readKeypressesEmitter(
 export async function* readKeypresses(
   reader: Reader,
 ): AsyncIterableIterator<[KeyPress[], MousePress[]]> {
-  Deno.setRaw(reader.rid, true, { cbreak: true });
+  Deno.setRaw(
+    reader.rid,
+    true,
+    Deno.build.os !== "windows" ? { cbreak: true } : undefined,
+  );
 
   while (true) {
     const buffer = new Uint8Array(1024);
@@ -268,13 +278,13 @@ export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
         button: undefined,
         release: (3 & b) === 3,
         drag: !(1 << 5 & b),
-        scroll: 1 << 6 & b ? 1 & b ? 1 : -1 : 0,
+        scroll: (1 << 6 & b) && (1 << 5 & b) ? 1 & b ? 1 : -1 : 0,
         x: code.charCodeAt(3) - 33,
         y: code.charCodeAt(4) - 33,
       };
 
       if (!mousePress.release && !mousePress.scroll) {
-        mousePress.button = b & 3;
+        mousePress.button = (b & 3) as 0 | 1 | 2;
       }
 
       mousePresses.push(mousePress);
@@ -523,6 +533,9 @@ export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
         }
         break;
     }
+
+    keyPress.shift = keyPress.shift ||
+      keyPress.key === keyPress.key.toUpperCase();
 
     keyPresses.push(keyPress);
   }
