@@ -18,3 +18,4 @@ export * from "./src/components/label.ts";
 export * from "./src/components/menu.ts";
 export * from "./src/components/textbox.ts";
 export * from "./src/components/scrollable_view.ts";
+export * from "./src/components/slider.ts";
