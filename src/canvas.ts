@@ -140,9 +140,20 @@ export function createCanvas(
     Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
   });
 
-  Deno.addSignalListener("SIGWINCH", () => {
-    updateCanvas(true);
-  });
+  if (Deno.build.os !== "windows") {
+    Deno.addSignalListener("SIGWINCH", () => {
+      updateCanvas(true);
+    });
+  } else {
+    // TODO: Improve it later
+    let lastSize = canvas.size;
+    setInterval(() => {
+      if (canvas.size !== lastSize) {
+        updateCanvas(true);
+        lastSize = canvas.size;
+      }
+    }, 33);
+  }
 
   return canvas;
 }
@@ -426,11 +437,12 @@ export interface CanvasStyler {
   attributes?: Attribute[];
 }
 
+// deno-lint-ignore ban-types
+type _object = object;
 export type CompileStyler<T> = {
-  // deno-lint-ignore ban-types
-  [key in keyof T]?: T[key] extends (object | undefined) ? CompileStyler<T[key]>
-    : // deno-lint-ignore ban-types
-    T[key] extends object ? CompileStyler<T[key]>
+  [key in keyof T]?: T[key] extends (_object | undefined)
+    ? CompileStyler<T[key]>
+    : T[key] extends _object ? CompileStyler<T[key]>
     : StyleCode;
 };
 
@@ -449,7 +461,7 @@ export type CompileStyler<T> = {
 export function compileStyler<T extends CanvasStyler>(
   styler: T,
 ): CompileStyler<T> {
-  const obj: CompileStyler<T> = {};
+  const obj = {} as CompileStyler<T>;
   if (Deno.noColor) return obj;
 
   for (const [index, value] of Object.entries(styler)) {
