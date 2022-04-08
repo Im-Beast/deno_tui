@@ -8,10 +8,20 @@ import {
   render,
 } from "../canvas.ts";
 import { TuiStyler } from "../tui.ts";
-import { createComponent, ExtendedComponent } from "../tui_component.ts";
+import {
+  createComponent,
+  ExtendedComponent,
+  getCurrentStyler,
+  removeComponent,
+} from "../tui_component.ts";
 import { Rectangle, TuiObject } from "../types.ts";
-import { clamp } from "../util.ts";
+import { clamp, cloneAndAssign } from "../util.ts";
 import { CreateBoxOptions } from "./box.ts";
+import {
+  createSlider,
+  CreateSliderOptions,
+  SliderComponent,
+} from "./slider.ts";
 
 /** Definition on how ScrollableViewComponent should look like */
 export type ScrollableViewStyler = TuiStyler & {
@@ -65,8 +75,14 @@ export function createScrollableView(
 ): ScrollableViewComponent {
   const { canvas } = parent;
 
+  let scrollbarX: SliderComponent | undefined;
+  let scrollbarY: SliderComponent | undefined;
+
   let offsetX = 0;
   let offsetY = 0;
+
+  let maxComponentOffsetX = 0;
+  let maxComponentOffsetY = 0;
 
   let maxOffsetX = 0;
   let maxOffsetY = 0;
@@ -97,7 +113,7 @@ export function createScrollableView(
         render(viewCanvas);
 
         const { width, height } = this.rectangle;
-        const { styler } = this;
+        const { styler, rectangle } = this;
 
         drawRectangle(viewCanvas, {
           column: 0,
@@ -111,48 +127,96 @@ export function createScrollableView(
           styler,
         });
 
-        if (maxOffsetX > 0) {
-          drawRectangle(parent.canvas, {
-            column: this.rectangle.column,
-            row: this.rectangle.row + this.rectangle.height,
-            width: this.rectangle.width,
-            height: 1,
-            styler: options.styler?.horizontal?.track,
-          });
-
-          drawRectangle(parent.canvas, {
-            column: this.rectangle.column +
-              ~~((offsetX / maxOffsetX) * (this.rectangle.width - 1)),
-            row: this.rectangle.row + this.rectangle.height,
-            width: 1,
-            height: 1,
-            styler: options.styler?.horizontal?.thumb,
-          });
+        if (maxOffsetY > 0 && !scrollbarY) {
+          scrollbarY = createSlider(
+            scrollableView,
+            cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
+              options,
+              {
+                get rectangle() {
+                  const { column, row, width, height } =
+                    scrollableView.rectangle;
+                  return {
+                    column: column + width,
+                    row: row,
+                    height: height,
+                    width: 1,
+                  };
+                },
+                direction: "vertical",
+                min: 0,
+                step: 1,
+                get value() {
+                  return offsetY;
+                },
+                set value(v) {
+                  offsetY = v;
+                },
+                get max() {
+                  return maxOffsetY;
+                },
+                get styler(): CreateSliderOptions["styler"] {
+                  const styler = getCurrentStyler(scrollableView).vertical;
+                  return {
+                    ...styler?.track,
+                    thumb: styler?.thumb,
+                  };
+                },
+              },
+            ),
+          );
+        } else if (scrollbarY && !maxOffsetY) {
+          removeComponent(scrollbarY);
+          scrollbarY = undefined;
         }
 
-        if (maxOffsetY > 0) {
-          drawRectangle(parent.canvas, {
-            column: this.rectangle.column + this.rectangle.width,
-            row: this.rectangle.row,
-            width: 1,
-            height: this.rectangle.height,
-            styler: options.styler?.vertical?.track,
-          });
-
-          drawRectangle(parent.canvas, {
-            column: this.rectangle.column + this.rectangle.width,
-            row: this.rectangle.row +
-              ~~((offsetY / maxOffsetY) * (this.rectangle.height - 1)),
-            width: 1,
-            height: 1,
-            styler: options.styler?.vertical?.thumb,
-          });
+        if (maxOffsetX > 0 && !scrollbarX) {
+          scrollbarX = createSlider(
+            scrollableView,
+            cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
+              options,
+              {
+                get rectangle() {
+                  const { column, row, width, height } =
+                    scrollableView.rectangle;
+                  return {
+                    column: column,
+                    row: row + height,
+                    height: 1,
+                    width: width,
+                  };
+                },
+                direction: "horizontal",
+                min: 0,
+                step: 1,
+                get value() {
+                  return offsetX;
+                },
+                set value(v) {
+                  offsetX = v;
+                },
+                get max() {
+                  return maxOffsetX;
+                },
+                get styler(): CreateSliderOptions["styler"] {
+                  const styler = getCurrentStyler(scrollableView).vertical;
+                  return {
+                    ...styler?.track,
+                    thumb: styler?.thumb,
+                  };
+                },
+              },
+            ),
+          );
+        } else if (scrollbarX && !maxOffsetX) {
+          removeComponent(scrollbarX);
+          scrollbarX = undefined;
         }
 
         if (maxOffsetX > 0 && maxOffsetY > 0) {
           drawPixel(parent.canvas, {
-            column: this.rectangle.column + this.rectangle.width,
-            row: this.rectangle.row + this.rectangle.height,
+            column: rectangle.column + rectangle.width,
+            row: rectangle.row + rectangle.height,
             styler: options.styler?.corner,
             value: "+",
           });
@@ -182,7 +246,12 @@ export function createScrollableView(
     smartRender: parent.canvas.smartRender,
   });
 
-  scrollableView.tui.on("draw", () => render(viewCanvas));
+  scrollableView.tui.on("draw", () => {
+    render(viewCanvas);
+
+    maxOffsetX = maxComponentOffsetX - scrollableView.rectangle.width;
+    maxOffsetY = maxComponentOffsetY - scrollableView.rectangle.height;
+  });
 
   scrollableView.on("mouse", ({ shift, scroll }) => {
     if (shift) {
@@ -193,21 +262,25 @@ export function createScrollableView(
   });
 
   scrollableView.on("createComponent", (component) => {
+    if (component === scrollbarX || component === scrollbarY) return;
+
     originalRectangles.set(component.id, component.rectangle);
     component.canvas = viewCanvas;
 
-    // TODO: Recalculate offsets on window resize
-    maxOffsetY = Math.max(
-      (component.rectangle.row + component.rectangle.height + 1) -
-        scrollableView.rectangle.height,
-      maxOffsetY,
-    );
-
+    const reachX = (component.rectangle.column + component.rectangle.width + 1);
     maxOffsetX = Math.max(
-      (component.rectangle.column + component.rectangle.width + 1) -
+      reachX -
         scrollableView.rectangle.width,
       maxOffsetX,
     );
+    if (maxComponentOffsetX < reachX) maxComponentOffsetX = reachX;
+
+    const reachY = (component.rectangle.row + component.rectangle.height + 1);
+    maxOffsetY = Math.max(
+      reachY - scrollableView.rectangle.height,
+      maxOffsetY,
+    );
+    if (maxComponentOffsetY < reachY) maxComponentOffsetY = reachY;
   });
 
   scrollableView.on("removeComponent", (component) => {
