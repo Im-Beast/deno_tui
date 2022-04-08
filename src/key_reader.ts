@@ -64,7 +64,7 @@ type Chars =
   | "\\"
   | "|";
 
-type Alphabet = aToZ | Uppercase<aToZ>;
+type Alphabet = aToZ;
 
 type aToZ =
   | "a"
@@ -528,14 +528,13 @@ export function decodeBuffer(buffer: Uint8Array): [KeyPress[], MousePress[]] {
             keyPress.key = "tab";
             keyPress.shift = true;
             break;
-          default:
-            break;
         }
         break;
     }
 
     keyPress.shift = keyPress.shift ||
       keyPress.key === keyPress.key.toUpperCase();
+    keyPress.key = keyPress.key.toLowerCase() as Key;
 
     keyPresses.push(keyPress);
   }
