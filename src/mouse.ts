@@ -39,8 +39,8 @@ export function handleMouseControls(
     Deno.writeSync(tui.writer.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  tui.on("mouse", ({ x, y, release, button }) => {
-    if (release || button !== 0) return;
+  tui.on("mouse", ({ x, y, release, button, drag }) => {
+    if (release || drag || button !== 0) return;
 
     const components = getInteractiveComponents(tui);
     let item!: AnyComponent;
