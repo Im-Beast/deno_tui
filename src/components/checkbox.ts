@@ -70,7 +70,7 @@ export function createCheckbox(
 
   const button = createButton(
     checkbox,
-    cloneAndAssign(options, {
+    cloneAndAssign<CreateCheckboxOptions, CreateButtonOptions>(options, {
       interactive: true,
       label: {
         get text() {

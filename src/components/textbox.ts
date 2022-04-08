@@ -142,7 +142,7 @@ export function createTextbox(
   textbox.on("key", ({ key, shift, ctrl, meta }) => {
     if (!key || shift) return;
 
-    const startValue = [...textbox.value];
+    const startValue = textbox.value;
 
     const insertValue = (value: string) => {
       textbox.value[position.y] =
@@ -206,7 +206,6 @@ export function createTextbox(
           position.y = Math.min(position.y + 1, textbox.value.length - 1);
           position.x = 0;
         }
-
         break;
       case "backspace":
         if (position.x === 0 && position.y !== 0) {
@@ -249,7 +248,9 @@ export function createTextbox(
         return;
     }
 
-    textbox.emit("valueChange", startValue);
+    if (textbox.value !== startValue) {
+      textbox.emit("valueChange", startValue);
+    }
   });
 
   return textbox;
