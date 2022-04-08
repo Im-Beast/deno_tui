@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { KeyPress } from "./key_reader.ts";
+import { Key, KeyPress } from "./key_reader.ts";
 import { getInteractiveComponents, Tui } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp } from "./util.ts";
@@ -95,9 +95,12 @@ export function changeComponent(
  * handleKeyboardControls(tui);
  * ```
  */
-export function handleKeyboardControls(tui: Tui): void {
+export function handleKeyboardControls(
+  tui: Tui,
+  controls?: Map<"up" | "down" | "left" | "right" | "activate", Key>,
+): void {
   const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
-    if (key === "return") {
+    if (key === (controls?.get("activate") ?? "return")) {
       tui.focused.active = true;
       tui.focused.item?.emit("active");
       tui.focused.item?.active?.();
@@ -108,19 +111,23 @@ export function handleKeyboardControls(tui: Tui): void {
 
     const vector = { x: 0, y: 0 };
 
+    // Change default keybinds depending on the OS, or get custom controls from map
+    const isWindows = Deno.build.os === "windows";
     switch (key) {
-      case "up":
+      case controls?.get("up") ?? isWindows ? "i" : "up":
         vector.y -= 1;
         break;
-      case "down":
+      case controls?.get("down") ?? isWindows ? "k" : "down":
         vector.y += 1;
         break;
-      case "left":
+      case controls?.get("left") ?? isWindows ? "j" : "left":
         vector.x -= 1;
         break;
-      case "right":
+      case controls?.get("right") ?? isWindows ? "l" : "right":
         vector.x += 1;
         break;
+      default:
+        return;
     }
 
     tui.focused.item = changeComponent(tui, vector);
