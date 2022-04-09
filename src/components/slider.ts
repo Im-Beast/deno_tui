@@ -109,16 +109,18 @@ export function createSlider(
     }, options),
   );
 
-  slider.on("key", ({ key }) => {
+  slider.on("key", ({ key, shift }) => {
+    if (shift) return;
+    const controls = slider.tui.keyboardControls;
     const startValue = slider.value;
 
     switch (key) {
-      case "down":
-      case "right":
+      case controls.get("down"):
+      case controls.get("right"):
         slider.value = Math.min(slider.value + slider.step, slider.max);
         break;
-      case "up":
-      case "left":
+      case controls.get("up"):
+      case controls.get("left"):
         slider.value = Math.max(slider.value - slider.step, slider.min);
         break;
     }

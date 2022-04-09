@@ -104,7 +104,7 @@ export function createTextbox(
         });
       }
 
-      if (textbox.tui.focused.item === textbox) {
+      if (textbox.tui.focused.items[0] === textbox) {
         const currentCharacter = textbox.value?.[position.y]?.[position.x];
         const cursorCol = column + Math.min(position.x, width - 1);
         const cursorRow = row + Math.min(position.y, height - 1);
@@ -140,6 +140,7 @@ export function createTextbox(
   );
 
   textbox.on("key", ({ key, shift, ctrl, meta }) => {
+    const controls = textbox.tui.keyboardControls;
     if (!key || shift) return;
 
     const startValue = textbox.value;
@@ -167,24 +168,24 @@ export function createTextbox(
         insertValue("  ");
         position.x += 2;
         break;
-      case "up":
+      case controls.get("up"):
         position.y = Math.max(0, position.y - 1);
         textbox.value[position.y] ||= "";
         position.x = textbox.value[position.y].length >= position.x
           ? position.x
           : textbox.value[position.y].length;
         break;
-      case "down":
+      case controls.get("down"):
         position.y = Math.min(position.y + 1, textbox.value.length - 1);
         textbox.value[position.y] ||= "";
         position.x = textbox.value[position.y].length >= position.x
           ? position.x
           : textbox.value[position.y].length;
         break;
-      case "left":
+      case controls.get("left"):
         position.x = Math.max(0, position.x - 1);
         break;
-      case "right":
+      case controls.get("right"):
         position.x = Math.min(position.x + 1, textbox.value[position.y].length);
         break;
       case "return":
