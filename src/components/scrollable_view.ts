@@ -42,6 +42,10 @@ export type ScrollableViewComponent = ExtendedComponent<
   {
     /** Definition on how component looks like */
     styler?: CompileStyler<ScrollableViewStyler>;
+    offsetX: number;
+    offsetY: number;
+    maxOffsetX: number;
+    maxOffsetY: number;
   }
 >;
 
@@ -78,14 +82,8 @@ export function createScrollableView(
   let scrollbarX: SliderComponent | undefined;
   let scrollbarY: SliderComponent | undefined;
 
-  let offsetX = 0;
-  let offsetY = 0;
-
   let maxComponentOffsetX = 0;
   let maxComponentOffsetY = 0;
-
-  let maxOffsetX = 0;
-  let maxOffsetY = 0;
 
   const originalRectangles = new Map<number, Rectangle>();
   const scrollableView: ScrollableViewComponent = createComponent(
@@ -94,14 +92,19 @@ export function createScrollableView(
     {
       name: "scrollableView",
       interactive: true,
+      offsetX: 0,
+      offsetY: 0,
+      maxOffsetX: 0,
+      maxOffsetY: 0,
+      drawPriority: -1,
       update(this: ScrollableViewComponent) {
         for (const child of this.children) {
           const originRect = originalRectangles.get(child.id);
           if (!originRect) continue;
 
           Reflect.set(child, "rectangle", {
-            row: originRect.row - offsetY,
-            column: originRect.column - offsetX,
+            row: originRect.row - this.offsetY,
+            column: originRect.column - this.offsetX,
             width: originRect.width,
             height: originRect.height,
           });
@@ -127,7 +130,7 @@ export function createScrollableView(
           styler,
         });
 
-        if (maxOffsetY > 0 && !scrollbarY) {
+        if (scrollableView.maxOffsetY > 0 && !scrollbarY) {
           scrollbarY = createSlider(
             scrollableView,
             cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
@@ -147,13 +150,13 @@ export function createScrollableView(
                 min: 0,
                 step: 1,
                 get value() {
-                  return offsetY;
+                  return scrollableView.offsetY;
                 },
                 set value(v) {
-                  offsetY = v;
+                  scrollableView.offsetY = v;
                 },
                 get max() {
-                  return maxOffsetY;
+                  return scrollableView.maxOffsetY;
                 },
                 get styler(): CreateSliderOptions["styler"] {
                   const styler = getCurrentStyler(scrollableView).vertical;
@@ -165,12 +168,12 @@ export function createScrollableView(
               },
             ),
           );
-        } else if (scrollbarY && !maxOffsetY) {
+        } else if (scrollbarY && !scrollableView.maxOffsetY) {
           removeComponent(scrollbarY);
           scrollbarY = undefined;
         }
 
-        if (maxOffsetX > 0 && !scrollbarX) {
+        if (scrollableView.maxOffsetX > 0 && !scrollbarX) {
           scrollbarX = createSlider(
             scrollableView,
             cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
@@ -190,13 +193,13 @@ export function createScrollableView(
                 min: 0,
                 step: 1,
                 get value() {
-                  return offsetX;
+                  return scrollableView.offsetX;
                 },
                 set value(v) {
-                  offsetX = v;
+                  scrollableView.offsetX = v;
                 },
                 get max() {
-                  return maxOffsetX;
+                  return scrollableView.maxOffsetX;
                 },
                 get styler(): CreateSliderOptions["styler"] {
                   const styler = getCurrentStyler(scrollableView).vertical;
@@ -208,12 +211,12 @@ export function createScrollableView(
               },
             ),
           );
-        } else if (scrollbarX && !maxOffsetX) {
+        } else if (scrollbarX && !this.maxOffsetX) {
           removeComponent(scrollbarX);
           scrollbarX = undefined;
         }
 
-        if (maxOffsetX > 0 && maxOffsetY > 0) {
+        if (this.maxOffsetX > 0 && this.maxOffsetY > 0) {
           drawPixel(parent.canvas, {
             column: rectangle.column + rectangle.width,
             row: rectangle.row + rectangle.height,
@@ -224,6 +227,8 @@ export function createScrollableView(
       },
     },
   );
+
+  Reflect.set(scrollableView, "focusedWithin", scrollableView.children);
 
   const viewCanvas = createCanvas({
     filler: canvas.filler,
@@ -249,15 +254,28 @@ export function createScrollableView(
   scrollableView.tui.on("draw", () => {
     render(viewCanvas);
 
-    maxOffsetX = maxComponentOffsetX - scrollableView.rectangle.width;
-    maxOffsetY = maxComponentOffsetY - scrollableView.rectangle.height;
+    scrollableView.maxOffsetX = maxComponentOffsetX -
+      scrollableView.rectangle.width;
+    scrollableView.maxOffsetY = maxComponentOffsetY -
+      scrollableView.rectangle.height;
+  });
+
+  scrollableView.on("key", () => {
   });
 
   scrollableView.on("mouse", ({ shift, scroll }) => {
     if (shift) {
-      offsetX = clamp(offsetX + scroll, 0, maxOffsetX);
+      scrollableView.offsetX = clamp(
+        scrollableView.offsetX + scroll,
+        0,
+        scrollableView.maxOffsetX,
+      );
     } else {
-      offsetY = clamp(offsetY + scroll, 0, maxOffsetY);
+      scrollableView.offsetY = clamp(
+        scrollableView.offsetY + scroll,
+        0,
+        scrollableView.maxOffsetY,
+      );
     }
   });
 
@@ -268,17 +286,17 @@ export function createScrollableView(
     component.canvas = viewCanvas;
 
     const reachX = (component.rectangle.column + component.rectangle.width + 1);
-    maxOffsetX = Math.max(
+    scrollableView.maxOffsetX = Math.max(
       reachX -
         scrollableView.rectangle.width,
-      maxOffsetX,
+      scrollableView.maxOffsetX,
     );
     if (maxComponentOffsetX < reachX) maxComponentOffsetX = reachX;
 
     const reachY = (component.rectangle.row + component.rectangle.height + 1);
-    maxOffsetY = Math.max(
+    scrollableView.maxOffsetY = Math.max(
       reachY - scrollableView.rectangle.height,
-      maxOffsetY,
+      scrollableView.maxOffsetY,
     );
     if (maxComponentOffsetY < reachY) maxComponentOffsetY = reachY;
   });
