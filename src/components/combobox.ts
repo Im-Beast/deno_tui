@@ -157,7 +157,7 @@ export function createCombobox(
       removeComponent(child);
     }
 
-    combobox.tui.focused.item = combobox;
+    combobox.tui.focused.items = [combobox];
   };
 
   combobox.on("key", ({ key }: KeyPress) => {
