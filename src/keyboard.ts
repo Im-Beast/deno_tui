@@ -1,5 +1,5 @@
 // Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { Key, KeyPress } from "./key_reader.ts";
+import { KeyPress } from "./key_reader.ts";
 import { getInteractiveComponents, Tui } from "./tui.ts";
 import { AnyComponent } from "./types.ts";
 import { clamp } from "./util.ts";
@@ -19,19 +19,23 @@ export function changeComponent(
   tui: Tui,
   vector: { x: number; y: number },
 ): AnyComponent {
-  let item = tui.focused.item || tui.components[0];
+  let item = tui.focused.items[0] || tui.components[0];
 
-  const { row, column } = item?.rectangle;
+  let { row, column } = item?.rectangle;
+  row += item?.canvas?.offset?.rows ?? 0;
+  column += item?.canvas?.offset?.columns ?? 0;
 
   const components = getInteractiveComponents(tui);
 
   if (vector.y !== 0) {
     let vertical = components
       .filter(
-        (a) => a === item || a.rectangle.row !== row,
+        (a) => a === item || (a.rectangle.row + a.canvas.offset.rows !== row),
       )
       .sort(
-        ({ rectangle: a }, { rectangle: b }) => a.row - b.row,
+        (a, b) =>
+          (a.rectangle.row + a.canvas.offset.rows) -
+          (b.rectangle.row + b.canvas.offset.rows),
       );
 
     vertical = vertical.filter(({ rectangle: a }) =>
@@ -49,9 +53,11 @@ export function changeComponent(
       }
 
       const distA = Math.abs(
-        column - component.rectangle.column,
+        column - (component.rectangle.column + component.canvas.offset.columns),
       );
-      const distB = Math.abs(column - closest.rectangle.column);
+      const distB = Math.abs(
+        column - (closest.rectangle.column + closest.canvas.offset.columns),
+      );
 
       if (distA < distB) {
         closest = component;
@@ -95,15 +101,14 @@ export function changeComponent(
  * handleKeyboardControls(tui);
  * ```
  */
-export function handleKeyboardControls(
-  tui: Tui,
-  controls?: Map<"up" | "down" | "left" | "right" | "activate", Key>,
-): void {
+export function handleKeyboardControls(tui: Tui): void {
   const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
-    if (key === (controls?.get("activate") ?? "return")) {
+    const controls = tui.keyboardControls;
+    if (key === controls.get("activate")) {
       tui.focused.active = true;
-      tui.focused.item?.emit("active");
-      tui.focused.item?.active?.();
+      tui.emit("active");
+      tui.focused.items[0]?.emit("active");
+      tui.focused.items[0]?.active?.();
       return;
     }
 
@@ -111,28 +116,27 @@ export function handleKeyboardControls(
 
     const vector = { x: 0, y: 0 };
 
-    // Change default keybinds depending on the OS, or get custom controls from map
-    const isWindows = Deno.build.os === "windows";
     switch (key) {
-      case controls?.get("up") ?? isWindows ? "i" : "up":
+      case controls.get("up"):
         vector.y -= 1;
         break;
-      case controls?.get("down") ?? isWindows ? "k" : "down":
+      case controls.get("down"):
         vector.y += 1;
         break;
-      case controls?.get("left") ?? isWindows ? "j" : "left":
+      case controls.get("left"):
         vector.x -= 1;
         break;
-      case controls?.get("right") ?? isWindows ? "l" : "right":
+      case controls.get("right"):
         vector.x += 1;
         break;
       default:
         return;
     }
 
-    tui.focused.item = changeComponent(tui, vector);
-    tui.focused.item?.focus?.();
-    tui.focused.item?.emit("focus");
+    tui.focused.items = [changeComponent(tui, vector)];
+    tui.focused.items[0]?.focus?.();
+    tui.emit("focus");
+    tui.focused.items[0]?.emit("focus");
   };
 
   tui.on("key", handler);

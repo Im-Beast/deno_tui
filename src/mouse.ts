@@ -46,7 +46,9 @@ export function handleMouseControls(
     let item!: AnyComponent;
 
     for (const component of components) {
-      const { column, height, row, width } = component.rectangle;
+      let { column, height, row, width } = component.rectangle;
+      column += component.canvas.offset.columns;
+      row += component.canvas.offset.rows;
 
       if (
         clamp(x, column, column + width - 1) === x &&
@@ -58,20 +60,22 @@ export function handleMouseControls(
     }
 
     if (
-      tui.focused.item === item &&
+      tui.focused.items.includes(item) &&
       Date.now() - selections[tui.id] < (options?.doubleClickDelay ?? 300)
     ) {
       tui.focused.active = true;
-      tui.focused.item?.emit("active");
-      tui.focused.item?.active?.();
+      tui.emit("active");
+      tui.focused.items.forEach((c) => c?.emit("active"));
+      tui.focused.items.forEach((c) => c?.active?.());
     }
 
-    tui.focused.item = item;
+    tui.focused.items = [item];
     selections[tui.id] = Date.now();
 
     if (!tui.focused.active) {
-      tui.focused.item?.emit("focus");
-      tui.focused.item?.focus?.();
+      tui.emit("focus");
+      tui.focused.items.forEach((c) => c?.emit("focus"));
+      tui.focused.items.forEach((c) => c?.focus?.());
     }
   });
 }
