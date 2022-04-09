@@ -48,10 +48,10 @@ export function getCurrentStyler<C extends AnyComponent>(
   component: C,
 ): C["styler"] {
   const styler = component.styler;
-  const { item, active } = component.tui.focused;
+  const { items, active } = component.tui.focused;
 
-  const isSelected = (item === component) ||
-    component.focusedWithin.some((component) => item === component);
+  const isSelected = (items[0] === component) ||
+    component.focusedWithin.some((component) => items[0] === component);
 
   if (!isSelected) return styler;
 
@@ -78,10 +78,15 @@ export function getCurrentStyler<C extends AnyComponent>(
 export function removeComponent(component: AnyComponent): void {
   const { tui, parent } = component;
 
+  const index = tui.focused.items.indexOf(component);
+  if (index !== -1) {
+    delete tui.focused.items[index];
+  }
+
   tui.emit("removeComponent", component);
   parent.emit("removeComponent", component);
 
-  component?.remove?.();
+  component.remove?.();
   component.emit("removeComponent", component);
   component.off("*");
 
@@ -246,6 +251,8 @@ export function createComponent<
     {
       id: id++,
 
+      drawPriority: 0,
+
       parent,
       tui,
       children: [],
@@ -281,6 +288,12 @@ export function createComponent<
   if (parent !== tui) {
     parent.emit("createComponent", component);
   }
+
+  tui.on(["focus", "active"], () => {
+    if (component.focusedWithin.some((c) => tui.focused.items.includes(c))) {
+      tui.focused.items.push(component);
+    }
+  });
 
   return component as (Extension extends void
     ? Component<Name, Events, EventDataType>
