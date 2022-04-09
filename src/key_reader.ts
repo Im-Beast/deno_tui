@@ -144,15 +144,15 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
  */
 export function handleKeypresses(tui: Tui): void {
   tui.on("key", (keyPress) => {
-    tui.focused.item?.emit("key", keyPress);
+    tui.focused.items?.forEach((c) => c?.emit("key", keyPress));
   });
 
   tui.on("mouse", (mousePress) => {
-    tui.focused.item?.emit("mouse", mousePress);
+    tui.focused.items?.forEach((c) => c?.emit("mouse", mousePress));
   });
 
-  tui.on("multiKey", (keyPress) => {
-    tui.focused.item?.emit("key", keyPress);
+  tui.on("multiKey", (multiKeyPress) => {
+    tui.focused.items?.forEach((c) => c?.emit("multiKey", multiKeyPress));
   });
 
   readKeypressesEmitter(tui.reader, Reflect.get(tui, "emitter"));
