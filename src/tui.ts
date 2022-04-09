@@ -9,7 +9,7 @@ import {
   styleStringFromStyler,
 } from "./canvas.ts";
 import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
-import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
+import { Key, KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
 import { getStaticValue } from "./util.ts";
 
@@ -146,7 +146,7 @@ export interface Tui {
   /** Information about currently focused item */
   readonly focused: {
     /** Which item is focused */
-    item?: AnyComponent;
+    items: AnyComponent[];
     /** Whether focused item is active */
     active: boolean;
   };
@@ -164,6 +164,12 @@ export interface Tui {
   readonly off: PrivateTui["emitter"]["off"];
   /** Emit event which will fire functions specified to it */
   readonly emit: PrivateTui["emitter"]["emit"];
+
+  /** Global configuration for keyboard controls */
+  readonly keyboardControls: Map<
+    "up" | "down" | "left" | "right" | "activate",
+    Key
+  >;
 }
 
 export interface CreateTuiOptions {
@@ -208,6 +214,8 @@ export function createTui({
 }: CreateTuiOptions): Tui {
   const emitter = createEventEmitter() as PrivateTui["emitter"];
 
+  const isWindows = Deno.build.os === "windows";
+
   const tui: PrivateTui = {
     id: id++,
 
@@ -236,12 +244,29 @@ export function createTui({
     components: [],
     children: [],
     focused: {
-      item: undefined,
+      items: [],
       active: false,
     },
-  };
 
-  if (Deno.build.os !== "windows") {
+    keyboardControls: new Map(
+      !isWindows
+        ? [
+          ["activate", "return"],
+          ["up", "up"],
+          ["down", "down"],
+          ["left", "left"],
+          ["right", "right"],
+        ]
+        : [
+          ["activate", "return"],
+          ["up", "i"],
+          ["down", "k"],
+          ["left", "j"],
+          ["right", "l"],
+        ],
+    ),
+  };
+  if (!isWindows) {
     Deno.addSignalListener("SIGINT", () => {
       dispatchEvent(new Event("unload"));
       Deno.exit(0);
