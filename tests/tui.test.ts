@@ -49,6 +49,7 @@ Deno.test("Tui", async (t) => {
 
     assertEquals(Object.getOwnPropertyNames(component), [
       "id",
+      "drawPriority",
       "parent",
       "tui",
       "children",
@@ -83,6 +84,7 @@ Deno.test("Tui", async (t) => {
 
     assertEquals(Object.getOwnPropertyNames(extendedComponent), [
       "id",
+      "drawPriority",
       "parent",
       "tui",
       "children",
@@ -152,7 +154,7 @@ Deno.test("Tui", async (t) => {
 
     assertEquals(getCurrentStyler(component), styler);
 
-    tui.focused.item = component;
+    tui.focused.items = [component];
     tui.focused.active = false;
     assertEquals(getCurrentStyler(component), { ...styler, ...styler.focused });
 
