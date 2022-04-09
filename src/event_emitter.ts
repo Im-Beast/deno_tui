@@ -3,23 +3,23 @@
 export interface EventEmitter<Event extends string, DataType> {
   listeners: Listener<Event, DataType>[];
   /** Emits event with given data */
-  emit: (event: Event, ...data: DataType[]) => void;
+  emit: (event: Event | Event[], ...data: DataType[]) => void;
   /** Handles given event using given function */
   on: (
-    event: Event,
+    event: Event | Event[],
     func: ListenerFunction<DataType>,
     priority?: number,
     once?: boolean,
   ) => void;
   /** Handles given event using given function only once */
   once: (
-    event: Event,
+    event: Event | Event[],
     func: ListenerFunction<DataType>,
     priority?: number,
   ) => void;
   /** Disables event handler that matches given event and/or function */
   off: (
-    event: Event | "*",
+    event: Event | Event[] | "*",
     func?: ListenerFunction<DataType>,
   ) => void;
 }
@@ -66,7 +66,11 @@ export function createEventEmitter<
 
   const emit: emitter["emit"] = (emitEvent, ...data) => {
     listeners
-      .filter(({ event }) => emitEvent === event)
+      .filter(({ event }) =>
+        typeof emitEvent === "string"
+          ? emitEvent === event
+          : emitEvent.includes(event)
+      )
       .sort((a, b) => b.priority - a.priority)
       .forEach(({ func }) => setTimeout(() => func(...data), 0));
 
@@ -74,9 +78,17 @@ export function createEventEmitter<
   };
 
   const on: emitter["on"] = (event, func, priority = 0, once = false) => {
-    listeners.push(
-      { event, func, priority, once } as Listener<Event, DataType>,
-    );
+    if (Array.isArray(event)) {
+      for (const singleEvent of event) {
+        listeners.push(
+          { event: singleEvent, func, priority, once },
+        );
+      }
+    } else {
+      listeners.push(
+        { event, func, priority, once },
+      );
+    }
   };
 
   const once: emitter["once"] = (event, func, priority = 0) => {
