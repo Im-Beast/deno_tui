@@ -19,3 +19,4 @@ export * from "./src/components/menu.ts";
 export * from "./src/components/textbox.ts";
 export * from "./src/components/scrollable_view.ts";
 export * from "./src/components/slider.ts";
+export * from "./src/components/progress_bar.ts";
