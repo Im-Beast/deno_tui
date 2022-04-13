@@ -97,22 +97,8 @@ export function createScrollableView(
       maxOffsetX: 0,
       maxOffsetY: 0,
       drawPriority: -1,
-      update(this: ScrollableViewComponent) {
-        for (const child of this.children) {
-          const originRect = originalRectangles.get(child.id);
-          if (!originRect) continue;
-
-          Reflect.set(child, "rectangle", {
-            row: originRect.row - this.offsetY,
-            column: originRect.column - this.offsetX,
-            width: originRect.width,
-            height: originRect.height,
-          });
-        }
-      },
       draw(this: ScrollableViewComponent) {
         if (!viewCanvas) return;
-
         render(viewCanvas);
 
         const { width, height } = this.rectangle;
@@ -125,10 +111,20 @@ export function createScrollableView(
           height: height,
           styler,
         });
+
         drawRectangle(parent.canvas, {
           ...scrollableView.rectangle,
           styler,
         });
+
+        if (this.maxOffsetX > 0 && this.maxOffsetY > 0) {
+          drawPixel(parent.canvas, {
+            column: rectangle.column + rectangle.width,
+            row: rectangle.row + rectangle.height,
+            styler: options.styler?.corner,
+            value: "+",
+          });
+        }
 
         if (scrollableView.maxOffsetY > 0 && !scrollbarY) {
           scrollbarY = createSlider(
@@ -215,20 +211,15 @@ export function createScrollableView(
           removeComponent(scrollbarX);
           scrollbarX = undefined;
         }
-
-        if (this.maxOffsetX > 0 && this.maxOffsetY > 0) {
-          drawPixel(parent.canvas, {
-            column: rectangle.column + rectangle.width,
-            row: rectangle.row + rectangle.height,
-            styler: options.styler?.corner,
-            value: "+",
-          });
-        }
       },
     },
   );
 
-  Reflect.set(scrollableView, "focusedWithin", scrollableView.children);
+  scrollableView.focusedWithin.splice(
+    0,
+    scrollableView.focusedWithin.length,
+    ...scrollableView.children,
+  );
 
   const viewCanvas = createCanvas({
     filler: canvas.filler,
@@ -252,25 +243,42 @@ export function createScrollableView(
   });
 
   scrollableView.tui.on("draw", () => {
-    render(viewCanvas);
-
     scrollableView.maxOffsetX = maxComponentOffsetX -
       scrollableView.rectangle.width;
+
+    scrollableView.offsetX = scrollableView.maxOffsetX > 0
+      ? clamp(
+        scrollableView.offsetX,
+        0,
+        scrollableView.maxOffsetX,
+      )
+      : 0;
+
     scrollableView.maxOffsetY = maxComponentOffsetY -
       scrollableView.rectangle.height;
+
+    scrollableView.offsetY = scrollableView.maxOffsetY > 0
+      ? clamp(
+        scrollableView.offsetY,
+        0,
+        scrollableView.maxOffsetY,
+      )
+      : 0;
+
+    render(viewCanvas);
   });
 
   scrollableView.on("key", () => {
   });
 
   scrollableView.on("mouse", ({ shift, scroll }) => {
-    if (shift) {
+    if (shift && scrollableView.maxOffsetX > 0) {
       scrollableView.offsetX = clamp(
         scrollableView.offsetX + scroll,
         0,
         scrollableView.maxOffsetX,
       );
-    } else {
+    } else if (!shift && scrollableView.maxOffsetY > 0) {
       scrollableView.offsetY = clamp(
         scrollableView.offsetY + scroll,
         0,
@@ -282,27 +290,44 @@ export function createScrollableView(
   scrollableView.on("createComponent", (component) => {
     if (component === scrollbarX || component === scrollbarY) return;
 
-    originalRectangles.set(component.id, component.rectangle);
+    const { rectangle } = component;
+    Object.defineProperty(component, "rectangle", {
+      get() {
+        return {
+          row: rectangle.row - scrollableView.offsetY,
+          column: rectangle.column - scrollableView.offsetX,
+          width: rectangle.width,
+          height: rectangle.height,
+        };
+      },
+    });
+
     component.canvas = viewCanvas;
 
-    const reachX = (component.rectangle.column + component.rectangle.width + 1);
+    const reachX = (rectangle.column + rectangle.width + 1);
     scrollableView.maxOffsetX = Math.max(
       reachX -
         scrollableView.rectangle.width,
       scrollableView.maxOffsetX,
     );
-    if (maxComponentOffsetX < reachX) maxComponentOffsetX = reachX;
+    if (maxComponentOffsetX < reachX) {
+      maxComponentOffsetX = reachX;
+    }
 
-    const reachY = (component.rectangle.row + component.rectangle.height + 1);
+    const reachY = (rectangle.row + rectangle.height + 1);
     scrollableView.maxOffsetY = Math.max(
       reachY - scrollableView.rectangle.height,
       scrollableView.maxOffsetY,
     );
-    if (maxComponentOffsetY < reachY) maxComponentOffsetY = reachY;
+    if (maxComponentOffsetY < reachY) {
+      maxComponentOffsetY = reachY;
+    }
   });
 
   scrollableView.on("removeComponent", (component) => {
-    originalRectangles.delete(component.id);
+    Object.defineProperty(component, "rectangle", {
+      value: originalRectangles.get(component.id),
+    });
   });
 
   return scrollableView;
