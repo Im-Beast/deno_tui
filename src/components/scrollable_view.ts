@@ -274,33 +274,41 @@ export function createScrollableView(
   scrollableView.on("key", ({ key }) => {
     switch (key) {
       case "pagedown":
-        scrollableView.offsetY = clamp(
-          scrollableView.offsetY + ~~(scrollableView.rectangle.height * 0.5),
-          0,
-          scrollableView.maxOffsetY,
-        );
+        if (scrollableView.maxOffsetY > 0) {
+          scrollableView.offsetY = clamp(
+            scrollableView.offsetY + ~~(scrollableView.rectangle.height * 0.5),
+            0,
+            scrollableView.maxOffsetY,
+          );
+        }
 
         break;
       case "pageup":
-        scrollableView.offsetY = clamp(
-          scrollableView.offsetY - ~~(scrollableView.rectangle.height * 0.5),
-          0,
-          scrollableView.maxOffsetY,
-        );
+        if (scrollableView.maxOffsetY > 0) {
+          scrollableView.offsetY = clamp(
+            scrollableView.offsetY - ~~(scrollableView.rectangle.height * 0.5),
+            0,
+            scrollableView.maxOffsetY,
+          );
+        }
         break;
       case "home":
-        scrollableView.offsetX = clamp(
-          scrollableView.offsetX - ~~(scrollableView.rectangle.width * 0.5),
-          0,
-          scrollableView.maxOffsetX,
-        );
+        if (scrollableView.maxOffsetX > 0) {
+          scrollableView.offsetX = clamp(
+            scrollableView.offsetX - ~~(scrollableView.rectangle.width * 0.5),
+            0,
+            scrollableView.maxOffsetX,
+          );
+        }
         break;
       case "end":
-        scrollableView.offsetX = clamp(
-          scrollableView.offsetX + ~~(scrollableView.rectangle.width * 0.5),
-          0,
-          scrollableView.maxOffsetX,
-        );
+        if (scrollableView.maxOffsetX > 0) {
+          scrollableView.offsetX = clamp(
+            scrollableView.offsetX + ~~(scrollableView.rectangle.width * 0.5),
+            0,
+            scrollableView.maxOffsetX,
+          );
+        }
         break;
     }
   });
