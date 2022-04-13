@@ -275,9 +275,9 @@ export function createComponent<
 
       ...extension,
     },
-    cloneAndAssign<Extension | Record<never, never>, CurrentOptions>(
-      extension || {},
+    cloneAndAssign<CurrentOptions, Extension | Record<never, never>>(
       options,
+      extension || {},
     ),
   ) as PrivateComp;
 

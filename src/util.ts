@@ -154,7 +154,7 @@ export function removeStyleCodes(text: string): string {
  * // };
  * ```
  */
-export function cloneAndAssign<I, O>(...assignments: [I, O]): O {
+export function cloneAndAssign<O, I>(...assignments: [O, I]): O {
   const obj = {} as O;
   for (const assignment of assignments) {
     Object.defineProperties(obj, Object.getOwnPropertyDescriptors(assignment));

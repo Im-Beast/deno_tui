@@ -136,8 +136,7 @@ export function createScrollableView(
         if (scrollableView.maxOffsetY > 0 && !scrollbarY) {
           scrollbarY = createSlider(
             scrollableView,
-            cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
-              options,
+            cloneAndAssign<CreateSliderOptions, CreateScrollableViewOptions>(
               {
                 get rectangle() {
                   const { column, row, width, height } =
@@ -169,6 +168,7 @@ export function createScrollableView(
                   };
                 },
               },
+              options,
             ),
           );
         } else if (scrollbarY && !scrollableView.maxOffsetY) {
@@ -179,8 +179,7 @@ export function createScrollableView(
         if (scrollableView.maxOffsetX > 0 && !scrollbarX) {
           scrollbarX = createSlider(
             scrollableView,
-            cloneAndAssign<CreateScrollableViewOptions, CreateSliderOptions>(
-              options,
+            cloneAndAssign<CreateSliderOptions, CreateScrollableViewOptions>(
               {
                 get rectangle() {
                   const { column, row, width, height } =
@@ -212,6 +211,7 @@ export function createScrollableView(
                   };
                 },
               },
+              options,
             ),
           );
         } else if (scrollbarX && !this.maxOffsetX) {
