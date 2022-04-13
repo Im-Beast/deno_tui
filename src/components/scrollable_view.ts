@@ -97,6 +97,13 @@ export function createScrollableView(
       maxOffsetX: 0,
       maxOffsetY: 0,
       drawPriority: -1,
+      update(this: ScrollableViewComponent) {
+        scrollableView.focusedWithin.splice(
+          0,
+          scrollableView.focusedWithin.length,
+          ...scrollableView.children,
+        );
+      },
       draw(this: ScrollableViewComponent) {
         if (!viewCanvas) return;
         render(viewCanvas);
@@ -215,12 +222,6 @@ export function createScrollableView(
     },
   );
 
-  scrollableView.focusedWithin.splice(
-    0,
-    scrollableView.focusedWithin.length,
-    ...scrollableView.children,
-  );
-
   const viewCanvas = createCanvas({
     filler: canvas.filler,
     writer: canvas.writer,
@@ -268,7 +269,40 @@ export function createScrollableView(
     render(viewCanvas);
   });
 
-  scrollableView.on("key", () => {
+  // Maybe just jump to the component when its focused? 🤔
+  // Or implement command mode à la Vi?
+  scrollableView.on("key", ({ key }) => {
+    switch (key) {
+      case "pagedown":
+        scrollableView.offsetY = clamp(
+          scrollableView.offsetY + ~~(scrollableView.rectangle.height * 0.5),
+          0,
+          scrollableView.maxOffsetY,
+        );
+
+        break;
+      case "pageup":
+        scrollableView.offsetY = clamp(
+          scrollableView.offsetY - ~~(scrollableView.rectangle.height * 0.5),
+          0,
+          scrollableView.maxOffsetY,
+        );
+        break;
+      case "home":
+        scrollableView.offsetX = clamp(
+          scrollableView.offsetX - ~~(scrollableView.rectangle.width * 0.5),
+          0,
+          scrollableView.maxOffsetX,
+        );
+        break;
+      case "end":
+        scrollableView.offsetX = clamp(
+          scrollableView.offsetX + ~~(scrollableView.rectangle.width * 0.5),
+          0,
+          scrollableView.maxOffsetX,
+        );
+        break;
+    }
   });
 
   scrollableView.on("mouse", ({ shift, scroll }) => {
