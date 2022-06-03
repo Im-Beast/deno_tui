@@ -5,6 +5,14 @@
 
 <img src="docs/logo-transparent.png" align="right" width="250" height="250" alt="deno mascot but in ascii" />
 
+<br />
+
+# This project will experience total rework from ground up.
+
+## I've limited time to work on this project because of many factors. I don't know when `Deno TUI` will be ready to use.
+
+<br />
+
 **Current status:**
 [**Release candidate**](https://github.com/Im-Beast/deno_tui/projects/1)
 
