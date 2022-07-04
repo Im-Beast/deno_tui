@@ -9,10 +9,16 @@ export function sleep(time: number) {
   });
 }
 
+export function clamp(number: number, min: number, max: number): number {
+  return Math.max(Math.min(number, max), min);
+}
+
 export class TypedCustomEvent<
   Event = string,
   EventInit = unknown,
 > extends CustomEvent {
+  declare detail: EventInit;
+
   constructor(typeArg: Event, eventInitDict?: CustomEventInit<EventInit>) {
     super(typeArg as unknown as string, eventInitDict);
   }
