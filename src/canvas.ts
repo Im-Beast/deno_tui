@@ -88,6 +88,9 @@ export class Canvas extends TypedEventTarget<{
   }
 
   draw(column: number, row: number, value: string): void {
+    column = ~~column;
+    row = ~~row;
+
     if (value.length > 1) {
       if (value.includes("\n")) {
         for (const [i, line] of value.split("\n").entries()) {
@@ -148,7 +151,7 @@ export class Canvas extends TypedEventTarget<{
         if (+c > size.columns) break columns;
         if (prevFrameBuffer?.[r]?.[c] === frame?.[r]?.[c]) continue columns;
 
-        await Deno.write(
+        Deno.write(
           this.stdout.rid,
           textEncoder.encode(moveCursor(+r, +c) + frame[r][c]),
         );
@@ -174,19 +177,19 @@ export class Canvas extends TypedEventTarget<{
       ) {
         yield Timing.Pre;
         this.dispatchEvent(
-          new TypedCustomEvent("frame", { detail: { time: Timing.Pre } }),
+          new TypedCustomEvent("frame", { detail: { timing: Timing.Pre } }),
         );
 
         await this.renderFrame(this.frameBuffer);
 
         this.dispatchEvent(
-          new TypedCustomEvent("frame", { detail: { time: Timing.Post } }),
+          new TypedCustomEvent("frame", { detail: { timing: Timing.Post } }),
         );
         yield Timing.Post;
       }
 
       deltaTime -= performance.now();
-      await sleep(this.refreshRate + (this.fps / 1000) + (deltaTime / 2));
+      await sleep(this.refreshRate + (this.fps / 1000) + deltaTime);
     }
   }
 }
