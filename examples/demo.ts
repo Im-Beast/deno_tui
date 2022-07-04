@@ -2,7 +2,10 @@ import { Canvas } from "../src/canvas.ts";
 import { BoxComponent } from "../src/components/box.ts";
 import { ButtonComponent } from "../src/components/button.ts";
 import { crayon } from "../src/deps.ts";
+import { handleKeypresses } from "../src/key_reader.ts";
+import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
+import { Timing } from "../src/util.ts";
 
 const tui = new Tui({
   theme: {
@@ -27,7 +30,7 @@ const background = new BoxComponent({
     height,
   },
   theme: {
-    base: crayon.bgBlue,
+    base: crayon.bgBlack,
   },
 });
 
@@ -37,43 +40,7 @@ tui.canvas.addEventListener("resize", ({ detail }) => {
   background.rectangle.height = rows;
 });
 
-new BoxComponent({
-  tui,
-  rectangle: {
-    column: 1,
-    row: 1,
-    height: 5,
-    width: 10,
-  },
-  theme: {
-    base: (text: string) =>
-      crayon.bgRgb(
-        Math.random() * 255,
-        Math.random() * 255,
-        Math.random() * 255,
-      )(text),
-  },
-});
-
-new BoxComponent({
-  tui,
-  rectangle: {
-    column: 1,
-    row: 7,
-    height: 5,
-    width: 10,
-  },
-  theme: {
-    base: (text: string) =>
-      crayon.bgRgb(
-        Math.random() * 255,
-        Math.random() * 255,
-        Math.random() * 255,
-      )(text),
-  },
-});
-
-const button = new ButtonComponent({
+new ButtonComponent({
   tui,
   rectangle: {
     column: 15,
@@ -82,11 +49,75 @@ const button = new ButtonComponent({
     width: 11,
   },
   theme: {
-    base: crayon.bgCyan,
+    base: crayon.bgCyan.bold.rgb(255, 0, 0),
+    focused: crayon.bgLightBlue,
+    active: crayon.bgRed,
+  },
+  label: "Hello",
+});
+
+const bouncyBox = new ButtonComponent({
+  tui,
+  rectangle: {
+    column: 0,
+    row: 0,
+    height: 5,
+    width: 10,
+  },
+  theme: {
+    base: crayon.bgYellow,
   },
 });
 
-button.label = "Hello";
+let h = 0;
+const fpsMeter = new ButtonComponent({
+  tui,
+  rectangle: {
+    column: 0,
+    row: 0,
+    height: 1,
+    width: 25,
+  },
+  theme: {
+    base: (text: string) =>
+      crayon.black.bgHsl((h += 0.25) % 360, 50, 50).bold(
+        text,
+      ),
+  },
+  label: "-",
+});
 
-for await (const timing of tui.run()) {
+handleKeypresses(tui);
+handleMouseControls(tui);
+
+let x = 1;
+let y = 1;
+
+let avgFps = 1000 / tui.canvas.refreshRate;
+for await (const event of tui.run()) {
+  avgFps = (avgFps * 99 + tui.canvas.fps) / 100;
+  fpsMeter.label = `cur:${tui.canvas.fps.toFixed(2)} / avg:${
+    avgFps.toFixed(2)
+  }`;
+
+  if (event.type === "update") {
+    bouncyBox.rectangle.column += x;
+    bouncyBox.rectangle.row += y;
+
+    if (
+      bouncyBox.rectangle.column < 0 ||
+      bouncyBox.rectangle.column + bouncyBox.rectangle.width >
+        background.rectangle.width
+    ) {
+      x *= -1;
+    }
+
+    if (
+      bouncyBox.rectangle.row < 0 ||
+      bouncyBox.rectangle.row + bouncyBox.rectangle.height >
+        background.rectangle.height
+    ) {
+      y *= -1;
+    }
+  }
 }
