@@ -2,17 +2,19 @@ import { crayon } from "./deps.ts";
 import { Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
 import { Rectangle } from "./types.ts";
-import { TypedEventTarget } from "./util.ts";
+import { TypedCustomEvent, TypedEventTarget } from "./util.ts";
 
-interface ComponentOptions {
+export interface ComponentOptions {
   tui: Tui;
   theme?: Partial<Theme>;
   rectangle?: Rectangle;
 }
 
-interface ComponentPrivate {
+export interface ComponentPrivate {
   theme: Theme;
   draw(): void;
+  interact(): void;
+  state: ComponentState;
 }
 
 export type ComponentImplementation =
@@ -25,9 +27,8 @@ export type ComponentImplementation =
 
 export type ComponentState =
   | "focused"
-  | "unfocused"
-  | "activated"
-  | "deactivated";
+  | "active"
+  | "base";
 
 export class Component extends TypedEventTarget<{
   state: ComponentState;
@@ -36,6 +37,8 @@ export class Component extends TypedEventTarget<{
   rectangle?: Rectangle;
   theme: Theme;
   style: Style;
+  #state: ComponentState;
+  resetState: boolean;
 
   constructor({ tui, rectangle, theme }: ComponentOptions) {
     super();
@@ -45,26 +48,41 @@ export class Component extends TypedEventTarget<{
     this.rectangle = rectangle;
     this.theme = {
       base: theme?.base ?? crayon,
-      focused: theme?.focused ?? crayon,
-      active: theme?.active ?? crayon,
+      focused: theme?.focused ?? theme?.base ?? crayon,
+      active: theme?.active ?? theme?.focused ?? theme?.base ?? crayon,
     };
     this.style = this.theme.base;
-
-    this.addEventListener("state", ({ detail }) => {
-      switch (detail.state) {
-        case "focused":
-          this.style = this.theme.focused;
-          break;
-        case "activated":
-          this.style = this.theme.active;
-          break;
-        case "unfocused":
-        case "inactive":
-          this.style = this.theme.base;
-          break;
-      }
-    });
+    this.#state = "base";
+    this.resetState = false;
   }
 
-  draw() {}
+  set state(state) {
+    this.#state = state;
+
+    switch (state) {
+      case "active":
+        this.style = this.theme.active;
+        break;
+      case "focused":
+        this.style = this.theme.focused;
+        break;
+      case "base":
+        this.style = this.theme.base;
+        break;
+    }
+
+    this.dispatchEvent(new TypedCustomEvent("state", { detail: state }));
+  }
+
+  get state() {
+    return this.#state;
+  }
+
+  draw() {
+    if (this.resetState) this.state = "base";
+  }
+
+  interact() {
+    this.draw();
+  }
 }
