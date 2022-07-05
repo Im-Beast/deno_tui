@@ -1,4 +1,6 @@
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
+import { Component } from "./component.ts";
+import { ButtonComponent } from "./components/button.ts";
 import { Tui } from "./tui.ts";
 import { clamp } from "./util.ts";
 
@@ -16,6 +18,8 @@ export function handleMouseControls(tui: Tui) {
 
     if (drag) return;
 
+    const possibleComponents: Component[] = [];
+
     for (const component of tui.components) {
       if (!component.rectangle) continue;
       const { column, row, width, height } = component.rectangle;
@@ -27,6 +31,17 @@ export function handleMouseControls(tui: Tui) {
         continue;
       }
 
+      const candidate = possibleComponents[0];
+
+      if (!possibleComponents.length || component.zIndex > candidate.zIndex) {
+        possibleComponents.length = 0;
+        possibleComponents.push(component);
+      } else if (component.zIndex === candidate.zIndex) {
+        possibleComponents.push(component);
+      }
+    }
+
+    for (const component of possibleComponents) {
       if (!release) {
         for (const component of tui.components) {
           if (component.state !== "focused") continue;
