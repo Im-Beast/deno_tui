@@ -24,7 +24,7 @@ export class ButtonComponent extends BoxComponent {
 
       canvas.draw(
         column + (width / 2) - (this.label.length / 2),
-        row + (height / 2) - 1,
+        row + (height / 2),
         this.style(this.label),
       );
     }
