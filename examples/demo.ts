@@ -30,12 +30,12 @@ const background = new BoxComponent({
     height,
   },
   theme: {
-    base: crayon.bgBlack,
+    base: crayon.bgRgb(44, 44, 44),
   },
 });
 
-tui.canvas.addEventListener("resize", ({ detail }) => {
-  const { columns, rows } = detail.size;
+tui.canvas.addEventListener("resize", ({ detail: size }) => {
+  const { columns, rows } = size;
   background.rectangle.width = columns;
   background.rectangle.height = rows;
 });
