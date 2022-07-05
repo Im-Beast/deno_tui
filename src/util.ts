@@ -82,3 +82,62 @@ export class SortedArray<T = unknown> extends Array<T> {
     return this.length;
   }
 }
+
+export class CombinedAsyncIterator<T = unknown> {
+  #asyncIterators: AsyncIterator<T>[] = [];
+
+  constructor(...iterables: AsyncIterable<T>[]) {
+    this.#asyncIterators.push(
+      ...(iterables.map((x) => x[Symbol.asyncIterator]())),
+    );
+  }
+
+  async *iterate(): AsyncIterableIterator<T> {
+    const yields: T[] = [];
+    const throws: unknown[] = [];
+    let resolve: () => void;
+    let promise = new Promise<void>((r) => {
+      resolve = r;
+    });
+    while (true) {
+      if (!yields.length) {
+        for (const iterator of this.#asyncIterators) {
+          const next = iterator.next();
+
+          next.catch(throws.push);
+
+          next.then(({ done, value }) => {
+            if (done) {
+              this.#asyncIterators.splice(
+                this.#asyncIterators.indexOf(iterator),
+                1,
+              );
+            } else {
+              yields.push(value);
+              resolve();
+            }
+          });
+        }
+
+        await promise;
+      }
+
+      for (const reason of throws) {
+        throw reason;
+      }
+
+      for (const value of yields) {
+        yield value;
+      }
+      yields.length = 0;
+
+      promise = new Promise<void>((r) => {
+        resolve = r;
+      });
+    }
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return this.iterate();
+  }
+}

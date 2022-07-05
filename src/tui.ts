@@ -5,13 +5,13 @@ import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import type { Theme } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
 import {
+  CombinedAsyncIterator,
   sleep,
   SortedArray,
   Timing,
   TypedCustomEvent,
   TypedEventTarget,
 } from "./util.ts";
-import { MuxAsyncIterator } from "https://deno.land/std/async/mux_async_iterator.ts";
 
 interface TuiOptions {
   canvas?: Canvas;
@@ -93,11 +93,9 @@ export class Tui extends TypedEventTarget<{
   async *run(): AsyncGenerator<
     { type: "render"; timing: Timing } | { type: "update" }
   > {
-    const iterator = new MuxAsyncIterator<
+    const iterator = new CombinedAsyncIterator<
       { type: "render"; timing: Timing } | { type: "update" }
-    >();
-    iterator.add(this.render());
-    iterator.add(this.update());
+    >(this.update(), this.render());
 
     for await (const event of iterator) {
       yield event;
