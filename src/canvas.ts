@@ -28,9 +28,7 @@ export class Canvas extends TypedEventTarget<{
   "frame": {
     timing: Timing;
   };
-  "resize": {
-    size: ConsoleSize;
-  };
+  "resize": ConsoleSize;
 }> {
   size: CanvasSize;
   refreshRate: number;
@@ -77,14 +75,14 @@ export class Canvas extends TypedEventTarget<{
     }
   }
 
-  async resizeCanvas(size: ConsoleSize): Promise<void> {
+  resizeCanvas(size: ConsoleSize): void {
     this.dispatchEvent(
-      new TypedCustomEvent("resize", { detail: { size } }),
+      new TypedCustomEvent("resize", { detail: size }),
     );
     // Keep object reference
     Object.assign(this.size, size);
+    this.frameBuffer = [];
     this.prevFrameBuffer = [];
-    await this.renderFrame(this.frameBuffer);
   }
 
   draw(column: number, row: number, value: string): void {
