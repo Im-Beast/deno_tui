@@ -4,7 +4,13 @@ import { crayon } from "./deps.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import type { Theme } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
-import { sleep, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
+import {
+  sleep,
+  SortedArray,
+  Timing,
+  TypedCustomEvent,
+  TypedEventTarget,
+} from "./util.ts";
 import { MuxAsyncIterator } from "https://deno.land/std/async/mux_async_iterator.ts";
 
 interface TuiOptions {
@@ -19,7 +25,7 @@ interface TuiPrivate {
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
-  components: Component[];
+  components: SortedArray<Component>;
   updateRate: number;
 }
 
@@ -38,7 +44,7 @@ export class Tui extends TypedEventTarget<{
   stdin: Stdin;
   stdout: Stdout;
   theme: Theme;
-  components: Component[];
+  components: SortedArray<Component>;
   updateRate: number;
 
   constructor({ stdin, stdout, canvas, theme, updateRate }: TuiOptions) {
@@ -51,7 +57,8 @@ export class Tui extends TypedEventTarget<{
       focused: theme?.focused ?? theme?.base ?? crayon,
       active: theme?.active ?? theme?.focused ?? theme?.base ?? crayon,
     };
-    this.components = [];
+    this.components = new SortedArray<Component>((a, b) => a.zIndex - b.zIndex);
+
     this.canvas = canvas ?? new Canvas({
       size: { columns: 0, rows: 0 },
       refreshRate: 16,

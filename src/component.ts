@@ -8,6 +8,7 @@ export interface ComponentOptions {
   tui: Tui;
   theme?: Partial<Theme>;
   rectangle?: Rectangle;
+  zIndex?: number;
 }
 
 export interface ComponentPrivate {
@@ -15,6 +16,7 @@ export interface ComponentPrivate {
   draw(): void;
   interact(): void;
   state: ComponentState;
+  zIndex: number;
 }
 
 export type ComponentImplementation =
@@ -39,8 +41,9 @@ export class Component extends TypedEventTarget<{
   style: Style;
   #state: ComponentState;
   resetState: boolean;
+  zIndex: number;
 
-  constructor({ tui, rectangle, theme }: ComponentOptions) {
+  constructor({ tui, rectangle, theme, zIndex }: ComponentOptions) {
     super();
 
     this.tui = tui;
@@ -51,6 +54,8 @@ export class Component extends TypedEventTarget<{
       focused: theme?.focused ?? theme?.base ?? crayon,
       active: theme?.active ?? theme?.focused ?? theme?.base ?? crayon,
     };
+    this.zIndex = zIndex ?? 0;
+
     this.style = this.theme.base;
     this.#state = "base";
     this.resetState = false;
