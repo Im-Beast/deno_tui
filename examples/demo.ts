@@ -1,11 +1,11 @@
 import { Canvas } from "../src/canvas.ts";
 import { BoxComponent } from "../src/components/box.ts";
 import { ButtonComponent } from "../src/components/button.ts";
+import { CheckboxComponent } from "../src/components/checkbox.ts";
 import { crayon } from "../src/deps.ts";
-import { handleKeypresses } from "../src/key_reader.ts";
+import { handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
-import { Timing } from "../src/util.ts";
 
 const tui = new Tui({
   theme: {
@@ -55,6 +55,7 @@ new ButtonComponent({
     active: crayon.bgRed,
   },
   label: "Hello",
+  zIndex: 2,
 });
 
 const bouncyBox = new ButtonComponent({
@@ -67,6 +68,21 @@ const bouncyBox = new ButtonComponent({
   },
   theme: {
     base: crayon.bgYellow,
+  },
+});
+
+new CheckboxComponent({
+  tui,
+  rectangle: {
+    column: 2,
+    row: 3,
+    height: 1,
+    width: 3,
+  },
+  theme: {
+    base: crayon.bgLightRed,
+    focused: crayon.bgWhite,
+    active: crayon.bgLightGreen,
   },
 });
 
