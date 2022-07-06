@@ -7,10 +7,10 @@ export function moveCursor(
 }
 
 /** ANSI escape code to enable mouse handling */
-export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h";
+export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h\x1b[?1005h\x1b[?1006h";
 
 /** ANSI escape code to disable mouse handling */
-export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1002l";
+export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1002l\x1b[?1005l\x1b[?1006l";
 
 /** ANSI escape code to hide terminal cursor  */
 export const HIDE_CURSOR = `\x1b[?25l`;
