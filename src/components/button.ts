@@ -8,7 +8,8 @@ export interface ButtonComponentOptions extends ComponentOptions {
 }
 
 export class ButtonComponent extends BoxComponent {
-  declare label?: string;
+  label?: string;
+  #lastInteraction = 0;
 
   constructor(options: ButtonComponentOptions) {
     super(options);
@@ -30,14 +31,13 @@ export class ButtonComponent extends BoxComponent {
     }
   }
 
-  #lastInteraction = 0;
   interact() {
     const now = Date.now();
-    if (this.state === "focused" && now - this.#lastInteraction < 500) {
-      this.state = "active";
-    } else {
-      this.state = "focused";
-    }
+    const interactionDelay = now - this.#lastInteraction;
+
+    this.state = this.state === "focused" && interactionDelay < 200
+      ? "active"
+      : "focused";
 
     this.#lastInteraction = now;
   }
