@@ -33,6 +33,7 @@ const background = new BoxComponent({
     base: crayon.bgRgb(44, 44, 44),
   },
 });
+background.interact = () => {};
 
 tui.canvas.addEventListener("resize", ({ detail: size }) => {
   const { columns, rows } = size;
