@@ -39,6 +39,7 @@ export class Tui extends TypedEventTarget<{
   keyPress: KeyPress;
   multiKeyPress: MultiKeyPress;
   mousePress: MousePress;
+  close: void;
 }> implements TuiImplementation {
   canvas: Canvas;
   stdin: Stdin;
@@ -49,6 +50,14 @@ export class Tui extends TypedEventTarget<{
 
   constructor({ stdin, stdout, canvas, theme, updateRate }: TuiOptions) {
     super();
+
+    addEventListener("unload", () => {
+      this.dispatchEvent(new TypedCustomEvent("close"));
+    });
+
+    Deno.addSignalListener("SIGINT", () => {
+      this.dispatchEvent(new TypedCustomEvent("close"));
+    });
 
     this.stdin = stdin ?? Deno.stdin;
     this.stdout = stdout ?? Deno.stdout;
