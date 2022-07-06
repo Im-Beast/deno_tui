@@ -1,6 +1,5 @@
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
 import { Component } from "./component.ts";
-import { ButtonComponent } from "./components/button.ts";
 import { Tui } from "./tui.ts";
 import { clamp } from "./util.ts";
 
@@ -9,7 +8,7 @@ const encoder = new TextEncoder();
 export function handleMouseControls(tui: Tui) {
   Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
 
-  addEventListener("unload", () => {
+  tui.addEventListener("close", () => {
     Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
@@ -41,13 +40,15 @@ export function handleMouseControls(tui: Tui) {
       }
     }
 
+    if (!release) {
+      for (const component of tui.components) {
+        if (component.state !== "focused") continue;
+        component.resetState = true;
+      }
+    }
+
     for (const component of possibleComponents) {
       if (!release) {
-        for (const component of tui.components) {
-          if (component.state !== "focused") continue;
-          component.resetState = true;
-        }
-
         component.interact();
         component.resetState = false;
       } else if (component.state !== "focused") {
