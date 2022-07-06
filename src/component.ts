@@ -40,6 +40,7 @@ export class Component extends TypedEventTarget<{
   theme: Theme;
   style: Style;
   #state: ComponentState;
+  resetStateAfterInteraction: boolean;
   resetState: boolean;
   zIndex: number;
 
@@ -59,6 +60,7 @@ export class Component extends TypedEventTarget<{
     this.style = this.theme.base;
     this.#state = "base";
     this.resetState = false;
+    this.resetStateAfterInteraction = true;
   }
 
   set state(state) {
@@ -84,7 +86,9 @@ export class Component extends TypedEventTarget<{
   }
 
   draw() {
-    if (this.resetState) this.state = "base";
+    if (this.resetStateAfterInteraction && this.resetState) {
+      this.state = "base";
+    }
   }
 
   interact() {
