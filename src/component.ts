@@ -32,9 +32,15 @@ export type ComponentState =
   | "active"
   | "base";
 
-export class Component extends TypedEventTarget<{
-  state: ComponentState;
-}> implements ComponentImplementation {
+export type ComponentEventMap<
+  EventMap extends Record<string, unknown> & { state: ComponentState } = {
+    state: ComponentState;
+  },
+> = EventMap;
+
+export class Component<EventMap extends ComponentEventMap = ComponentEventMap>
+  extends TypedEventTarget<EventMap>
+  implements ComponentImplementation {
   tui: Tui;
   rectangle?: Rectangle;
   theme: Theme;
@@ -48,7 +54,7 @@ export class Component extends TypedEventTarget<{
     super();
 
     this.tui = tui;
-    tui.components.push(this);
+    this.tui.components.push(this);
     this.rectangle = rectangle;
     this.theme = {
       base: theme?.base ?? crayon,
@@ -93,5 +99,9 @@ export class Component extends TypedEventTarget<{
 
   interact() {
     this.draw();
+  }
+
+  remove() {
+    this.tui.components.remove(this);
   }
 }
