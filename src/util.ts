@@ -81,6 +81,13 @@ export class SortedArray<T = unknown> extends Array<T> {
     this.sort(this.compareFn);
     return this.length;
   }
+
+  remove(...items: T[]) {
+    const filtered = this.filter((item) => !items.includes(item));
+    this.length = 0;
+    this.push(...filtered);
+    return this.length;
+  }
 }
 
 export class CombinedAsyncIterator<T = unknown> {
