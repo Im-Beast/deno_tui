@@ -1,11 +1,17 @@
-import { Component, ComponentOptions } from "../component.ts";
+import {
+  Component,
+  ComponentEventMap,
+  ComponentOptions,
+} from "../component.ts";
 import { Rectangle } from "../types.ts";
 
 export interface BoxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
 }
 
-export class BoxComponent extends Component {
+export class BoxComponent<
+  EventMap extends ComponentEventMap = ComponentEventMap,
+> extends Component<EventMap> {
   declare rectangle: Rectangle;
 
   constructor(options: BoxComponentOptions) {

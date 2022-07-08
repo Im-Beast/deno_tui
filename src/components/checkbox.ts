@@ -1,5 +1,6 @@
 import { ButtonComponent } from "./button.ts";
 import { BoxComponentOptions } from "./box.ts";
+import { ComponentEventMap } from "../component.ts";
 
 enum Mark {
   Check = "✓",
@@ -10,10 +11,12 @@ export interface CheckboxComponentOptions extends BoxComponentOptions {
   value?: boolean;
 }
 
-export class CheckboxComponent extends ButtonComponent {
-  label: string;
-  #value: boolean;
+export class CheckboxComponent<
+  EventMap extends ComponentEventMap = ComponentEventMap,
+> extends ButtonComponent<EventMap> {
   #lastInteraction = 0;
+  #value: boolean;
+  label: string;
 
   constructor(options: CheckboxComponentOptions) {
     super(options);
@@ -41,7 +44,7 @@ export class CheckboxComponent extends ButtonComponent {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    if (interactionDelay < 200) {
+    if (interactionDelay < 500) {
       this.value = !this.value;
     } else {
       this.state = "focused";
