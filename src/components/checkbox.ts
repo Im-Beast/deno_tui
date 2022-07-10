@@ -2,7 +2,7 @@ import { ButtonComponent } from "./button.ts";
 import { BoxComponentOptions } from "./box.ts";
 import { ComponentEventMap } from "../component.ts";
 
-enum Mark {
+export enum Mark {
   Check = "✓",
   Cross = "✗",
 }
