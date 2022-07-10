@@ -2,7 +2,7 @@ import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { crayon } from "./deps.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import type { Theme } from "./theme.ts";
+import type { Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
 import {
   CombinedAsyncIterator,
@@ -17,7 +17,7 @@ interface TuiOptions {
   canvas?: Canvas;
   stdin?: Stdin;
   stdout?: Stdout;
-  theme?: Partial<Theme>;
+  style?: Style;
   updateRate?: number;
 }
 
@@ -44,11 +44,11 @@ export class Tui extends TypedEventTarget<{
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
-  theme: Theme;
+  style: Style;
   components: SortedArray<Component>;
   updateRate: number;
 
-  constructor({ stdin, stdout, canvas, theme, updateRate }: TuiOptions) {
+  constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {
     super();
 
     addEventListener("unload", () => {
@@ -61,11 +61,7 @@ export class Tui extends TypedEventTarget<{
 
     this.stdin = stdin ?? Deno.stdin;
     this.stdout = stdout ?? Deno.stdout;
-    this.theme = {
-      base: theme?.base ?? crayon,
-      focused: theme?.focused ?? theme?.base ?? crayon,
-      active: theme?.active ?? theme?.focused ?? theme?.base ?? crayon,
-    };
+    this.style = style ?? crayon;
     this.components = new SortedArray<Component>((a, b) => a.zIndex - b.zIndex);
 
     this.canvas = canvas ?? new Canvas({
@@ -92,6 +88,14 @@ export class Tui extends TypedEventTarget<{
 
   async *render(): AsyncGenerator<{ type: "render"; timing: Timing }> {
     for await (const timing of this.canvas.render()) {
+      if (timing === Timing.Post) {
+        const { columns, rows } = this.canvas.size;
+        const textRow = this.style(" ".repeat(columns));
+        for (let r = 0; r < rows; ++r) {
+          this.canvas.draw(0, r, textRow);
+        }
+      }
+
       this.dispatchEvent(
         new TypedCustomEvent("render", { detail: { timing } }),
       );
@@ -100,7 +104,8 @@ export class Tui extends TypedEventTarget<{
   }
 
   async *run(): AsyncGenerator<
-    { type: "render"; timing: Timing } | { type: "update" }
+    | { type: "render"; timing: Timing }
+    | { type: "update" }
   > {
     const iterator = new CombinedAsyncIterator<
       { type: "render"; timing: Timing } | { type: "update" }
@@ -109,8 +114,10 @@ export class Tui extends TypedEventTarget<{
     for await (const event of iterator) {
       yield event;
 
-      for (const component of this.components) {
-        component.draw();
+      if (event.type === "update") {
+        for (const component of this.components) {
+          component.draw();
+        }
       }
     }
   }
