@@ -90,13 +90,6 @@ export class Canvas extends TypedEventTarget<{
     row = ~~row;
 
     if (value.length > 1) {
-      if (value.includes("\n")) {
-        for (const [i, line] of value.split("\n").entries()) {
-          this.draw(column, row + i, line);
-        }
-        return;
-      }
-
       const stripped = crayon.strip(value);
       const style = replaceAll(
         replace(value, stripped, ""),
@@ -104,21 +97,26 @@ export class Canvas extends TypedEventTarget<{
         "",
       );
 
-      if (stripped.length > 1) {
-        for (let i = 0; i < stripped.length; ++i) {
-          if (!this?.frameBuffer?.[row]) {
-            this.frameBuffer[row] ||= [];
-          }
-
-          this.frameBuffer[row][column + +i] = style
-            ? (style + stripped[i] + "\x1b[0m")
-            : stripped[i];
+      if (value.includes("\n")) {
+        for (const [i, line] of value.split("\n").entries()) {
+          this.draw(column, row + i, style + line);
         }
         return;
       }
+
+      for (let i = 0; i < stripped.length; ++i) {
+        if (!this.frameBuffer?.[row]) {
+          this.frameBuffer[row] ||= [];
+        }
+
+        this.frameBuffer[row][column + i] = style
+          ? (style + stripped[i] + "\x1b[0m")
+          : stripped[i];
+      }
+      return;
     }
 
-    if (!this?.frameBuffer?.[row]) {
+    if (!this.frameBuffer?.[row]) {
       this.frameBuffer[row] ||= [];
     }
     this.frameBuffer[row][column] = value;
