@@ -13,6 +13,10 @@ export function clamp(number: number, min: number, max: number): number {
   return Math.max(Math.min(number, max), min);
 }
 
+export function insertAt(string: string, index: number, value: string): string {
+  return string.slice(0, index) + value + string.slice(index);
+}
+
 export class TypedCustomEvent<
   Event = string,
   EventInit = unknown,
@@ -106,6 +110,7 @@ export class CombinedAsyncIterator<T = unknown> {
     let promise = new Promise<void>((r) => {
       resolve = r;
     });
+
     while (true) {
       if (!yields.length) {
         for (const iterator of this.#asyncIterators) {
