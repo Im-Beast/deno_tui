@@ -112,13 +112,13 @@ export class Tui extends TypedEventTarget<{
     >(this.update(), this.render());
 
     for await (const event of iterator) {
-      yield event;
-
       if (event.type === "update") {
         for (const component of this.components) {
           component.draw();
         }
       }
+
+      yield event;
     }
   }
 }
