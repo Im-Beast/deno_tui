@@ -33,7 +33,7 @@ export type ComponentState =
   | "base";
 
 export type ComponentEventMap<
-  EventMap extends Record<string, unknown> & { state: ComponentState } = {
+  EventMap extends (Record<string, unknown> & { state: ComponentState }) = {
     state: ComponentState;
   },
 > = EventMap;
@@ -98,7 +98,6 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap>
   }
 
   interact() {
-    this.draw();
   }
 
   remove() {
