@@ -1,4 +1,5 @@
 import { Canvas } from "../src/canvas.ts";
+import { TextboxComponent } from "../src/components/textbox.ts";
 import { crayon } from "../src/deps.ts";
 import { handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
@@ -15,6 +16,22 @@ const tui = new Tui({
 
 handleKeypresses(tui);
 handleMouseControls(tui);
+
+new TextboxComponent({
+  tui,
+  rectangle: {
+    column: 3,
+    row: 3,
+    width: 10,
+    height: 5,
+  },
+  theme: {
+    base: crayon.bgHex(0x111111),
+    focused: crayon.bgHex(0x222222),
+    active: crayon.bgRed,
+  },
+  multiline: true,
+});
 
 for await (const _ of tui.run()) {
   //
