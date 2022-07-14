@@ -115,15 +115,19 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
 export async function* readKeypresses(
   stdin: Stdin,
 ): AsyncGenerator<(KeyPress | MousePress)[], void, void> {
-  Deno.setRaw(
-    stdin.rid,
-    true,
-    Deno.build.os !== "windows" ? { cbreak: true } : undefined,
-  );
+  try {
+    Deno.setRaw(
+      stdin.rid,
+      true,
+      Deno.build.os !== "windows" ? { cbreak: true } : undefined,
+    );
+  } catch {
+    //
+  }
 
   while (true) {
     const buffer = new Uint8Array(1024);
-    const byteLength = await stdin.read(buffer);
+    const byteLength = await stdin.read(buffer).catch(() => false);
     if (typeof byteLength !== "number") continue;
     yield [...decodeBuffer(buffer.subarray(0, byteLength))];
   }
@@ -151,9 +155,7 @@ export function* decodeBuffer(
     const action = code.at(-1);
 
     // SGR
-    if (
-      code.startsWith("[<") && (action === "m" || action === "M")
-    ) {
+    if (code.startsWith("[<") && (action === "m" || action === "M")) {
       let [modifier, x, y] = code.slice(2, -1).split(";").map((x) => +x);
       x -= 1;
       y -= 1;
