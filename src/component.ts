@@ -38,8 +38,7 @@ export type ComponentEventMap<
   },
 > = EventMap;
 
-export class Component<EventMap extends ComponentEventMap = ComponentEventMap>
-  extends TypedEventTarget<EventMap>
+export class Component<EventMap extends ComponentEventMap = ComponentEventMap> extends TypedEventTarget<EventMap>
   implements ComponentImplementation {
   tui: Tui;
   rectangle?: Rectangle;
@@ -50,11 +49,9 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap>
   resetState: boolean;
   zIndex: number;
 
-  constructor({ tui, rectangle, theme, zIndex }: ComponentOptions) {
+  constructor({ rectangle, theme, zIndex, tui }: ComponentOptions) {
     super();
 
-    this.tui = tui;
-    this.tui.components.push(this);
     this.rectangle = rectangle;
     this.theme = {
       base: theme?.base ?? crayon,
@@ -67,6 +64,12 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap>
     this.#state = "base";
     this.resetState = false;
     this.resetStateAfterInteraction = true;
+
+    this.tui = tui;
+
+    queueMicrotask(async () => {
+      await this.tui.components.push(this);
+    });
   }
 
   set state(state) {
