@@ -13,6 +13,10 @@ export function clamp(number: number, min: number, max: number): number {
   return Math.max(Math.min(number, max), min);
 }
 
+export function fits(number: number, min: number, max: number): boolean {
+  return number === clamp(number, min, max);
+}
+
 export function insertAt(string: string, index: number, value: string): string {
   return string.slice(0, index) + value + string.slice(index);
 }
@@ -31,10 +35,10 @@ export class TypedCustomEvent<
 export class TypedEventTarget<
   EventMap extends Record<string, unknown>,
 > {
-  #eventTarget: EventTarget;
+  eventTarget: EventTarget;
 
   constructor() {
-    this.#eventTarget = new EventTarget();
+    this.eventTarget = new EventTarget();
   }
 
   addEventListener<EventType extends keyof EventMap>(
@@ -44,7 +48,7 @@ export class TypedEventTarget<
     ) => void | Promise<void>,
     options?: boolean | AddEventListenerOptions,
   ): void {
-    return this.#eventTarget.addEventListener(
+    return this.eventTarget.addEventListener(
       type as string,
       listener as EventListener,
       options,
@@ -54,7 +58,7 @@ export class TypedEventTarget<
   dispatchEvent<EventType extends keyof EventMap>(
     event: TypedCustomEvent<EventType, EventMap[EventType]>,
   ): boolean {
-    return this.#eventTarget.dispatchEvent(event);
+    return this.eventTarget.dispatchEvent(event);
   }
 
   removeEventListener<EventType extends keyof EventMap>(
@@ -62,7 +66,7 @@ export class TypedEventTarget<
     listener: (ev: TypedCustomEvent<EventType, EventMap[EventType]>) => void,
     options?: boolean | EventListenerOptions | undefined,
   ): void {
-    return this.#eventTarget.removeEventListener(
+    return this.eventTarget.removeEventListener(
       type as string,
       listener as EventListener,
       options,
