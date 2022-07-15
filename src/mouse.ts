@@ -1,7 +1,7 @@
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
 import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
-import { clamp } from "./util.ts";
+import { fits } from "./util.ts";
 
 const encoder = new TextEncoder();
 
@@ -12,10 +12,8 @@ export function handleMouseControls(tui: Tui) {
     Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  tui.addEventListener("mousePress", ({ detail: mousePress }) => {
-    const { x, y, drag, release } = mousePress;
-
-    if (drag) return;
+  tui.addEventListener("mousePress", ({ detail: { x, y, drag, scroll, shift, meta, ctrl, release } }) => {
+    if (drag || scroll !== 0 || shift || meta || ctrl) return;
 
     const possibleComponents: Component[] = [];
 
@@ -23,10 +21,7 @@ export function handleMouseControls(tui: Tui) {
       if (!component.rectangle) continue;
       const { column, row, width, height } = component.rectangle;
 
-      if (
-        clamp(x, column, column + width - 1) !== x ||
-        clamp(y, row, row + height - 1) !== y
-      ) {
+      if (!fits(x, column, column + width - 1) || !fits(y, row, row + height - 1)) {
         continue;
       }
 
