@@ -22,13 +22,14 @@ export class ButtonComponent<
     super.draw();
 
     if (this.label) {
+      const { style } = this;
       const { canvas } = this.tui;
       const { column, row, width, height } = this.rectangle;
 
       canvas.draw(
         column + (width / 2) - (this.label.length / 2),
         row + (height / 2),
-        this.style(this.label),
+        style(this.label),
       );
     }
   }

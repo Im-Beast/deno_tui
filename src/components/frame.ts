@@ -57,6 +57,7 @@ export class FrameComponent<
   draw() {
     super.draw();
 
+    const { style } = this;
     const { canvas } = this.tui;
     let { column, row, width, height } =
       (this.rectangle ?? this.component?.rectangle)!;
@@ -66,22 +67,21 @@ export class FrameComponent<
     width += 1;
     height += 1;
 
-    const color = this.style;
     const pieces = this.rounded ? RoundedFramePieces : SharpFramePieces;
 
-    canvas.draw(column, row, color(pieces.TopLeft));
-    canvas.draw(column + width, row, color(pieces.TopRight));
-    canvas.draw(column, row + height, color(pieces.BottomLeft));
-    canvas.draw(column + width, row + height, color(pieces.BottomRight));
+    canvas.draw(column, row, style(pieces.TopLeft));
+    canvas.draw(column + width, row, style(pieces.TopRight));
+    canvas.draw(column, row + height, style(pieces.BottomLeft));
+    canvas.draw(column + width, row + height, style(pieces.BottomRight));
 
     for (let x = column + 1; x < column + width; ++x) {
-      canvas.draw(x, row, color(pieces.Horizontal));
-      canvas.draw(x, row + height, color(pieces.Horizontal));
+      canvas.draw(x, row, style(pieces.Horizontal));
+      canvas.draw(x, row + height, style(pieces.Horizontal));
     }
 
     for (let y = row + 1; y < row + height; ++y) {
-      canvas.draw(column, y, color(pieces.Vertical));
-      canvas.draw(column + width, y, color(pieces.Vertical));
+      canvas.draw(column, y, style(pieces.Vertical));
+      canvas.draw(column + width, y, style(pieces.Vertical));
     }
   }
 }

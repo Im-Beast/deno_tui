@@ -127,6 +127,7 @@ export class TextboxComponent<
 
     if (!value) return;
 
+    const { style } = this;
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
     const { x, y } = this.cursorPosition;
@@ -141,7 +142,7 @@ export class TextboxComponent<
       canvas.draw(
         column,
         row + i - offsetY,
-        this.style(line.slice(offsetX, offsetX + width)),
+        style(line.slice(offsetX, offsetX + width)),
       );
     }
 

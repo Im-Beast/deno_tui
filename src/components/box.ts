@@ -21,12 +21,11 @@ export class BoxComponent<
   draw() {
     super.draw();
 
+    const { style } = this;
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    const color = this.style;
-
-    const textRow = color(" ".repeat(width));
+    const textRow = style(" ".repeat(width));
 
     for (let r = row; r < row + height; ++r) {
       canvas.draw(column, r, textRow);
