@@ -1,11 +1,6 @@
-import {
-  CLEAR_SCREEN,
-  HIDE_CURSOR,
-  moveCursor,
-  SHOW_CURSOR,
-} from "./ansi_codes.ts";
-import { sleep, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
-import type { ConsoleSize, Stdout } from "./types.ts";
+import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor, SHOW_CURSOR } from "./ansi_codes.ts";
+import { fits, sleep, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
+import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { crayon, replace, replaceAll } from "./deps.ts";
 
 const textEncoder = new TextEncoder();
@@ -85,7 +80,12 @@ export class Canvas extends TypedEventTarget<{
     this.prevFrameBuffer = [];
   }
 
-  draw(column: number, row: number, value: string): void {
+  draw(
+    column: number,
+    row: number,
+    value: string,
+    rectangle?: Rectangle,
+  ): void {
     column = ~~column;
     row = ~~row;
 
@@ -99,26 +99,44 @@ export class Canvas extends TypedEventTarget<{
 
       if (value.includes("\n")) {
         for (const [i, line] of value.split("\n").entries()) {
+          if (
+            rectangle &&
+            !fits(row + i, rectangle.row, rectangle.row + rectangle.height)
+          ) {
+            break;
+          }
           this.draw(column, row + i, style + line);
         }
         return;
       }
 
-      for (let i = 0; i < stripped.length; ++i) {
-        if (!this.frameBuffer?.[row]) {
-          this.frameBuffer[row] ||= [];
+      if (stripped.length > 1) {
+        if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) {
+          return;
         }
 
-        this.frameBuffer[row][column + i] = style
-          ? (style + stripped[i] + "\x1b[0m")
-          : stripped[i];
+        for (let i = 0; i < stripped.length; ++i) {
+          this.frameBuffer[row] ||= [];
+          if (rectangle && !fits(column + i, rectangle.column, rectangle.column + rectangle.width)) {
+            continue;
+          }
+
+          this.frameBuffer[row][column + i] = style + stripped[i] + "\x1b[0m";
+        }
+        return;
       }
+    }
+
+    if (
+      rectangle && (
+        !fits(column, rectangle.column, rectangle.column + rectangle.width) ||
+        !fits(row, rectangle.row, rectangle.row + rectangle.height)
+      )
+    ) {
       return;
     }
 
-    if (!this.frameBuffer?.[row]) {
-      this.frameBuffer[row] ||= [];
-    }
+    this.frameBuffer[row] ||= [];
     this.frameBuffer[row][column] = value;
   }
 
