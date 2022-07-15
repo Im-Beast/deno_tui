@@ -156,43 +156,43 @@ export function* decodeBuffer(
 
     // SGR
     if (code.startsWith("[<") && (action === "m" || action === "M")) {
-      let [modifier, x, y] = code.slice(2, -1).split(";").map((x) => +x);
+      let [modifiers, x, y] = code.slice(2, -1).split(";").map((x) => +x);
       x -= 1;
       y -= 1;
 
       let scroll: MousePress["scroll"] = 0;
-      if (modifier >= 64) {
-        scroll = modifier % 2 === 0 ? 1 : -1;
-        modifier -= scroll > 0 ? 64 : 65;
+      if (modifiers >= 64) {
+        scroll = modifiers % 2 === 0 ? -1 : 1;
+        modifiers -= scroll < 0 ? 64 : 65;
       }
 
       let drag = false;
-      if (modifier >= 32) {
+      if (modifiers >= 32) {
         drag = true;
-        modifier -= 32;
+        modifiers -= 32;
       }
 
       let ctrl = false;
-      if (modifier >= 16) {
+      if (modifiers >= 16) {
         ctrl = true;
-        modifier -= 16;
+        modifiers -= 16;
       }
 
       let meta = false;
-      if (modifier >= 8) {
+      if (modifiers >= 8) {
         meta = true;
-        modifier -= 8;
+        modifiers -= 8;
       }
 
       let shift = false;
-      if (modifier >= 4) {
+      if (modifiers >= 4) {
         shift = true;
-        modifier -= 4;
+        modifiers -= 4;
       }
 
       let button: MousePress["button"] = undefined;
       if (!scroll) {
-        button = modifier as MousePress["button"];
+        button = modifiers as MousePress["button"];
       }
 
       const mousePress: MousePress = {
@@ -214,9 +214,7 @@ export function* decodeBuffer(
 
     // VT and UTF-8
     if (code.startsWith("[M")) {
-      let [modifiers, x, y] = code.slice(2).split("").map((x) =>
-        x.charCodeAt(0)
-      );
+      let [modifiers, x, y] = code.slice(2).split("").map((x) => x.charCodeAt(0));
 
       x -= 0o41;
       y -= 0o41;
@@ -235,9 +233,7 @@ export function* decodeBuffer(
       const meta = !!(modifiers & 8);
       const ctrl = !!(modifiers & 16);
 
-      const scroll = !!(modifiers & 32) && !!(modifiers & 64)
-        ? modifiers & 3 ? 1 : -1
-        : 0;
+      const scroll = !!(modifiers & 32) && !!(modifiers & 64) ? modifiers & 3 ? 1 : -1 : 0;
 
       const drag = !scroll && !!(modifiers & 64);
 
