@@ -19,3 +19,11 @@ type _Range<From extends number, To extends number, R extends unknown[]> =
 export type Range<From extends number, To extends number> = number extends From
   ? number
   : _Range<From, To, []>;
+
+export type DeepPartial<Object> = {
+  // deno-lint-ignore ban-types
+  [key in keyof Object]?: Object[key] extends object
+    // deno-lint-ignore ban-types
+    ? Object[key] extends Function ? Object[key] : DeepPartial<Object[key]>
+    : Object[key];
+};
