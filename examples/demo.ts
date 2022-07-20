@@ -1,6 +1,7 @@
 import { Canvas } from "../src/canvas.ts";
 import { ButtonComponent } from "../src/components/button.ts";
 import { ScrollableViewComponent } from "../src/components/scrollable_view.ts";
+import { SliderComponent } from "../src/components/slider.ts";
 import { TextboxComponent } from "../src/components/textbox.ts";
 import { crayon } from "../src/deps.ts";
 import { handleKeypresses } from "../src/keyboard.ts";
@@ -38,8 +39,8 @@ new TextboxComponent({
 const view = new ScrollableViewComponent({
   tui,
   rectangle: {
-    column: 20,
-    row: 3,
+    column: 15,
+    row: 1,
     height: 10,
     width: 20,
   },
@@ -63,7 +64,7 @@ const view = new ScrollableViewComponent({
 new ButtonComponent({
   tui: view.tui,
   rectangle: {
-    column: 20,
+    column: 15,
     row: 10,
     width: 10,
     height: 3,
@@ -74,6 +75,52 @@ new ButtonComponent({
     active: crayon.bgLightMagenta,
   },
   zIndex: 5,
+});
+
+new SliderComponent({
+  tui,
+  direction: "vertical",
+  max: 10,
+  min: 0,
+  value: 5,
+  step: 1,
+  rectangle: {
+    column: 38,
+    row: 4,
+    width: 3,
+    height: 5,
+  },
+  theme: {
+    base: crayon.bgMagenta,
+    thumb: {
+      base: crayon.bgRed,
+      focused: crayon.bgCyan,
+      active: crayon.bgYellow,
+    },
+  },
+});
+
+new SliderComponent({
+  tui,
+  direction: "horizontal",
+  max: 10,
+  min: 0,
+  value: 5,
+  step: 1,
+  rectangle: {
+    column: 38,
+    row: 1,
+    width: 11,
+    height: 2,
+  },
+  theme: {
+    base: crayon.bgMagenta,
+    thumb: {
+      base: crayon.bgRed,
+      focused: crayon.bgCyan,
+      active: crayon.bgYellow,
+    },
+  },
 });
 
 for await (const _ of tui.run()) {
