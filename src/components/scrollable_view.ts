@@ -24,6 +24,7 @@ export interface ViewComponentOptions extends ComponentOptions {
   theme?: DeepPartial<ScrollableViewTheme>;
 }
 
+// TODO: Use sliders as scrollbars
 export class ScrollableViewComponent extends ViewComponent {
   declare rectangle: Rectangle;
   declare theme: ScrollableViewTheme;
@@ -37,7 +38,6 @@ export class ScrollableViewComponent extends ViewComponent {
 
     const vertical = theme?.scrollbar?.vertical;
     const corner = theme?.scrollbar?.corner;
-
     this.theme.scrollbar = {
       horizontal: {
         track: horizontal?.track ?? crayon,
