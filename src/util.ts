@@ -21,6 +21,10 @@ export function insertAt(string: string, index: number, value: string): string {
   return string.slice(0, index) + value + string.slice(index);
 }
 
+export function normalize(value: number, min: number, max: number): number {
+  return (value - min) / (max - min);
+}
+
 export class TypedCustomEvent<
   Event = string,
   EventInit = unknown,
