@@ -46,9 +46,10 @@ export function handleMouseControls(tui: Tui) {
       }
     }
 
-    if (!release) {
-      for (const component of tui.components) {
-        if (component.state !== "focused") continue;
+    const impossibleComponents = tui.components.filter((value) => possibleComponents.indexOf(value) === -1);
+
+    for (const component of impossibleComponents) {
+      if (component.state === "active") {
         component.resetState = true;
       }
     }
@@ -57,7 +58,7 @@ export function handleMouseControls(tui: Tui) {
       if (!release) {
         component.interact();
         component.resetState = false;
-      } else if (component.state !== "focused") {
+      } else if (component.state === "active") {
         component.resetState = true;
       }
     }
