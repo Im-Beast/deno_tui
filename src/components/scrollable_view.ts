@@ -3,6 +3,7 @@ import { crayon } from "../deps.ts";
 import { Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { clamp } from "../util.ts";
+import { SliderComponent } from "./slider.ts";
 import { ViewComponent } from "./view.ts";
 
 export interface ScrollableViewTheme extends Theme {
@@ -24,10 +25,13 @@ export interface ViewComponentOptions extends ComponentOptions {
   theme?: DeepPartial<ScrollableViewTheme>;
 }
 
-// TODO: Use sliders as scrollbars
 export class ScrollableViewComponent extends ViewComponent {
   declare rectangle: Rectangle;
   declare theme: ScrollableViewTheme;
+  #scrollbars: {
+    vertical: SliderComponent;
+    horizontal: SliderComponent;
+  };
 
   constructor(options: ViewComponentOptions) {
     super(options);
@@ -50,6 +54,59 @@ export class ScrollableViewComponent extends ViewComponent {
       corner: corner ?? crayon,
     };
 
+    const { column, row, width, height } = this.rectangle;
+
+    this.#scrollbars = {
+      vertical: new SliderComponent({
+        tui: this.tui.tui,
+        direction: "vertical",
+        min: 0,
+        max: 0,
+        value: 0,
+        step: 1,
+        rectangle: {
+          column: column + width,
+          row: row,
+          height: height,
+          width: 1,
+        },
+        theme: {
+          base: this.theme.scrollbar.vertical.track,
+          thumb: {
+            base: this.theme.scrollbar.vertical.thumb,
+          },
+        },
+      }),
+      horizontal: new SliderComponent({
+        tui: this.tui.tui,
+        direction: "horizontal",
+        min: 0,
+        max: 0,
+        value: 0,
+        step: 1,
+        rectangle: {
+          column: column,
+          row: row + height,
+          height: 1,
+          width: width,
+        },
+        theme: {
+          base: this.theme.scrollbar.vertical.track,
+          thumb: {
+            base: this.theme.scrollbar.vertical.thumb,
+          },
+        },
+      }),
+    };
+
+    this.#scrollbars.horizontal.addEventListener("value", ({ detail: value }) => {
+      this.offset.x = value;
+    });
+
+    this.#scrollbars.vertical.addEventListener("value", ({ detail: value }) => {
+      this.offset.y = value;
+    });
+
     this.tui.addEventListener("mousePress", ({ detail: { scroll, shift } }) => {
       if (!scroll || this.state === "base") return;
 
@@ -58,6 +115,14 @@ export class ScrollableViewComponent extends ViewComponent {
       } else {
         this.offset.y = clamp(this.offset.y + scroll, 0, this.maxOffset.y);
       }
+
+      this.#scrollbars.horizontal.value = this.offset.x;
+      this.#scrollbars.vertical.value = this.offset.y;
+    });
+
+    this.tui.addEventListener(["addComponent", "removeComponent"], () => {
+      this.#scrollbars.horizontal.max = this.maxOffset.x;
+      this.#scrollbars.vertical.max = this.maxOffset.y;
     });
   }
 
@@ -66,20 +131,6 @@ export class ScrollableViewComponent extends ViewComponent {
 
     const { canvas } = this.tui.tui;
     const { column, row, width, height } = this.rectangle;
-
-    if (this.maxOffset.x > 0) {
-      const horizontalStyle = this.theme.scrollbar.horizontal;
-      canvas.draw(column, row + height, horizontalStyle.track(" ".repeat(width)));
-      canvas.draw(column + (this.offset.x / this.maxOffset.x) * (width - 1), row + height, horizontalStyle.thumb(" "));
-    }
-
-    if (this.maxOffset.y > 0) {
-      const verticalStyle = this.theme.scrollbar.vertical;
-      for (let r = row; r < row + height; ++r) {
-        canvas.draw(column + width, r, verticalStyle.track(" "));
-      }
-      canvas.draw(column + width, row + (this.offset.y / this.maxOffset.y) * (height - 1), verticalStyle.thumb(" "));
-    }
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {
       const cornerStyle = this.theme.scrollbar.corner;
