@@ -26,13 +26,26 @@ export function handleMouseControls(tui: Tui) {
 
       const view = viewedComponent.tui.view;
       if (view && view !== viewedComponent) {
-        const { column: viewColumn, row: viewRow } = viewedComponent.tui.view.rectangle;
+        const { column: viewColumn, row: viewRow, width: viewWidth, height: viewHeight } =
+          viewedComponent.tui.view.rectangle;
         const { x: xOffset, y: yOffset } = viewedComponent.tui.view.offset;
         column += viewColumn - xOffset;
         row += viewRow - yOffset;
-      }
 
-      if (!fits(x, column, column + width - 1) || !fits(y, row, row + height - 1)) {
+        const xBoundary = Math.min(
+          column + width - 1,
+          viewColumn + viewWidth - 1,
+        );
+
+        const yBoundary = Math.min(
+          row + height - 1,
+          viewRow + viewHeight - 1,
+        );
+
+        if (!fits(x, column, xBoundary) || !fits(y, row, yBoundary)) {
+          continue;
+        }
+      } else if (!fits(x, column, column + width - 1) || !fits(y, row, row + height - 1)) {
         continue;
       }
 
