@@ -22,7 +22,7 @@ export function insertAt(string: string, index: number, value: string): string {
 }
 
 export function normalize(value: number, min: number, max: number): number {
-  return (value - min) / (max - min);
+  return ((value - min) / (max - min)) || 0;
 }
 
 export class TypedCustomEvent<
@@ -46,17 +46,23 @@ export class TypedEventTarget<
   }
 
   addEventListener<EventType extends keyof EventMap>(
-    type: EventType,
+    types: EventType | EventType[],
     listener: (
       ev: TypedCustomEvent<EventType, EventMap[EventType]>,
     ) => void | Promise<void>,
     options?: boolean | AddEventListenerOptions,
   ): void {
-    return this.eventTarget.addEventListener(
-      type as string,
-      listener as EventListener,
-      options,
-    );
+    if (!Array.isArray(types)) {
+      types = [types];
+    }
+
+    for (const type of types) {
+      this.eventTarget.addEventListener(
+        type as string,
+        listener as EventListener,
+        options,
+      );
+    }
   }
 
   dispatchEvent<EventType extends keyof EventMap>(
@@ -81,9 +87,9 @@ export class TypedEventTarget<
 export type CompareFn<T> = (a: T, b: T) => number;
 
 export class SortedArray<T = unknown> extends Array<T> {
-  compareFn: CompareFn<T>;
+  compareFn?: CompareFn<T>;
 
-  constructor(compareFn: CompareFn<T>, ...items: T[]) {
+  constructor(compareFn?: CompareFn<T>, ...items: T[]) {
     super(...items);
     this.compareFn = compareFn;
   }
