@@ -4,14 +4,7 @@ import { crayon } from "./deps.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import type { Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
-import {
-  CombinedAsyncIterator,
-  sleep,
-  SortedArray,
-  Timing,
-  TypedCustomEvent,
-  TypedEventTarget,
-} from "./util.ts";
+import { CombinedAsyncIterator, sleep, SortedArray, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
 
 interface TuiOptions {
   canvas?: Canvas;
@@ -40,6 +33,8 @@ export class Tui extends TypedEventTarget<{
   multiKeyPress: MultiKeyPress;
   mousePress: MousePress;
   close: void;
+  addComponent: Component;
+  removeComponent: Component;
 }> implements TuiImplementation {
   canvas: Canvas;
   stdin: Stdin;
