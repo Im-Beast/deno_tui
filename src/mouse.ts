@@ -49,7 +49,7 @@ export function handleMouseControls(tui: Tui) {
     const impossibleComponents = tui.components.filter((value) => possibleComponents.indexOf(value) === -1);
 
     for (const component of impossibleComponents) {
-      if (component.state === "active") {
+      if (component.state !== "base") {
         component.resetState = true;
       }
     }
