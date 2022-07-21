@@ -58,14 +58,15 @@ export class Canvas extends TypedEventTarget<{
         });
         break;
       default:
-        Deno.addSignalListener("SIGWINCH", async () => {
-          await this.resizeCanvas(await Deno.consoleSize(this.stdout.rid));
+        Deno.addSignalListener("SIGWINCH", () => {
+          this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
         });
 
         Deno.addSignalListener("SIGINT", () => {
           Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
           Deno.exit(0);
         });
+
         break;
     }
   }
