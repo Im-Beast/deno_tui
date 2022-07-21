@@ -69,6 +69,11 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap> e
 
     queueMicrotask(async () => {
       await this.tui.components.push(this);
+      this.tui.dispatchEvent(
+        new TypedCustomEvent("addComponent", {
+          detail: this,
+        }),
+      );
     });
   }
 
@@ -105,5 +110,10 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap> e
 
   remove() {
     this.tui.components.remove(this);
+    this.tui.dispatchEvent(
+      new TypedCustomEvent("removeComponent", {
+        detail: this,
+      }),
+    );
   }
 }
