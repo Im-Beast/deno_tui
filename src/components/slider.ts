@@ -5,7 +5,7 @@ import { Theme } from "../theme.ts";
 import { clamp, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 
-export interface ScrollableViewTheme extends Theme {
+export interface SliderViewTheme extends Theme {
   thumb: Theme;
 }
 
@@ -16,18 +16,18 @@ export interface SliderComponentOptions extends ComponentOptions {
   step: number;
   rectangle: Rectangle;
   direction: "horizontal" | "vertical";
-  theme?: DeepPartial<ScrollableViewTheme>;
+  theme?: DeepPartial<SliderViewTheme>;
 }
 
-export type TextboxComponentEventMap = ComponentEventMap<{
+export type SliderComponentEventMap = ComponentEventMap<{
   value: string;
   state: ComponentState;
 }>;
 
 export class SliderComponent<
-  EventMap extends ComponentEventMap = ComponentEventMap,
+  EventMap extends ComponentEventMap = SliderComponentEventMap,
 > extends BoxComponent<EventMap> {
-  declare theme: ScrollableViewTheme;
+  declare theme: SliderViewTheme;
   direction: "horizontal" | "vertical";
   min: number;
   max: number;
