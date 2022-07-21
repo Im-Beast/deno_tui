@@ -2,6 +2,7 @@ import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
 import { Component, ComponentOptions } from "../component.ts";
+import { SortedArray } from "../util.ts";
 
 export type ViewedComponent = Omit<Component, "tui"> & { tui: FakeTui };
 
@@ -21,6 +22,7 @@ export interface ViewComponentOptions extends ComponentOptions {
 }
 
 export class ViewComponent extends Component {
+  viewComponents = new SortedArray<Component>();
   declare rectangle: Rectangle;
   declare tui: FakeTui;
   offset: {
@@ -60,47 +62,35 @@ export class ViewComponent extends Component {
     const fakeTui = { tui, canvas: fakeCanvas, view: this } as unknown as FakeTui;
     Object.setPrototypeOf(fakeTui, tui);
 
-    const viewComponents: Component[] = [];
+    fakeTui.addEventListener("addComponent", ({ detail: component }) => {
+      if (component === this || component.tui !== fakeTui) return;
+      const { rectangle } = component;
+      if (!rectangle) return;
 
-    const intercepter = {
-      push: (...items: Component[]) => {
-        for (const component of items) {
-          if (component === this) continue;
+      this.viewComponents.push(component);
+      const { column, row, width, height } = rectangle;
 
-          const { rectangle } = component;
-          if (!rectangle) continue;
-          const { column, row, width, height } = rectangle;
+      this.maxOffset = {
+        x: Math.max(this.maxOffset.x, column + width - this.rectangle.width),
+        y: Math.max(this.maxOffset.y, row + height - this.rectangle.height),
+      };
+    });
 
-          this.maxOffset = {
-            x: Math.max(this.maxOffset.x, column + width - this.rectangle.width),
-            y: Math.max(this.maxOffset.y, row + height - this.rectangle.height),
-          };
-        }
+    fakeTui.addEventListener("removeComponent", ({ detail: component }) => {
+      let x = 0;
+      let y = 0;
 
-        viewComponents.push(...items);
-        return tui.components.push(...items);
-      },
-      remove: (...items: Component[]) => {
-        const length = tui.components.remove(...items);
+      this.viewComponents.remove(component);
+      for (const component of this.viewComponents) {
+        const { rectangle } = component;
+        if (!rectangle) continue;
 
-        let x = 0;
-        let y = 0;
-        for (const component of viewComponents) {
-          const { rectangle } = component;
-          if (!rectangle) continue;
+        x = Math.max(x, rectangle.column + rectangle.width);
+        y = Math.max(y, rectangle.row + rectangle.height);
+      }
 
-          x = Math.max(x, rectangle.column + rectangle.width);
-          y = Math.max(y, rectangle.row + rectangle.height);
-        }
-
-        this.maxOffset = { x, y };
-
-        return length;
-      },
-    };
-
-    // @ts-expect-error Javascript hackery
-    fakeTui.components = intercepter;
+      this.maxOffset = { x, y };
+    });
 
     this.tui = fakeTui;
   }
