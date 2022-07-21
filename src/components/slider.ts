@@ -2,7 +2,7 @@ import { BoxComponent } from "./box.ts";
 import { ComponentEventMap, ComponentOptions, ComponentState } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
-import { clamp, normalize } from "../util.ts";
+import { clamp, normalize, TypedCustomEvent } from "../util.ts";
 import { crayon } from "../deps.ts";
 
 export interface SliderViewTheme extends Theme {
@@ -20,26 +20,28 @@ export interface SliderComponentOptions extends ComponentOptions {
 }
 
 export type SliderComponentEventMap = ComponentEventMap<{
-  value: string;
+  value: number;
   state: ComponentState;
 }>;
 
+// TODO(Im-Beast): Adjust thumb width based on free space
+// TODO(Im-Beast): Make step optional and adjust it accordingly on available space and range
 export class SliderComponent<
-  EventMap extends ComponentEventMap = SliderComponentEventMap,
+  EventMap extends SliderComponentEventMap = SliderComponentEventMap,
 > extends BoxComponent<EventMap> {
   declare theme: SliderViewTheme;
   direction: "horizontal" | "vertical";
   min: number;
   max: number;
-  value: number;
   step: number;
+  #value: number;
 
   constructor(options: SliderComponentOptions) {
     super(options);
     this.direction = options.direction;
     this.min = options.min;
     this.max = options.max;
-    this.value = options.value;
+    this.#value = options.value;
     this.step = options.step;
 
     const thumb = options.theme?.thumb;
@@ -67,8 +69,18 @@ export class SliderComponent<
 
       lastX = x;
       lastY = y;
-      this.value = clamp(this.value, this.min, this.max);
     });
+  }
+
+  set value(value) {
+    this.#value = clamp(value, this.min, this.max);
+    this.dispatchEvent(
+      new TypedCustomEvent("value", { detail: this.#value }),
+    );
+  }
+
+  get value() {
+    return this.#value;
   }
 
   draw() {
@@ -103,7 +115,6 @@ export class SliderComponent<
   }
 
   interact() {
-    const { state } = this;
-    this.state = state === "focused" || state === "active" ? "active" : "focused";
+    this.state = "active";
   }
 }
