@@ -141,14 +141,14 @@ export class Canvas extends TypedEventTarget<{
     this.frameBuffer[row][column] = value;
   }
 
-  async renderFrame(frame: string[][]): Promise<void> {
+  renderFrame(frame: string[][]): void {
     this.dispatchEvent(
       new TypedCustomEvent("render", { detail: { timing: Timing.Pre } }),
     );
     const { prevFrameBuffer, size } = this;
 
     if (prevFrameBuffer.length === 0) {
-      await Deno.write(
+      Deno.writeSync(
         this.stdout.rid,
         textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN),
       );
@@ -166,7 +166,7 @@ export class Canvas extends TypedEventTarget<{
         if (+c > size.columns) break columns;
         if (prevFrameBuffer?.[r]?.[c] === frame?.[r]?.[c]) continue columns;
 
-        Deno.write(
+        Deno.writeSync(
           this.stdout.rid,
           textEncoder.encode(moveCursor(+r, +c) + frame[r][c]),
         );
@@ -195,7 +195,7 @@ export class Canvas extends TypedEventTarget<{
           new TypedCustomEvent("frame", { detail: { timing: Timing.Pre } }),
         );
 
-        await this.renderFrame(this.frameBuffer);
+        this.renderFrame(this.frameBuffer);
 
         this.dispatchEvent(
           new TypedCustomEvent("frame", { detail: { timing: Timing.Post } }),
