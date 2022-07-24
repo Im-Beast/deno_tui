@@ -25,62 +25,38 @@ export function normalize(value: number, min: number, max: number): number {
   return ((value - min) / (max - min)) || 0;
 }
 
-export class TypedCustomEvent<
-  Event = string,
-  EventInit = unknown,
-> extends CustomEvent {
-  declare detail: EventInit;
+export type EventRecord = Record<string, Event>;
 
-  constructor(typeArg: Event, eventInitDict?: CustomEventInit<EventInit>) {
-    super(typeArg as unknown as string, eventInitDict);
-  }
-}
-
-export class TypedEventTarget<
-  EventMap extends Record<string, unknown>,
-> {
+export class TypedEventTarget<EventMap extends EventRecord> {
   eventTarget: EventTarget;
-
   constructor() {
     this.eventTarget = new EventTarget();
   }
 
-  addEventListener<EventType extends keyof EventMap>(
-    types: EventType | EventType[],
-    listener: (
-      ev: TypedCustomEvent<EventType, EventMap[EventType]>,
-    ) => void | Promise<void>,
-    options?: boolean | AddEventListenerOptions,
+  addEventListener<Event extends keyof EventMap>(
+    types: Event | Event[],
+    listener: (this: TypedEventTarget<EventMap>, event: EventMap[Event]) => void | Promise<void>,
+    options?: AddEventListenerOptions,
   ): void {
-    if (!Array.isArray(types)) {
-      types = [types];
-    }
-
+    types = Array.isArray(types) ? types : [types];
     for (const type of types) {
-      this.eventTarget.addEventListener(
-        type as string,
-        listener as EventListener,
-        options,
-      );
+      this.eventTarget.addEventListener(type as string, listener as EventListener, options);
     }
   }
 
-  dispatchEvent<EventType extends keyof EventMap>(
-    event: TypedCustomEvent<EventType, EventMap[EventType]>,
-  ): boolean {
-    return this.eventTarget.dispatchEvent(event);
+  removeEventListener<Event extends keyof EventMap>(
+    types: Event | Event[],
+    listener: (this: TypedEventTarget<EventMap>, event: EventMap[Event]) => void | Promise<void>,
+    options?: AddEventListenerOptions,
+  ): void {
+    types = Array.isArray(types) ? types : [types];
+    for (const type of types) {
+      this.eventTarget.removeEventListener(type as string, listener as EventListener, options);
+    }
   }
 
-  removeEventListener<EventType extends keyof EventMap>(
-    type: EventType,
-    listener: (ev: TypedCustomEvent<EventType, EventMap[EventType]>) => void,
-    options?: boolean | EventListenerOptions | undefined,
-  ): void {
-    return this.eventTarget.removeEventListener(
-      type as string,
-      listener as EventListener,
-      options,
-    );
+  dispatchEvent<Event extends keyof EventMap>(event: EventMap[Event]): boolean {
+    return this.eventTarget.dispatchEvent(event);
   }
 }
 

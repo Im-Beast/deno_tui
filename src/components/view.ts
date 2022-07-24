@@ -2,7 +2,7 @@ import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { SortedArray } from "../util.ts";
+import { EventRecord, SortedArray } from "../util.ts";
 
 export type ViewedComponent = Omit<Component, "tui"> & { tui: FakeTui };
 
@@ -21,7 +21,7 @@ export interface ViewComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
 }
 
-export class ViewComponent extends Component {
+export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
   viewComponents = new SortedArray<Component>();
   declare rectangle: Rectangle;
   declare tui: FakeTui;
@@ -62,7 +62,7 @@ export class ViewComponent extends Component {
     const fakeTui = { tui, canvas: fakeCanvas, view: this } as unknown as FakeTui;
     Object.setPrototypeOf(fakeTui, tui);
 
-    fakeTui.addEventListener("addComponent", ({ detail: component }) => {
+    fakeTui.addEventListener("addComponent", ({ component }) => {
       if (component === this || component.tui !== fakeTui) return;
       const { rectangle } = component;
       if (!rectangle) return;
@@ -76,7 +76,7 @@ export class ViewComponent extends Component {
       };
     });
 
-    fakeTui.addEventListener("removeComponent", ({ detail: component }) => {
+    fakeTui.addEventListener("removeComponent", ({ component }) => {
       let x = 0;
       let y = 0;
 

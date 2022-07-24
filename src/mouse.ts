@@ -13,7 +13,8 @@ export function handleMouseControls(tui: Tui) {
     Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  tui.addEventListener("mousePress", ({ detail: { x, y, drag, scroll, shift, meta, ctrl, release } }) => {
+  tui.addEventListener("mousePress", ({ mousePress }) => {
+    const { x, y, drag, scroll, shift, meta, ctrl, release } = mousePress;
     if (drag || scroll !== 0 || shift || meta || ctrl) return;
 
     const possibleComponents: Component[] = [];
@@ -62,9 +63,7 @@ export function handleMouseControls(tui: Tui) {
     const impossibleComponents = tui.components.filter((value) => possibleComponents.indexOf(value) === -1);
 
     for (const component of impossibleComponents) {
-      if (component.state !== "base") {
-        component.resetState = true;
-      }
+      component.state = "base";
     }
 
     for (const component of possibleComponents) {

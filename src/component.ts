@@ -1,8 +1,9 @@
 import { crayon } from "./deps.ts";
+import { ComponentEvent } from "./events.ts";
 import { Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
 import { Rectangle } from "./types.ts";
-import { TypedCustomEvent, TypedEventTarget } from "./util.ts";
+import { EventRecord, TypedEventTarget } from "./util.ts";
 
 export interface ComponentOptions {
   tui: Tui;
@@ -19,27 +20,26 @@ export interface ComponentPrivate {
   zIndex: number;
 }
 
+export type ComponentEventMap = {
+  stateChange: ComponentEvent<"statechange">;
+};
+
 export type ComponentImplementation =
   & ComponentOptions
   & ComponentPrivate
-  & TypedEventTarget<{
-    focus: void;
-    activate: void;
-  }>;
+  & TypedEventTarget<ComponentEventMap>;
 
 export type ComponentState =
   | "focused"
   | "active"
   | "base";
 
-export type ComponentEventMap<
-  EventMap extends (Record<string, unknown> & { state: ComponentState }) = {
-    state: ComponentState;
-  },
-> = EventMap;
-
-export class Component<EventMap extends ComponentEventMap = ComponentEventMap> extends TypedEventTarget<EventMap>
-  implements ComponentImplementation {
+export class Component<
+  EventMap extends EventRecord = Record<never, never>,
+> extends TypedEventTarget<
+  // FIXME: "EventMap & ComponentEventMap" Type doesn't work for some reason
+  any
+> implements ComponentImplementation {
   tui: Tui;
   rectangle?: Rectangle;
   theme: Theme;
@@ -69,11 +69,7 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap> e
 
     queueMicrotask(async () => {
       await this.tui.components.push(this);
-      this.tui.dispatchEvent(
-        new TypedCustomEvent("addComponent", {
-          detail: this,
-        }),
-      );
+      this.tui.dispatchEvent(new ComponentEvent("addComponent", this));
     });
   }
 
@@ -92,7 +88,7 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap> e
         break;
     }
 
-    this.dispatchEvent(new TypedCustomEvent("state", { detail: state }));
+    this.dispatchEvent(new ComponentEvent("stateChange", this));
   }
 
   get state() {
@@ -110,10 +106,6 @@ export class Component<EventMap extends ComponentEventMap = ComponentEventMap> e
 
   remove() {
     this.tui.components.remove(this);
-    this.tui.dispatchEvent(
-      new TypedCustomEvent("removeComponent", {
-        detail: this,
-      }),
-    );
+    this.tui.dispatchEvent(new ComponentEvent("removeComponent", this));
   }
 }

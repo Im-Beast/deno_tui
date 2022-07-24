@@ -1,6 +1,7 @@
 import { BoxComponent } from "./box.ts";
-import { ComponentEventMap, ComponentOptions } from "../component.ts";
+import { ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
+import { EventRecord } from "../util.ts";
 
 export interface ButtonComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
@@ -8,7 +9,7 @@ export interface ButtonComponentOptions extends ComponentOptions {
 }
 
 export class ButtonComponent<
-  EventMap extends ComponentEventMap = ComponentEventMap,
+  EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap> {
   #lastInteraction = 0;
   label?: string;
@@ -38,9 +39,7 @@ export class ButtonComponent<
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && interactionDelay < 500
-      ? "active"
-      : "focused";
+    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
     this.#lastInteraction = now;
   }

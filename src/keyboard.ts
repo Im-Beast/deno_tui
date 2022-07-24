@@ -1,6 +1,6 @@
+import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
 import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
 import { Tui } from "./tui.ts";
-import { TypedCustomEvent } from "./util.ts";
 
 export async function handleKeypresses(tui: Tui): Promise<void> {
   for await (const keyPresses of readKeypresses(tui.stdin)) {
@@ -13,11 +13,7 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
     };
 
     for (const keyPress of keyPresses) {
-      tui.dispatchEvent(
-        keyPress.key === "mouse"
-          ? new TypedCustomEvent("mousePress", { detail: keyPress })
-          : new TypedCustomEvent("keyPress", { detail: keyPress }),
-      );
+      tui.dispatchEvent(keyPress.key === "mouse" ? new MousePressEvent(keyPress) : new KeypressEvent(keyPress));
 
       multiKeyPress.keys.push(keyPress.key);
       multiKeyPress.buffer.push(keyPress.buffer);
@@ -27,9 +23,7 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
     }
 
     if (multiKeyPress.keys.length > 1) {
-      tui.dispatchEvent(
-        new TypedCustomEvent("multiKeyPress", { detail: multiKeyPress }),
-      );
+      tui.dispatchEvent(new MultiKeyPressEvent(multiKeyPress));
     }
   }
 }

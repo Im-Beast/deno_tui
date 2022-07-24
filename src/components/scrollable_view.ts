@@ -2,7 +2,7 @@ import { ComponentOptions } from "../component.ts";
 import { crayon } from "../deps.ts";
 import { Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
-import { clamp } from "../util.ts";
+import { clamp, EventRecord } from "../util.ts";
 import { SliderComponent } from "./slider.ts";
 import { ViewComponent } from "./view.ts";
 
@@ -25,7 +25,8 @@ export interface ViewComponentOptions extends ComponentOptions {
   theme?: DeepPartial<ScrollableViewTheme>;
 }
 
-export class ScrollableViewComponent extends ViewComponent {
+export class ScrollableViewComponent<EventMap extends EventRecord = Record<never, never>>
+  extends ViewComponent<EventMap> {
   declare rectangle: Rectangle;
   declare theme: ScrollableViewTheme;
   #scrollbars: {
@@ -107,7 +108,8 @@ export class ScrollableViewComponent extends ViewComponent {
       this.offset.y = value;
     });
 
-    this.tui.addEventListener("mousePress", ({ detail: { scroll, shift } }) => {
+    this.tui.addEventListener("mousePress", ({ mousePress }) => {
+      const { scroll, shift } = mousePress;
       if (!scroll || this.state === "base") return;
 
       if (shift) {

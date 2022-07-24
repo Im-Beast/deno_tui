@@ -1,11 +1,12 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor, SHOW_CURSOR } from "./ansi_codes.ts";
-import { fits, sleep, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
+import { fits, sleep, Timing, TypedEventTarget } from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { crayon, replace, replaceAll } from "./deps.ts";
+import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
 const textEncoder = new TextEncoder();
 
-interface CanvasSize {
+export interface CanvasSize {
   columns: number;
   rows: number;
 }
@@ -16,15 +17,13 @@ export interface CanvasOptions {
   stdout: Stdout;
 }
 
-export class Canvas extends TypedEventTarget<{
-  "render": {
-    timing: Timing;
-  };
-  "frame": {
-    timing: Timing;
-  };
-  "resize": ConsoleSize;
-}> {
+export type CanvasEventMap = {
+  "render": RenderEvent;
+  "frame": FrameEvent;
+  "resize": CanvasResizeEvent;
+};
+
+export class Canvas extends TypedEventTarget<CanvasEventMap> {
   size: CanvasSize;
   refreshRate: number;
   stdout: Stdout;
@@ -46,8 +45,8 @@ export class Canvas extends TypedEventTarget<{
 
     switch (Deno.build.os) {
       case "windows":
-        this.addEventListener("render", async ({ detail }) => {
-          if (detail.timing !== Timing.Pre) return;
+        this.addEventListener("render", async ({ timing }) => {
+          if (timing !== Timing.Pre) return;
           const currentSize = await Deno.consoleSize(this.stdout.rid);
           if (
             currentSize.columns !== this.size.columns ||
@@ -72,9 +71,7 @@ export class Canvas extends TypedEventTarget<{
   }
 
   resizeCanvas(size: ConsoleSize): void {
-    this.dispatchEvent(
-      new TypedCustomEvent("resize", { detail: size }),
-    );
+    this.dispatchEvent(new CanvasResizeEvent(size));
     // Keep object reference
     Object.assign(this.size, size);
     this.frameBuffer = [];
@@ -142,9 +139,7 @@ export class Canvas extends TypedEventTarget<{
   }
 
   renderFrame(frame: string[][]): void {
-    this.dispatchEvent(
-      new TypedCustomEvent("render", { detail: { timing: Timing.Pre } }),
-    );
+    this.dispatchEvent(new RenderEvent(Timing.Pre));
     const { prevFrameBuffer, size } = this;
 
     if (prevFrameBuffer.length === 0) {
@@ -173,9 +168,7 @@ export class Canvas extends TypedEventTarget<{
       }
     }
 
-    this.dispatchEvent(
-      new TypedCustomEvent("render", { detail: { timing: Timing.Post } }),
-    );
+    this.dispatchEvent(new RenderEvent(Timing.Post));
 
     this.lastRender = performance.now();
     this.prevFrameBuffer = structuredClone(frame);
@@ -191,15 +184,11 @@ export class Canvas extends TypedEventTarget<{
         `${this.frameBuffer}` !== `${this.prevFrameBuffer}`
       ) {
         yield Timing.Pre;
-        this.dispatchEvent(
-          new TypedCustomEvent("frame", { detail: { timing: Timing.Pre } }),
-        );
+        this.dispatchEvent(new FrameEvent(Timing.Pre));
 
         this.renderFrame(this.frameBuffer);
 
-        this.dispatchEvent(
-          new TypedCustomEvent("frame", { detail: { timing: Timing.Post } }),
-        );
+        this.dispatchEvent(new FrameEvent(Timing.Post));
         yield Timing.Post;
       }
 

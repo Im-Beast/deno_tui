@@ -1,7 +1,8 @@
-import { Component, ComponentEventMap } from "../component.ts";
+import { Component } from "../component.ts";
 import { Theme } from "../theme.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
+import { EventRecord } from "../util.ts";
 
 export enum SharpFramePieces {
   TopLeft = "┌",
@@ -36,7 +37,7 @@ export type FrameComponentOptions = {
 };
 
 export class FrameComponent<
-  EventMap extends ComponentEventMap = ComponentEventMap,
+  EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> {
   declare component?: Component;
   declare rounded: boolean;
@@ -59,8 +60,7 @@ export class FrameComponent<
 
     const { style } = this;
     const { canvas } = this.tui;
-    let { column, row, width, height } =
-      (this.rectangle ?? this.component?.rectangle)!;
+    let { column, row, width, height } = (this.rectangle ?? this.component?.rectangle)!;
 
     column -= 1;
     row -= 1;

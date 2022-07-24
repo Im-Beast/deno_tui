@@ -1,12 +1,9 @@
 import { BoxComponent } from "./box.ts";
-import {
-  ComponentEventMap,
-  ComponentOptions,
-  ComponentState,
-} from "../component.ts";
+import { ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { clamp, insertAt, TypedCustomEvent } from "../util.ts";
+import { clamp, EventRecord, insertAt } from "../util.ts";
 import { crayon } from "../deps.ts";
+import { ComponentEvent } from "../events.ts";
 
 export interface TextboxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
@@ -14,14 +11,13 @@ export interface TextboxComponentOptions extends ComponentOptions {
   value?: string;
 }
 
-export type TextboxComponentEventMap = ComponentEventMap<{
-  value: string;
-  state: ComponentState;
-}>;
+export type TextboxComponentEventMap = {
+  value: ComponentEvent<"valuechange">;
+};
 
 export class TextboxComponent<
-  EventMap extends TextboxComponentEventMap = TextboxComponentEventMap,
-> extends BoxComponent<EventMap> {
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & TextboxComponentEventMap> {
   #value: string[] = [];
   #lastInteraction = 0;
 
@@ -37,7 +33,7 @@ export class TextboxComponent<
     this.#value = options.value?.split?.("\n") ?? [""];
     this.cursorPosition = { x: options.value?.length ?? 0, y: 0 };
 
-    this.tui.addEventListener("keyPress", ({ detail: keyPress }) => {
+    this.tui.addEventListener("keyPress", ({ keyPress }) => {
       if (this.state === "base") return;
 
       const { key, ctrl, meta } = keyPress;
@@ -108,7 +104,7 @@ export class TextboxComponent<
       x = clamp(x, 0, this.#value[y].length);
 
       this.cursorPosition = { x, y };
-      this.dispatchEvent(new TypedCustomEvent("value", { detail: this.value }));
+      this.dispatchEvent(new ComponentEvent("valueChange", this));
     });
   }
 
@@ -161,9 +157,7 @@ export class TextboxComponent<
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && interactionDelay < 500
-      ? "active"
-      : "focused";
+    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
     this.#lastInteraction = now;
   }

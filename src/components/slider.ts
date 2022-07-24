@@ -1,9 +1,10 @@
 import { BoxComponent } from "./box.ts";
-import { ComponentEventMap, ComponentOptions, ComponentState } from "../component.ts";
+import { ComponentOptions } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
-import { clamp, normalize, TypedCustomEvent } from "../util.ts";
+import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
+import { ComponentEvent } from "../events.ts";
 
 export interface SliderViewTheme extends Theme {
   thumb: Theme;
@@ -19,16 +20,15 @@ export interface SliderComponentOptions extends ComponentOptions {
   theme?: DeepPartial<SliderViewTheme>;
 }
 
-export type SliderComponentEventMap = ComponentEventMap<{
-  value: number;
-  state: ComponentState;
-}>;
+export type SliderComponentEventMap = {
+  value: ComponentEvent<"valuechange">;
+};
 
 // TODO(Im-Beast): Adjust thumb width based on free space
 // TODO(Im-Beast): Make step optional and adjust it accordingly on available space and range
 export class SliderComponent<
-  EventMap extends SliderComponentEventMap = SliderComponentEventMap,
-> extends BoxComponent<EventMap> {
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & SliderComponentEventMap> {
   declare theme: SliderViewTheme;
   direction: "horizontal" | "vertical";
   min: number;
@@ -44,6 +44,8 @@ export class SliderComponent<
     this.#value = options.value;
     this.step = options.step;
 
+    this.resetStateAfterInteraction = false;
+
     const thumb = options.theme?.thumb;
     this.theme.thumb = {
       active: thumb?.active ?? thumb?.focused ?? thumb?.base ?? crayon,
@@ -53,8 +55,11 @@ export class SliderComponent<
 
     let lastX = 0;
     let lastY = 0;
-    this.tui.addEventListener("mousePress", ({ detail: { x, y, drag } }) => {
-      if (!drag || this.state !== "active") return;
+
+    this.tui.addEventListener("mousePress", ({ mousePress }) => {
+      const { x, y, drag } = mousePress;
+
+      if (!drag || (this.state !== "active" && this.state !== "focused")) return;
 
       switch (this.direction) {
         case "horizontal":
@@ -74,9 +79,7 @@ export class SliderComponent<
 
   set value(value) {
     this.#value = clamp(value, this.min, this.max);
-    this.dispatchEvent(
-      new TypedCustomEvent("value", { detail: this.#value }),
-    );
+    this.dispatchEvent(new ComponentEvent("valueChange", this));
   }
 
   get value() {
@@ -115,6 +118,6 @@ export class SliderComponent<
   }
 
   interact() {
-    this.state = "active";
+    this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
   }
 }

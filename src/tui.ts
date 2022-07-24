@@ -1,12 +1,12 @@
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { crayon } from "./deps.ts";
-import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
+import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import type { Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
-import { CombinedAsyncIterator, sleep, SortedArray, Timing, TypedCustomEvent, TypedEventTarget } from "./util.ts";
+import { CombinedAsyncIterator, sleep, SortedArray, Timing, TypedEventTarget } from "./util.ts";
 
-interface TuiOptions {
+export interface TuiOptions {
   canvas?: Canvas;
   stdin?: Stdin;
   stdout?: Stdout;
@@ -14,7 +14,7 @@ interface TuiOptions {
   updateRate?: number;
 }
 
-interface TuiPrivate {
+export interface TuiPrivate {
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
@@ -22,20 +22,20 @@ interface TuiPrivate {
   updateRate: number;
 }
 
-type TuiImplementation = TuiOptions & TuiPrivate;
+export type TuiImplementation = TuiOptions & TuiPrivate;
 
-export class Tui extends TypedEventTarget<{
-  render: {
-    timing: Timing;
-  };
-  update: void;
-  keyPress: KeyPress;
-  multiKeyPress: MultiKeyPress;
-  mousePress: MousePress;
-  close: void;
-  addComponent: Component;
-  removeComponent: Component;
-}> implements TuiImplementation {
+export type TuiEventMap = {
+  render: RenderEvent;
+  update: Event;
+  keyPress: KeypressEvent;
+  multiKeyPress: MultiKeyPressEvent;
+  mousePress: MousePressEvent;
+  close: CustomEvent<"close">;
+  addComponent: ComponentEvent<"addComponent">;
+  removeComponent: ComponentEvent<"removeComponent">;
+};
+
+export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementation {
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
@@ -47,11 +47,11 @@ export class Tui extends TypedEventTarget<{
     super();
 
     addEventListener("unload", () => {
-      this.dispatchEvent(new TypedCustomEvent("close"));
+      this.dispatchEvent(new CustomEvent("close"));
     });
 
     Deno.addSignalListener("SIGINT", () => {
-      this.dispatchEvent(new TypedCustomEvent("close"));
+      this.dispatchEvent(new CustomEvent("close"));
     });
 
     this.stdin = stdin ?? Deno.stdin;
@@ -72,7 +72,7 @@ export class Tui extends TypedEventTarget<{
       let deltaTime = performance.now();
 
       this.dispatchEvent(
-        new TypedCustomEvent("update"),
+        new CustomEvent("update"),
       );
       yield { type: "update" };
 
@@ -92,7 +92,7 @@ export class Tui extends TypedEventTarget<{
       }
 
       this.dispatchEvent(
-        new TypedCustomEvent("render", { detail: { timing } }),
+        new CustomEvent("render", { detail: { timing } }),
       );
       yield { type: "render", timing };
     }

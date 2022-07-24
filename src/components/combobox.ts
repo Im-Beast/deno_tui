@@ -1,13 +1,9 @@
 import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
-import {
-  Component,
-  ComponentEventMap,
-  ComponentOptions,
-  ComponentState,
-} from "../component.ts";
+import { Component, ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { TypedCustomEvent } from "../util.ts";
+import { EventRecord } from "../util.ts";
+import { ComponentEvent } from "../events.ts";
 
 export interface ComboboxComponentOptions<
   OptionType extends string[] = string[],
@@ -17,17 +13,14 @@ export interface ComboboxComponentOptions<
   options: OptionType;
 }
 
-export type ComboboxComponentEventMap<OptionType extends string[]> =
-  ComponentEventMap<{
-    value: OptionType[number];
-    state: ComponentState;
-  }>;
+export type ComboboxComponentEventMap = {
+  valueChange: ComponentEvent<"valuechange">;
+};
 
 export class ComboboxComponent<
   OptionType extends string[] = string[],
-  EventMap extends ComboboxComponentEventMap<OptionType> =
-    ComboboxComponentEventMap<OptionType>,
-> extends BoxComponent<EventMap> {
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & ComboboxComponentEventMap> {
   #lastInteraction = 0;
   #temporaryComponents: Component[] = [];
   label: string;
@@ -61,9 +54,7 @@ export class ComboboxComponent<
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && interactionDelay < 500
-      ? "active"
-      : "focused";
+    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
     if (this.state === "active") {
       const { column, row, width, height } = this.rectangle;
@@ -81,15 +72,12 @@ export class ComboboxComponent<
           theme: this.theme,
         });
 
-        button.addEventListener("state", ({ detail: state }) => {
+        button.addEventListener("stateChange", ({ component }) => {
+          const { state } = component;
           if (state !== "active") return;
           this.label = option;
           this.option = option;
-          this.dispatchEvent(
-            new TypedCustomEvent("value", {
-              detail: this.option,
-            }),
-          );
+          this.dispatchEvent(new ComponentEvent("valueChange", this));
           this.interact();
         });
 

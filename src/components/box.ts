@@ -1,16 +1,13 @@
-import {
-  Component,
-  ComponentEventMap,
-  ComponentOptions,
-} from "../component.ts";
+import { Component, ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
+import { EventRecord } from "../util.ts";
 
 export interface BoxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
 }
 
 export class BoxComponent<
-  EventMap extends ComponentEventMap = ComponentEventMap,
+  EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> {
   declare rectangle: Rectangle;
 
