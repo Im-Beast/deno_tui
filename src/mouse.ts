@@ -27,9 +27,8 @@ export function handleMouseControls(tui: Tui) {
 
       const view = viewedComponent.tui.view;
       if (view && view !== viewedComponent) {
-        const { column: viewColumn, row: viewRow, width: viewWidth, height: viewHeight } =
-          viewedComponent.tui.view.rectangle;
-        const { x: xOffset, y: yOffset } = viewedComponent.tui.view.offset;
+        const { column: viewColumn, row: viewRow, width: viewWidth, height: viewHeight } = view.rectangle;
+        const { x: xOffset, y: yOffset } = view.offset;
         column += viewColumn - xOffset;
         row += viewRow - yOffset;
 

@@ -12,7 +12,7 @@ export interface FakeCanvas extends Canvas {
 }
 
 export interface FakeTui extends Tui {
-  tui: Tui;
+  realTui: Tui;
   view: ViewComponent;
   canvas: FakeCanvas;
 }
@@ -22,7 +22,6 @@ export interface ViewComponentOptions extends ComponentOptions {
 }
 
 export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
-  viewComponents = new SortedArray<Component>();
   declare rectangle: Rectangle;
   declare tui: FakeTui;
   offset: {
@@ -33,6 +32,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     x: number;
     y: number;
   };
+  declare components: SortedArray<Component>;
 
   constructor(options: ViewComponentOptions) {
     super(options);
@@ -40,8 +40,9 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     this.offset = { x: 0, y: 0 };
     this.maxOffset = { x: 0, y: 0 };
 
-    const { canvas } = this.tui;
+    this.components = new SortedArray<Component>();
 
+    const { canvas } = this.tui;
     const fakeCanvas = { canvas } as unknown as FakeCanvas;
     Object.setPrototypeOf(fakeCanvas, canvas);
     Object.setPrototypeOf(fakeCanvas, {
@@ -58,8 +59,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     });
 
     const { tui } = this;
-
-    const fakeTui = { tui, canvas: fakeCanvas, view: this } as unknown as FakeTui;
+    const fakeTui = { realTui: tui, canvas: fakeCanvas, view: this } as unknown as FakeTui;
     Object.setPrototypeOf(fakeTui, tui);
 
     fakeTui.addEventListener("addComponent", ({ component }) => {
@@ -67,7 +67,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
       const { rectangle } = component;
       if (!rectangle) return;
 
-      this.viewComponents.push(component);
+      this.components.push(component);
       const { column, row, width, height } = rectangle;
 
       this.maxOffset = {
@@ -80,8 +80,8 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
       let x = 0;
       let y = 0;
 
-      this.viewComponents.remove(component);
-      for (const component of this.viewComponents) {
+      this.components.remove(component);
+      for (const component of this.components) {
         const { rectangle } = component;
         if (!rectangle) continue;
 
@@ -99,7 +99,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     super.draw();
 
     const { style } = this;
-    const { canvas } = this.tui.tui;
+    const { canvas } = this.tui.realTui;
     const { column, row, width, height } = this.rectangle;
 
     const textRow = style(" ".repeat(width));

@@ -59,7 +59,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
 
     this.#scrollbars = {
       vertical: new SliderComponent({
-        tui: this.tui.tui,
+        tui: this.tui.realTui,
         direction: "vertical",
         min: 0,
         max: 0,
@@ -79,7 +79,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
         },
       }),
       horizontal: new SliderComponent({
-        tui: this.tui.tui,
+        tui: this.tui.realTui,
         direction: "horizontal",
         min: 0,
         max: 0,
@@ -131,7 +131,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
   draw() {
     super.draw();
 
-    const { canvas } = this.tui.tui;
+    const { canvas } = this.tui.realTui;
     const { column, row, width, height } = this.rectangle;
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {

@@ -66,7 +66,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     this.stdin = stdin ?? Deno.stdin;
     this.stdout = stdout ?? Deno.stdout;
     this.style = style ?? crayon;
-    this.components = new SortedArray<Component>((a, b) => a.zIndex - b.zIndex);
+    this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
 
     this.canvas = canvas ?? new Canvas({
       size: { columns: 0, rows: 0 },

@@ -1,4 +1,4 @@
-// TODO: Use msvcrt.dll on windows to get pressed keys
+// TODO(Im-Beast): Use msvcrt.dll on windows to get pressed keys
 import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();

@@ -77,13 +77,13 @@ export class SliderComponent<
     });
   }
 
+  get value() {
+    return this.#value;
+  }
+
   set value(value) {
     this.#value = clamp(value, this.min, this.max);
     this.dispatchEvent(new ComponentEvent("valueChange", this));
-  }
-
-  get value() {
-    return this.#value;
   }
 
   draw() {
