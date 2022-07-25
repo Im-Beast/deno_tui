@@ -1,10 +1,8 @@
-import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor, SHOW_CURSOR } from "./ansi_codes.ts";
-import { fits, sleep, Timing, TypedEventTarget } from "./util.ts";
+import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
+import { fits, sleep, textEncoder, Timing, TypedEventTarget } from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { crayon, replace, replaceAll } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
-
-const textEncoder = new TextEncoder();
 
 export interface CanvasSize {
   columns: number;
@@ -58,12 +56,6 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
         Deno.addSignalListener("SIGWINCH", () => {
           this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
         });
-
-        Deno.addSignalListener("SIGINT", () => {
-          Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
-          Deno.exit(0);
-        });
-
         break;
     }
   }

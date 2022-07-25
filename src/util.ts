@@ -3,6 +3,8 @@ export enum Timing {
   Post = "post",
 }
 
+export const textEncoder = new TextEncoder();
+
 export function sleep(time: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, time);

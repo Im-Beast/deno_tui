@@ -1,10 +1,11 @@
+import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { crayon } from "./deps.ts";
 import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import type { Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
-import { CombinedAsyncIterator, sleep, SortedArray, Timing, TypedEventTarget } from "./util.ts";
+import { CombinedAsyncIterator, sleep, SortedArray, textEncoder, Timing, TypedEventTarget } from "./util.ts";
 
 export interface TuiOptions {
   canvas?: Canvas;
@@ -54,6 +55,14 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
       this.dispatchEvent(new CustomEvent("close"));
     });
 
+    this.addEventListener("close", () => {
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
+
+      queueMicrotask(() => {
+        Deno.exit(0);
+      });
+    });
+
     this.stdin = stdin ?? Deno.stdin;
     this.stdout = stdout ?? Deno.stdout;
     this.style = style ?? crayon;
@@ -64,6 +73,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
       refreshRate: 16,
       stdout: Deno.stdout,
     });
+
     this.updateRate = updateRate ?? this.canvas.refreshRate;
   }
 
