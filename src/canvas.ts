@@ -47,12 +47,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
       case "windows":
         this.addEventListener("render", async ({ timing }) => {
           if (timing !== Timing.Pre) return;
+
           const currentSize = await Deno.consoleSize(this.stdout.rid);
-          if (
-            currentSize.columns !== this.size.columns ||
-            currentSize.rows !== this.size.rows
-          ) {
-            await this.resizeCanvas(currentSize);
+          if (currentSize.columns !== this.size.columns || currentSize.rows !== this.size.rows) {
+            this.resizeCanvas(currentSize);
           }
         });
         break;
@@ -71,7 +69,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   }
 
   resizeCanvas(size: ConsoleSize): void {
+    if (size.columns === this.size.columns && size.rows === this.size.rows) return;
+
     this.dispatchEvent(new CanvasResizeEvent(size));
+    // TODO(Im-Beast): Is keeping object reference really neccesary?
     // Keep object reference
     Object.assign(this.size, size);
     this.frameBuffer = [];
