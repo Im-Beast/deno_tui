@@ -21,7 +21,7 @@ export interface ComponentPrivate {
 }
 
 export type ComponentEventMap = {
-  stateChange: ComponentEvent<"statechange">;
+  stateChange: ComponentEvent<"stateChange">;
 };
 
 export type ComponentImplementation =
@@ -36,10 +36,7 @@ export type ComponentState =
 
 export class Component<
   EventMap extends EventRecord = Record<never, never>,
-> extends TypedEventTarget<
-  // FIXME: "EventMap & ComponentEventMap" Type doesn't work for some reason
-  any
-> implements ComponentImplementation {
+> extends TypedEventTarget<EventMap & ComponentEventMap> implements ComponentImplementation {
   tui: Tui;
   rectangle?: Rectangle;
   theme: Theme;

@@ -14,7 +14,7 @@ export interface ComboboxComponentOptions<
 }
 
 export type ComboboxComponentEventMap = {
-  valueChange: ComponentEvent<"valuechange">;
+  valueChange: ComponentEvent<"valueChange", ComboboxComponent>;
 };
 
 export class ComboboxComponent<

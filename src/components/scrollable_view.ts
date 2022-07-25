@@ -100,12 +100,12 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
       }),
     };
 
-    this.#scrollbars.horizontal.addEventListener("value", ({ detail: value }) => {
-      this.offset.x = value;
+    this.#scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
+      this.offset.x = component.value;
     });
 
-    this.#scrollbars.vertical.addEventListener("value", ({ detail: value }) => {
-      this.offset.y = value;
+    this.#scrollbars.vertical.addEventListener("valueChange", ({ component }) => {
+      this.offset.y = component.value;
     });
 
     this.tui.addEventListener("mousePress", ({ mousePress }) => {

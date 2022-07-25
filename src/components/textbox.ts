@@ -4,6 +4,7 @@ import { Rectangle } from "../types.ts";
 import { clamp, EventRecord, insertAt } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
+import { ComboboxComponent } from "./combobox.ts";
 
 export interface TextboxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
@@ -12,7 +13,7 @@ export interface TextboxComponentOptions extends ComponentOptions {
 }
 
 export type TextboxComponentEventMap = {
-  value: ComponentEvent<"valuechange">;
+  value: ComponentEvent<"valueChange", ComboboxComponent>;
 };
 
 export class TextboxComponent<

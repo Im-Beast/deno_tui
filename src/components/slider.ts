@@ -21,7 +21,7 @@ export interface SliderComponentOptions extends ComponentOptions {
 }
 
 export type SliderComponentEventMap = {
-  value: ComponentEvent<"valuechange">;
+  valueChange: ComponentEvent<"valueChange", SliderComponent>;
 };
 
 // TODO(Im-Beast): Adjust thumb width based on free space
@@ -87,6 +87,10 @@ export class SliderComponent<
   }
 
   draw() {
+    if (this.resetState && this.state === "active") {
+      this.state = "focused";
+    }
+
     super.draw();
 
     const { theme, state, value, min, max } = this;
