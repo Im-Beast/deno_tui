@@ -29,6 +29,7 @@ export type EventRecord = Record<string, Event>;
 
 export class TypedEventTarget<EventMap extends EventRecord> {
   eventTarget: EventTarget;
+
   constructor() {
     this.eventTarget = new EventTarget();
   }
@@ -55,7 +56,7 @@ export class TypedEventTarget<EventMap extends EventRecord> {
     }
   }
 
-  dispatchEvent<Event extends keyof EventMap>(event: EventMap[Event]): boolean {
+  dispatchEvent<EventType extends Event>(event: EventType): boolean {
     return this.eventTarget.dispatchEvent(event);
   }
 }
