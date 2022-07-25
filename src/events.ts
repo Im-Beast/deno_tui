@@ -57,10 +57,11 @@ export class MousePressEvent extends Event {
   }
 }
 
-export class ComponentEvent<Type extends string = string> extends Event {
-  readonly component: Component;
+export class ComponentEvent<EventType extends string = string, ComponentType extends Component = Component>
+  extends Event {
+  readonly component: ComponentType;
 
-  constructor(type: Type, component: Component) {
+  constructor(type: EventType, component: ComponentType) {
     super(type);
     this.component = component;
   }
