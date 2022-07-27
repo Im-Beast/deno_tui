@@ -17,6 +17,7 @@ export interface SliderComponentOptions extends ComponentOptions {
   step: number;
   rectangle: Rectangle;
   direction: "horizontal" | "vertical";
+  adjustThumbSize?: boolean;
   theme?: DeepPartial<SliderViewTheme>;
 }
 
@@ -24,8 +25,6 @@ export type SliderComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", SliderComponent>;
 };
 
-// TODO(Im-Beast): Adjust thumb width based on free space
-// TODO(Im-Beast): Make step optional and adjust it accordingly on available space and range
 export class SliderComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & SliderComponentEventMap> {
@@ -35,6 +34,7 @@ export class SliderComponent<
   max: number;
   step: number;
   #value: number;
+  adjustThumbSize: boolean;
 
   constructor(options: SliderComponentOptions) {
     super(options);
@@ -43,6 +43,8 @@ export class SliderComponent<
     this.max = options.max;
     this.#value = options.value;
     this.step = options.step;
+
+    this.adjustThumbSize = options.adjustThumbSize ?? false;
 
     this.resetStateAfterInteraction = false;
 
@@ -53,8 +55,7 @@ export class SliderComponent<
       base: thumb?.base ?? crayon,
     };
 
-    let lastX = 0;
-    let lastY = 0;
+    const lastMove = { x: 0, y: 0 };
 
     this.tui.addEventListener("mousePress", ({ mousePress }) => {
       const { x, y, drag } = mousePress;
@@ -63,17 +64,17 @@ export class SliderComponent<
 
       switch (this.direction) {
         case "horizontal":
-          if (lastX === 0) break;
-          this.value += (x - lastX) * this.step;
+          if (lastMove.x === 0) break;
+          this.value += (x - lastMove.x) * this.step;
           break;
         case "vertical":
-          if (lastY === 0) break;
-          this.value += (y - lastY) * this.step;
+          if (lastMove.y === 0) break;
+          this.value += (y - lastMove.y) * this.step;
           break;
       }
 
-      lastX = x;
-      lastY = y;
+      lastMove.x = x;
+      lastMove.y = y;
     });
   }
 
@@ -82,8 +83,12 @@ export class SliderComponent<
   }
 
   set value(value) {
+    const prev = this.#value;
     this.#value = clamp(value, this.min, this.max);
-    this.dispatchEvent(new ComponentEvent("valueChange", this));
+
+    if (this.#value !== prev) {
+      this.dispatchEvent(new ComponentEvent("valueChange", this));
+    }
   }
 
   draw() {
@@ -103,20 +108,34 @@ export class SliderComponent<
 
     switch (this.direction) {
       case "horizontal":
-        for (let r = row; r < row + height; ++r) {
-          canvas.draw(
-            column + normalizedValue * (width - 1),
-            r,
-            thumbStyle(" "),
-          );
+        {
+          const sliderWidth = this.adjustThumbSize ? (width - 1) / (max - min) : 1;
+
+          for (let r = row; r < row + height; ++r) {
+            canvas.draw(
+              Math.min(
+                column + normalizedValue * (width - 1),
+                column + width + 1 - sliderWidth,
+              ),
+              r,
+              thumbStyle(" ".repeat(sliderWidth)),
+            );
+          }
         }
         break;
       case "vertical":
-        canvas.draw(
-          column,
-          row + normalizedValue * (height - 1),
-          thumbStyle(" ".repeat(width)),
-        );
+        {
+          const sliderHeight = this.adjustThumbSize ? (height - 2) / (max - min) : 1;
+          const valueRow = row + normalizedValue * (height - 1);
+
+          for (let r = valueRow; r < valueRow + sliderHeight; ++r) {
+            canvas.draw(
+              column,
+              r,
+              thumbStyle(" ".repeat(width)),
+            );
+          }
+        }
         break;
     }
   }
