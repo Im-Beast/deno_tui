@@ -64,8 +64,8 @@ export class Component<
 
     this.tui = tui;
 
-    queueMicrotask(async () => {
-      await this.tui.components.push(this);
+    queueMicrotask(() => {
+      this.tui.components.push(this);
       this.tui.dispatchEvent(new ComponentEvent("addComponent", this));
     });
   }
