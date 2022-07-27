@@ -84,11 +84,12 @@ new SliderComponent({
   min: 0,
   value: 5,
   step: 1,
+  adjustThumbSize: true,
   rectangle: {
     column: 38,
     row: 4,
     width: 3,
-    height: 5,
+    height: 11,
   },
   theme: {
     base: crayon.bgMagenta,
@@ -103,14 +104,15 @@ new SliderComponent({
 new SliderComponent({
   tui,
   direction: "horizontal",
-  max: 10,
+  max: 5,
   min: 0,
-  value: 5,
   step: 1,
+  value: 5,
+  adjustThumbSize: true,
   rectangle: {
     column: 38,
     row: 1,
-    width: 11,
+    width: 20,
     height: 2,
   },
   theme: {
