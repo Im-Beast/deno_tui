@@ -64,9 +64,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     if (size.columns === this.size.columns && size.rows === this.size.rows) return;
 
     this.dispatchEvent(new CanvasResizeEvent(size));
-    // TODO(Im-Beast): Is keeping object reference really neccesary?
-    // Keep object reference
-    Object.assign(this.size, size);
+    this.size = size;
     this.frameBuffer = [];
     this.prevFrameBuffer = [];
   }
