@@ -6,7 +6,7 @@ import type { ViewedComponent } from "./components/view.ts";
 
 const encoder = new TextEncoder();
 
-export function handleMouseControls(tui: Tui) {
+export function handleMouseControls(tui: Tui): void {
   Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
 
   tui.addEventListener("close", () => {
