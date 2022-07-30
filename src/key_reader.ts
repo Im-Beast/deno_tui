@@ -1,4 +1,3 @@
-// TODO(Im-Beast): Use msvcrt.dll on windows to get pressed keys
 import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();
@@ -115,21 +114,38 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
 export async function* readKeypresses(
   stdin: Stdin,
 ): AsyncGenerator<(KeyPress | MousePress)[], void, void> {
-  try {
-    Deno.setRaw(
-      stdin.rid,
-      true,
-      Deno.build.os !== "windows" ? { cbreak: true } : undefined,
-    );
-  } catch {
+  switch (Deno.build.os) {
+    // TODO: Use msvcrt.dll on windows to get pressed keys
+    // Need to decode buffer in some special way
+    // Special keys – e.g. arrows send out two different buffers at once in two different _getch() calls
     //
-  }
+    // case "windows": {
+    //   const dll = Deno.dlopen("C:\\Windows\\System32\\msvcrt.dll", {
+    //     "_getch": { parameters: [], result: "i32" },
+    //     "_kbhit": { parameters: [], result: "i32" },
+    //   });
+    //
+    //   try {
+    //     Deno.setRaw(stdin.rid, true);
+    //   } catch { /**/ }
+    //
+    //   while (true) {
+    //     // This would block event loop
+    //     const buffer = new Uint8Array([dll.symbols._getch()]);
+    //     yield [...decodeBuffer(buffer)];
+    //   }
+    // }
+    default:
+      try {
+        Deno.setRaw(stdin.rid, true, { cbreak: true });
+      } catch { /**/ }
 
-  while (true) {
-    const buffer = new Uint8Array(1024);
-    const byteLength = await stdin.read(buffer).catch(() => false);
-    if (typeof byteLength !== "number") continue;
-    yield [...decodeBuffer(buffer.subarray(0, byteLength))];
+      while (true) {
+        const buffer = new Uint8Array(1024);
+        const byteLength = await stdin.read(buffer).catch(() => false);
+        if (typeof byteLength !== "number") continue;
+        yield [...decodeBuffer(buffer.subarray(0, byteLength))];
+      }
   }
 }
 
