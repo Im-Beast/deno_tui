@@ -87,6 +87,7 @@ export class SortedArray<T = unknown> extends Array<T> {
   }
 }
 
+// TODO(Im-Beast): Optimize this class
 export class CombinedAsyncIterator<T = unknown> {
   #asyncIterators: AsyncIterator<T>[] = [];
 
