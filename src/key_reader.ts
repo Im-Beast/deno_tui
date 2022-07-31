@@ -89,7 +89,7 @@ type Chars =
   | "|";
 
 export interface KeyPress {
-  buffer: Uint8Array;
+  buffer: Uint8Array | number;
   key: Key;
   meta: boolean;
   shift: boolean;
@@ -107,34 +107,33 @@ export interface MousePress extends Omit<KeyPress, "key"> {
 }
 
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
-  buffer: Uint8Array[];
+  buffer: KeyPress["buffer"][];
   keys: (KeyPress["key"] | MousePress["key"])[];
 }
 
-export async function* readKeypresses(
-  stdin: Stdin,
-): AsyncGenerator<(KeyPress | MousePress)[], void, void> {
+export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | MousePress)[], void, void> {
   switch (Deno.build.os) {
-    // TODO: Use msvcrt.dll on windows to get pressed keys
-    // Need to decode buffer in some special way
-    // Special keys – e.g. arrows send out two different buffers at once in two different _getch() calls
-    //
-    // case "windows": {
-    //   const dll = Deno.dlopen("C:\\Windows\\System32\\msvcrt.dll", {
-    //     "_getch": { parameters: [], result: "i32" },
-    //     "_kbhit": { parameters: [], result: "i32" },
-    //   });
-    //
-    //   try {
-    //     Deno.setRaw(stdin.rid, true);
-    //   } catch { /**/ }
-    //
-    //   while (true) {
-    //     // This would block event loop
-    //     const buffer = new Uint8Array([dll.symbols._getch()]);
-    //     yield [...decodeBuffer(buffer)];
-    //   }
-    // }
+    case "windows": {
+      const dll = Deno.dlopen("C:\\Windows\\System32\\msvcrt.dll", {
+        "_getch": { parameters: [], result: "i32" },
+        "_kbhit": { parameters: [], result: "i32" },
+      });
+      try {
+        Deno.setRaw(stdin.rid, true);
+      } catch { /**/ }
+      while (true) {
+        // TODO: Make reading keypresses happen in a Worker
+        let char = dll.symbols._getch();
+
+        let special = false;
+        if (char === 0 || char === 224) {
+          special = true;
+          char = dll.symbols._getch();
+        }
+
+        yield [...decodeWindowsChar(char, special)];
+      }
+    }
     default:
       try {
         Deno.setRaw(stdin.rid, true, { cbreak: true });
@@ -142,17 +141,84 @@ export async function* readKeypresses(
 
       while (true) {
         const buffer = new Uint8Array(1024);
-        const byteLength = await stdin.read(buffer).catch(() => false);
+        const byteLength = await stdin.read(buffer).catch(() => null);
         if (typeof byteLength !== "number") continue;
         yield [...decodeBuffer(buffer.subarray(0, byteLength))];
       }
   }
 }
 
+export function* decodeWindowsChar(buffer: number, specialKey: boolean): Generator<KeyPress | MousePress, void, void> {
+  console.log(specialKey, buffer);
+
+  const decodedBuffer = String.fromCharCode(buffer);
+
+  const keyPress: KeyPress = {
+    buffer,
+    key: "" as Key,
+    meta: false,
+    shift: false,
+    ctrl: false,
+  };
+
+  if (specialKey) {
+    // TODO: Add more special keys
+    switch (buffer) {
+      case 72:
+        keyPress.key = "up";
+        break;
+      case 141:
+        keyPress.key = "up";
+        keyPress.ctrl = true;
+        break;
+      case 152:
+        keyPress.key = "up";
+        keyPress.meta = true;
+        break;
+      case 80:
+        keyPress.key = "down";
+        break;
+      case 145:
+        keyPress.key = "down";
+        keyPress.ctrl = true;
+        break;
+      case 160:
+        keyPress.key = "down";
+        keyPress.meta = true;
+        break;
+      case 75:
+        keyPress.key = "left";
+        break;
+      case 115:
+        keyPress.key = "left";
+        keyPress.ctrl = true;
+        break;
+      case 155:
+        keyPress.key = "left";
+        keyPress.meta = true;
+        break;
+      case 77:
+        keyPress.key = "right";
+        break;
+      case 116:
+        keyPress.key = "right";
+        keyPress.ctrl = true;
+        break;
+      case 157:
+        keyPress.key = "right";
+        keyPress.meta = true;
+        break;
+    }
+  } else {
+    keyPress.key = decodedBuffer.toLowerCase() as Key;
+    keyPress.shift = keyPress.key !== decodedBuffer;
+  }
+
+  yield keyPress;
+}
+
 // Reference: https://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-export function* decodeBuffer(
-  buffer: Uint8Array,
-): Generator<KeyPress | MousePress, void, void> {
+export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePress, void, void> {
   const decodedBuffer = decoder.decode(buffer);
 
   let keys: string[] = [];
