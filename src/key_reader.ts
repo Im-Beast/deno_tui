@@ -115,20 +115,20 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
   switch (Deno.build.os) {
     case "windows": {
       const dll = Deno.dlopen("C:\\Windows\\System32\\msvcrt.dll", {
-        "_getch": { parameters: [], result: "i32" },
-        "_kbhit": { parameters: [], result: "i32" },
+        "_getch": { parameters: [], result: "i32", nonblocking: true },
       });
       try {
         Deno.setRaw(stdin.rid, true);
       } catch { /**/ }
       while (true) {
         // TODO: Make reading keypresses happen in a Worker
-        let char = dll.symbols._getch();
+        // Not sure whether this is actually needed although worth consideration
+        let char = await dll.symbols._getch();
 
         let special: number;
         if (char === 0 || char === 224) {
           special = char;
-          char = dll.symbols._getch();
+          char = await dll.symbols._getch();
         }
 
         yield [...decodeWindowsChar(char, special!)];
@@ -152,8 +152,6 @@ export function* decodeWindowsChar(
   buffer: number,
   specialCharCode?: number,
 ): Generator<KeyPress | MousePress, void, void> {
-  console.log(specialCharCode === 224 || specialCharCode === 0, specialCharCode, buffer);
-
   const decodedBuffer = String.fromCharCode(buffer);
 
   const keyPress: KeyPress = {
@@ -166,27 +164,10 @@ export function* decodeWindowsChar(
 
   if (typeof specialCharCode !== "undefined") {
     switch (buffer) {
-      case 13:
-        keyPress.key = "return";
-        break;
-      case 32:
-        keyPress.key = "space";
-        break;
-      case 9:
-        keyPress.key = "tab";
-        break;
-      case 27:
-        keyPress.key = "escape";
-        break;
-      case 8:
-        keyPress.key = "backspace";
-        break;
-
       // F1-F10 = 59-68
       // shift:   +25
       // ctrl:    +35
       // meta:    +45
-
       case 59:
         keyPress.key = "f1";
         break;
@@ -490,8 +471,36 @@ export function* decodeWindowsChar(
         break;
     }
   } else {
-    keyPress.key = decodedBuffer.toLowerCase() as Key;
-    keyPress.shift = keyPress.key !== decodedBuffer;
+    switch (buffer) {
+      case 13:
+        keyPress.key = "return";
+        break;
+      case 32:
+        keyPress.key = "space";
+        break;
+      case 9:
+        keyPress.key = "tab";
+        break;
+      case 27:
+        keyPress.key = "escape";
+        break;
+      case 8:
+        keyPress.key = "backspace";
+        break;
+      default:
+        {
+          const offset96 = String.fromCharCode(buffer + 96);
+          // TODO: Test whether this doesn't introduce any misunderstood presses
+          if (/[a-z]/.test(offset96)) {
+            keyPress.key = offset96 as Alphabet;
+            keyPress.ctrl = true;
+          } else {
+            keyPress.key = decodedBuffer.toLowerCase() as Key;
+            keyPress.shift = keyPress.key !== decodedBuffer;
+          }
+        }
+        break;
+    }
   }
 
   yield keyPress;
