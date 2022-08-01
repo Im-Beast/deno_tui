@@ -55,6 +55,13 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
       this.dispatchEvent(new CustomEvent("close"));
     });
 
+    if (Deno.build.os === "windows") {
+      this.addEventListener("keyPress", ({ keyPress }) => {
+        const { key, ctrl } = keyPress;
+        if (key === "c" && ctrl) this.dispatchEvent(new CustomEvent("close"));
+      });
+    }
+
     this.addEventListener("close", () => {
       Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
 
