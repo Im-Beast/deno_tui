@@ -490,7 +490,6 @@ export function* decodeWindowsChar(
       default:
         {
           const offset96 = String.fromCharCode(buffer + 96);
-          // TODO: Test whether this doesn't introduce any misunderstood presses
           if (/[a-z]/.test(offset96)) {
             keyPress.key = offset96 as Alphabet;
             keyPress.ctrl = true;
@@ -510,24 +509,24 @@ export function* decodeWindowsChar(
 export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePress, void, void> {
   const decodedBuffer = decoder.decode(buffer);
 
-  let keys: string[] = [];
+  let codes: string[] = [];
 
   if (decodedBuffer.split("\x1b").length > 1) {
     // deno-lint-ignore no-control-regex
-    keys = decodedBuffer.split(/(?=\x1b)/);
+    codes = decodedBuffer.split(/(?=\x1b)/);
   } else if (decodedBuffer.length > 1 && !decodedBuffer.includes("\x1b")) {
-    keys = decodedBuffer.split("");
+    codes = decodedBuffer.split("");
   } else {
-    keys = [decodedBuffer];
+    codes = [decodedBuffer];
   }
 
-  for (const key of keys) {
-    const code = key.replace("\x1b", "");
-    const action = code.at(-1);
+  for (let key of codes) {
+    key = key.replace("\x1b", "");
+    const action = key.at(-1);
 
     // SGR
-    if (code.startsWith("[<") && (action === "m" || action === "M")) {
-      let [modifiers, x, y] = code.slice(2, -1).split(";").map((x) => +x);
+    if (key.startsWith("[<") && (action === "m" || action === "M")) {
+      let [modifiers, x, y] = key.slice(2, -1).split(";").map((x) => +x);
       x -= 1;
       y -= 1;
 
@@ -584,8 +583,8 @@ export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePre
     }
 
     // VT and UTF-8
-    if (code.startsWith("[M")) {
-      let [modifiers, x, y] = code.slice(2).split("").map((x) => x.charCodeAt(0));
+    if (key.startsWith("[M")) {
+      let [modifiers, x, y] = key.slice(2).split("").map((x) => x.charCodeAt(0));
 
       x -= 0o41;
       y -= 0o41;
@@ -644,231 +643,130 @@ export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePre
         break;
       case "\b":
       case "\x7f":
-      case "\x1b\x7f":
-      case "\x1b\b":
         keyPress.key = "backspace";
         break;
       case "\x1b":
-      case "\x1b\x1b":
         keyPress.key = "escape";
         break;
       case " ":
-      case "\x1b ":
         keyPress.key = "space";
         break;
       default:
-        switch (code) {
-          case "OP":
-          case "[11~":
-          case "[[A":
-            keyPress.key = "f1";
-            break;
-          case "OQ":
-          case "[12~":
-          case "[[B":
-            keyPress.key = "f2";
-            break;
-          case "OR":
-          case "[13~":
-          case "[[C":
-            keyPress.key = "f3";
-            break;
-          case "OS":
-          case "[14~":
-          case "[[D":
-            keyPress.key = "f4";
-            break;
-          case "[15~":
-          case "[[E":
-            keyPress.key = "f5";
-            break;
-          case "[17~":
-            keyPress.key = "f6";
-            break;
-          case "[18~":
-            keyPress.key = "f7";
-            break;
-          case "[19~":
-            keyPress.key = "f8";
-            break;
-          case "[20~":
-            keyPress.key = "f9";
-            break;
-          case "[21~":
-            keyPress.key = "f10";
-            break;
-          case "[23~":
-            keyPress.key = "f11";
-            break;
-          case "[24~":
-            keyPress.key = "f12";
-            break;
+        {
+          if (buffer[0] !== 27) {
+            const offset96 = String.fromCharCode(buffer[0] + 96);
+            if (/[a-z]/.test(offset96)) {
+              keyPress.key = offset96 as Alphabet;
+              keyPress.ctrl = true;
+              break;
+            }
+          }
 
-          case "[A":
-          case "OA":
-            keyPress.key = "up";
+          if (key.length === 1 && /[a-zA-Z]/.test(key)) {
+            const lowerCase = key.toLowerCase();
+            keyPress.key = lowerCase as Key;
+            keyPress.shift = key !== lowerCase;
+            keyPress.meta = buffer[0] === 27;
             break;
-          case "[2A":
-          case "[a":
-          case "2A":
-            keyPress.key = "up";
-            keyPress.shift = true;
-            break;
-          case "Oa":
-            keyPress.key = "up";
-            keyPress.ctrl = true;
-            break;
+          }
 
-          case "[B":
-          case "OB":
-            keyPress.key = "down";
-            break;
-          case "[b":
-          case "[2B":
-          case "2B":
-            keyPress.key = "down";
-            keyPress.shift = true;
-            break;
-          case "Ob":
-            keyPress.key = "down";
-            keyPress.ctrl = true;
-            break;
+          const modifier = key.match(/\d+.+(\d+)/)?.[1] ?? "";
+          switch (modifier) {
+            case "5":
+              keyPress.ctrl = true;
+              break;
+            case "3":
+              keyPress.meta = true;
+              break;
+            case "2":
+              keyPress.shift = true;
+              break;
+          }
 
-          case "[D":
-          case "OD":
-            keyPress.key = "left";
-            break;
-          case "[2D":
-          case "[d":
-          case "2D":
-            keyPress.key = "left";
-            keyPress.shift = true;
-            break;
-          case "Od":
-            keyPress.key = "left";
-            keyPress.ctrl = true;
-            break;
+          key = key.replace(`1;${modifier}`, "").replace(`;${modifier}`, "").replace("1;", "");
+          switch (key) {
+            case "OP":
+            case "[P":
+              keyPress.key = "f1";
+              break;
+            case "OG":
+            case "[Q":
+              keyPress.key = "f2";
+              break;
+            case "OR":
+            case "[R":
+              keyPress.key = "f3";
+              break;
+            case "OS":
+            case "[S":
+              keyPress.key = "f4";
+              break;
+            case "[15~":
+              keyPress.key = "f5";
+              break;
+            case "[17~":
+              keyPress.key = "f6";
+              break;
+            case "[18~":
+              keyPress.key = "f7";
+              break;
+            case "[19~":
+              keyPress.key = "f8";
+              break;
+            case "[20~":
+              keyPress.key = "f9";
+              break;
+            case "[21~":
+              keyPress.key = "f10";
+              break;
+            case "[23~":
+              keyPress.key = "f11";
+              break;
+            case "[24~":
+              keyPress.key = "f12";
+              break;
 
-          case "[C":
-          case "OC":
-            keyPress.key = "right";
-            break;
-          case "[2C":
-          case "2C":
-          case "[c":
-            keyPress.key = "right";
-            keyPress.shift = true;
-            break;
-          case "Oc":
-            keyPress.key = "right";
-            keyPress.ctrl = true;
-            break;
+            case "[A":
+              keyPress.key = "up";
+              break;
+            case "[B":
+              keyPress.key = "down";
+              break;
+            case "[C":
+              keyPress.key = "right";
+              break;
+            case "[D":
+              keyPress.key = "left";
+              break;
 
-          case "[E":
-          case "OE":
-            keyPress.key = "clear";
-            break;
-          case "[e":
-            keyPress.key = "clear";
-            keyPress.shift = true;
-            break;
-          case "Oe":
-            keyPress.key = "clear";
-            keyPress.ctrl = true;
-            break;
+            case "[2~":
+              keyPress.key = "insert";
+              break;
+            case "[3~":
+              keyPress.key = "delete";
+              break;
 
-          case "[H":
-          case "OH":
-          case "[1~":
-          case "[7~":
-            keyPress.key = "home";
-            break;
-          case "[7$":
-            keyPress.key = "home";
-            keyPress.shift = true;
-            break;
-          case "[7^":
-            keyPress.key = "home";
-            keyPress.ctrl = true;
-            break;
+            case "[5~":
+              keyPress.key = "pageup";
+              break;
+            case "[6~":
+              keyPress.key = "pagedown";
+              break;
 
-          case "[F":
-          case "OF":
-          case "[8~":
-          case "[4~":
-            keyPress.key = "end";
-            break;
-          case "[8$":
-            keyPress.key = "end";
-            keyPress.shift = true;
-            break;
-          case "[8^":
-            keyPress.key = "end";
-            keyPress.ctrl = true;
-            break;
+            case "[H":
+              keyPress.key = "home";
+              break;
+            case "[F":
+              keyPress.key = "end";
+              break;
 
-          case "[2~":
-            keyPress.key = "insert";
-            break;
-          case "[2$":
-            keyPress.key = "insert";
-            keyPress.shift = true;
-            break;
-          case "[2^":
-            keyPress.key = "insert";
-            keyPress.ctrl = true;
-            break;
-
-          case "[3~":
-            keyPress.key = "delete";
-            break;
-          case "[3$":
-            keyPress.key = "delete";
-            keyPress.shift = true;
-            break;
-          case "[3^":
-            keyPress.key = "delete";
-            keyPress.ctrl = true;
-            break;
-
-          case "[5~":
-          case "[[5~":
-            keyPress.key = "pageup";
-            break;
-          case "[5$":
-            keyPress.key = "pageup";
-            keyPress.shift = true;
-            break;
-          case "[5^":
-            keyPress.key = "pageup";
-            keyPress.ctrl = true;
-            break;
-
-          case "[6~":
-          case "[[6~":
-            keyPress.key = "pagedown";
-            break;
-          case "[6$":
-            keyPress.key = "pagedown";
-            keyPress.shift = true;
-            break;
-          case "[6^":
-            keyPress.key = "pagedown";
-            keyPress.ctrl = true;
-            break;
-
-          case "[Z":
-            keyPress.key = "tab";
-            keyPress.shift = true;
-            break;
+            case "[E":
+              keyPress.key = "clear";
+              break;
+          }
         }
         break;
     }
-
-    const lowerKey = keyPress.key.toLowerCase() as Key;
-
-    keyPress.shift ||= keyPress.key !== lowerKey;
-    keyPress.key = lowerKey;
 
     yield keyPress;
   }
