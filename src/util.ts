@@ -87,59 +87,43 @@ export class SortedArray<T = unknown> extends Array<T> {
   }
 }
 
-// TODO(Im-Beast): Optimize this class
 export class CombinedAsyncIterator<T = unknown> {
-  #asyncIterators: AsyncIterator<T>[] = [];
+  #asyncIterators: AsyncIterable<T>[] = [];
 
   constructor(...iterables: AsyncIterable<T>[]) {
-    this.#asyncIterators.push(
-      ...(iterables.map((x) => x[Symbol.asyncIterator]())),
-    );
+    this.#asyncIterators.push(...iterables);
   }
 
   async *iterate(): AsyncIterableIterator<T> {
     const yields: T[] = [];
-    const throws: unknown[] = [];
-    let resolve: () => void;
-    let promise = new Promise<void>((r) => {
-      resolve = r;
-    });
+    let promise!: Promise<void>;
+    let resolve!: () => void;
+
+    const defer = () => {
+      promise = new Promise((r) => {
+        resolve = r;
+      });
+    };
+    defer();
+
+    for (const iterator of this.#asyncIterators) {
+      void async function () {
+        for await (const value of iterator) {
+          yields.push(value);
+          resolve();
+        }
+      }();
+    }
 
     while (true) {
-      if (!yields.length) {
-        for (const iterator of this.#asyncIterators) {
-          const next = iterator.next();
-
-          next.catch(throws.push);
-
-          next.then(({ done, value }) => {
-            if (done) {
-              this.#asyncIterators.splice(
-                this.#asyncIterators.indexOf(iterator),
-                1,
-              );
-            } else {
-              yields.push(value);
-              resolve();
-            }
-          });
-        }
-
-        await promise;
-      }
-
-      for (const reason of throws) {
-        throw reason;
-      }
+      await promise;
+      defer();
 
       for (const value of yields) {
         yield value;
       }
-      yields.length = 0;
 
-      promise = new Promise<void>((r) => {
-        resolve = r;
-      });
+      yields.length = 0;
     }
   }
 
