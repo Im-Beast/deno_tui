@@ -69,22 +69,15 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.prevFrameBuffer = [];
   }
 
-  draw(
-    column: number,
-    row: number,
-    value: string,
-    rectangle?: Rectangle,
-  ): void {
+  draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
     column = ~~column;
     row = ~~row;
 
     if (value.length > 1) {
       const stripped = crayon.strip(value);
-      const style = replaceAll(
-        replace(value, stripped, ""),
-        "\x1b[0m",
-        "",
-      );
+      if (stripped.length === 0) return;
+
+      const style = replaceAll(replace(value, stripped, ""), "\x1b[0m", "");
 
       if (value.includes("\n")) {
         for (const [i, line] of value.split("\n").entries()) {
