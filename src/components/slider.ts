@@ -46,8 +46,6 @@ export class SliderComponent<
 
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
-    this.resetStateAfterInteraction = false;
-
     const thumb = options.theme?.thumb;
     this.theme.thumb = {
       active: thumb?.active ?? thumb?.focused ?? thumb?.base ?? crayon,
@@ -92,10 +90,6 @@ export class SliderComponent<
   }
 
   draw() {
-    if (this.resetState && this.state === "active") {
-      this.state = "focused";
-    }
-
     super.draw();
 
     const { theme, state, value, min, max, direction } = this;

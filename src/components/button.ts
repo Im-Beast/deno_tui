@@ -35,11 +35,11 @@ export class ButtonComponent<
     }
   }
 
-  interact() {
+  interact(method: "mouse" | "keyboard") {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
+    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
 
     this.#lastInteraction = now;
   }
