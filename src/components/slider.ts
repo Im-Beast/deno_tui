@@ -98,7 +98,7 @@ export class SliderComponent<
 
     super.draw();
 
-    const { theme, state, value, min, max } = this;
+    const { theme, state, value, min, max, direction } = this;
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
@@ -106,32 +106,26 @@ export class SliderComponent<
 
     const thumbStyle = theme.thumb[state];
 
-    switch (this.direction) {
+    switch (direction) {
       case "horizontal":
         {
-          const sliderWidth = this.adjustThumbSize ? (width - 1) / (max - min) : 1;
+          const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
 
-          for (let r = row; r < row + height; ++r) {
-            canvas.draw(
-              Math.min(
-                column + normalizedValue * (width - 1),
-                column + width + 1 - sliderWidth,
-              ),
-              r,
-              thumbStyle(" ".repeat(sliderWidth)),
-            );
-          }
+          canvas.draw(
+            column + normalizedValue * (width - thumbWidth),
+            row,
+            thumbStyle(" ".repeat(thumbWidth)),
+          );
         }
         break;
       case "vertical":
         {
-          const sliderHeight = this.adjustThumbSize ? (height - 2) / (max - min) : 1;
-          const valueRow = row + normalizedValue * (height - 1);
+          const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
 
-          for (let r = valueRow; r < valueRow + sliderHeight; ++r) {
+          for (let r = 0; r < thumbHeight; ++r) {
             canvas.draw(
               column,
-              r,
+              row + normalizedValue * (height - thumbHeight) + r,
               thumbStyle(" ".repeat(width)),
             );
           }
