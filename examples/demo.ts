@@ -1,10 +1,7 @@
 import { Canvas } from "../src/canvas.ts";
-import { ButtonComponent } from "../src/components/button.ts";
-import { ScrollableViewComponent } from "../src/components/scrollable_view.ts";
-import { SliderComponent } from "../src/components/slider.ts";
-import { TextboxComponent } from "../src/components/textbox.ts";
 import { crayon } from "../src/deps.ts";
-import { handleKeypresses } from "../src/keyboard.ts";
+import { ButtonComponent } from "../src/components/button.ts";
+import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
 
@@ -19,112 +16,35 @@ const tui = new Tui({
 
 handleKeypresses(tui);
 handleMouseControls(tui);
+handleKeyboardControls(tui);
 
-new TextboxComponent({
-  tui,
-  rectangle: {
-    column: 3,
-    row: 3,
-    width: 10,
-    height: 5,
-  },
-  theme: {
-    base: crayon.bgHex(0x111111),
-    focused: crayon.bgHex(0x222222),
-    active: crayon.bgRed,
-  },
-  multiline: true,
-});
+for (let i = 0; i < 30; ++i) {
+  const col = ~~(i % 10) * 10;
+  const row = ~~(i / 10) * 5;
 
-const view = new ScrollableViewComponent({
-  tui,
-  rectangle: {
-    column: 15,
-    row: 1,
-    height: 10,
-    width: 20,
-  },
-  theme: {
-    base: crayon.bgBlue,
-    scrollbar: {
-      vertical: {
-        track: crayon.bgYellow,
-        thumb: crayon.bgRed,
-      },
-      horizontal: {
-        track: crayon.bgMagenta,
-        thumb: crayon.bgRed,
-      },
-      corner: crayon.bgLightGreen,
+  new ButtonComponent({
+    tui,
+    rectangle: {
+      column: col,
+      row,
+      height: 5,
+      width: 10,
     },
-  },
-  zIndex: 1,
-});
-
-new ButtonComponent({
-  tui: view.tui,
-  rectangle: {
-    column: 15,
-    row: 10,
-    width: 10,
-    height: 3,
-  },
-  theme: {
-    base: crayon.bgLightGreen,
-    focused: crayon.bgLightCyan,
-    active: crayon.bgLightMagenta,
-  },
-  zIndex: 5,
-});
-
-new SliderComponent({
-  tui,
-  direction: "vertical",
-  max: 10,
-  min: 0,
-  value: 5,
-  step: 1,
-  adjustThumbSize: true,
-  rectangle: {
-    column: 38,
-    row: 4,
-    width: 3,
-    height: 11,
-  },
-  theme: {
-    base: crayon.bgMagenta,
-    thumb: {
-      base: crayon.bgRed,
-      focused: crayon.bgCyan,
+    theme: {
+      base: crayon.bgHex(Math.random() * 0xffffff).black,
+      focused: crayon.bgRed,
       active: crayon.bgYellow,
     },
-  },
-});
+    label: `(${i})`,
+  });
+}
 
-new SliderComponent({
-  tui,
-  direction: "horizontal",
-  max: 5,
-  min: 0,
-  step: 1,
-  value: 5,
-  adjustThumbSize: true,
-  rectangle: {
-    column: 38,
-    row: 1,
-    width: 20,
-    height: 2,
-  },
-  theme: {
-    base: crayon.bgMagenta,
-    thumb: {
-      base: crayon.bgRed,
-      focused: crayon.bgCyan,
-      active: crayon.bgYellow,
-    },
-  },
-});
-
-for await (const _ of tui.run()) {
-  tui.canvas.draw(0, 0, tui.canvas.fps.toFixed(2));
+for await (const event of tui.run()) {
+  if (event.type === "update") {
+    tui.canvas.draw(
+      0,
+      0,
+      tui.style(tui.canvas.fps.toFixed(2)),
+    );
+  }
 }
