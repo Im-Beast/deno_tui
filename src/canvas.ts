@@ -81,10 +81,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
       if (value.includes("\n")) {
         for (const [i, line] of value.split("\n").entries()) {
-          if (
-            rectangle &&
-            !fits(row + i, rectangle.row, rectangle.row + rectangle.height)
-          ) {
+          if (rectangle && !fits(row + i, rectangle.row, rectangle.row + rectangle.height)) {
             break;
           }
           this.draw(column, row + i, style + line);

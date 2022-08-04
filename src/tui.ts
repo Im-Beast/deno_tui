@@ -88,9 +88,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     while (true) {
       let deltaTime = performance.now();
 
-      this.dispatchEvent(
-        new CustomEvent("update"),
-      );
+      this.dispatchEvent(new CustomEvent("update"));
       yield { type: "update" };
 
       deltaTime -= performance.now();
@@ -108,9 +106,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
         }
       }
 
-      this.dispatchEvent(
-        new CustomEvent("render", { detail: { timing } }),
-      );
+      this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
       yield { type: "render", timing };
     }
   }
