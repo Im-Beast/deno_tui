@@ -15,6 +15,7 @@ export function handleMouseControls(tui: Tui): void {
 
   tui.addEventListener("mousePress", ({ mousePress }) => {
     const { x, y, drag, scroll, shift, meta, ctrl, release } = mousePress;
+
     if (drag || scroll !== 0 || shift || meta || ctrl) return;
 
     const possibleComponents: Component[] = [];
@@ -67,10 +68,9 @@ export function handleMouseControls(tui: Tui): void {
 
     for (const component of possibleComponents) {
       if (!release) {
-        component.interact();
-        component.resetState = false;
+        component.interact("mouse");
       } else if (component.state === "active") {
-        component.resetState = true;
+        component.state = "base";
       }
     }
   });
