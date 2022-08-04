@@ -15,7 +15,7 @@ export interface ComponentOptions {
 export interface ComponentPrivate {
   theme: Theme;
   draw(): void;
-  interact(): void;
+  interact(method?: "keyboard" | "mouse"): void;
   state: ComponentState;
   zIndex: number;
 }
@@ -42,8 +42,6 @@ export class Component<
   theme: Theme;
   style: Style;
   #state: ComponentState;
-  resetStateAfterInteraction: boolean;
-  resetState: boolean;
   zIndex: number;
 
   constructor({ rectangle, theme, zIndex, tui }: ComponentOptions) {
@@ -59,8 +57,6 @@ export class Component<
 
     this.style = this.theme.base;
     this.#state = "base";
-    this.resetState = false;
-    this.resetStateAfterInteraction = true;
 
     this.tui = tui;
 
@@ -92,14 +88,9 @@ export class Component<
     return this.#state;
   }
 
-  draw() {
-    if (this.resetStateAfterInteraction && this.resetState) {
-      this.state = "base";
-    }
-  }
+  draw() {}
 
-  interact() {
-  }
+  interact(_method?: "keyboard" | "mouse") {}
 
   remove() {
     this.tui.components.remove(this);
