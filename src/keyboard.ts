@@ -1,3 +1,5 @@
+import { Component } from "./component.ts";
+import { FakeTui } from "./components/view.ts";
 import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
 import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
 import { Tui } from "./tui.ts";
@@ -26,4 +28,89 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
       tui.dispatchEvent(new MultiKeyPressEvent(multiKeyPress));
     }
   }
+}
+
+export function handleKeyboardControls(tui: Tui): void {
+  let lastSelectedComponent: Component = tui.components[0];
+  tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
+    const pressedKeys = event instanceof MultiKeyPressEvent ? event.multiKeyPress.keys : [event.keyPress.key];
+
+    const moveVector = {
+      x: 0,
+      y: 0,
+    };
+
+    for (const key of pressedKeys) {
+      switch (key) {
+        case "up":
+          --moveVector.y;
+          break;
+        case "down":
+          ++moveVector.y;
+          break;
+        case "left":
+          --moveVector.x;
+          break;
+        case "right":
+          ++moveVector.x;
+          break;
+        case "return":
+          lastSelectedComponent.interact("keyboard");
+          return;
+        default:
+          return;
+      }
+    }
+
+    if (!lastSelectedComponent) {
+      lastSelectedComponent = tui.components.find((x) => x.rectangle !== undefined)!;
+    }
+    if (!lastSelectedComponent.rectangle) return;
+
+    const possibleComponents: Component[] = [];
+    const lastRectangle = lastSelectedComponent.rectangle;
+
+    for (const component of tui.components) {
+      // TODO: Find a good way to move between components in views
+      if ((component.tui as FakeTui).realTui) continue;
+
+      const { rectangle } = component;
+      if (!rectangle || component === lastSelectedComponent) continue;
+
+      if (
+        (
+          moveVector.y === 0 ||
+          (moveVector.y > 0 && rectangle.row > lastRectangle.row) ||
+          (moveVector.y < 0 && rectangle.row < lastRectangle.row)
+        ) &&
+        (
+          moveVector.x === 0 ||
+          (moveVector.x > 0 && rectangle.column > lastRectangle.column) ||
+          (moveVector.x < 0 && rectangle.column < lastRectangle.column)
+        )
+      ) {
+        possibleComponents.push(component);
+      }
+    }
+
+    if (!possibleComponents.length) return;
+
+    let closest!: Component;
+    let closestDistance!: number;
+    for (const component of possibleComponents) {
+      const distance = Math.sqrt(
+        Math.pow(lastSelectedComponent.rectangle!.column - component.rectangle!.column, 2) +
+          Math.pow(lastSelectedComponent.rectangle!.row - component.rectangle!.row, 2),
+      );
+
+      if (!closest || distance < closestDistance) {
+        closest = component;
+        closestDistance = distance;
+      }
+    }
+
+    lastSelectedComponent.state = "base";
+    closest.state = "focused";
+    lastSelectedComponent = closest;
+  });
 }
