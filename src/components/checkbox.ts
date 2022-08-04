@@ -20,8 +20,6 @@ export class CheckboxComponent<
 
   constructor(options: CheckboxComponentOptions) {
     super(options);
-    this.resetStateAfterInteraction = false;
-
     this.#value = options.value ?? false;
     this.label = this.value ? Mark.Check : Mark.Cross;
   }
