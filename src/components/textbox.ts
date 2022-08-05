@@ -35,7 +35,7 @@ export class TextboxComponent<
     this.multiline = options.multiline ?? false;
     this.hidden = options.hidden ?? false;
     this.value = options.value ?? "";
-    this.cursorPosition = { x: options.value?.length ?? 0, y: 0 };
+    this.cursorPosition = { x: this.#value.at(-1)?.length ?? 0, y: this.#value.length - 1 ?? 0 };
 
     this.tui.addEventListener("keyPress", ({ keyPress }) => {
       if (this.state === "base") return;
