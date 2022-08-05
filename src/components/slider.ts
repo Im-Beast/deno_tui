@@ -6,7 +6,7 @@ import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
 
-export interface SliderViewTheme extends Theme {
+export interface SliderTheme extends Theme {
   thumb: Theme;
 }
 
@@ -18,7 +18,7 @@ export interface SliderComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
   direction: "horizontal" | "vertical";
   adjustThumbSize?: boolean;
-  theme?: DeepPartial<SliderViewTheme>;
+  theme?: DeepPartial<SliderTheme>;
 }
 
 export type SliderComponentEventMap = {
@@ -28,7 +28,7 @@ export type SliderComponentEventMap = {
 export class SliderComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & SliderComponentEventMap> {
-  declare theme: SliderViewTheme;
+  declare theme: SliderTheme;
   direction: "horizontal" | "vertical";
   min: number;
   max: number;
@@ -105,11 +105,13 @@ export class SliderComponent<
         {
           const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
 
-          canvas.draw(
-            column + normalizedValue * (width - thumbWidth),
-            row,
-            thumbStyle(" ".repeat(thumbWidth)),
-          );
+          for (let r = 0; r < height; ++r) {
+            canvas.draw(
+              column + normalizedValue * (width - thumbWidth),
+              row + r,
+              thumbStyle(" ".repeat(thumbWidth)),
+            );
+          }
         }
         break;
       case "vertical":
