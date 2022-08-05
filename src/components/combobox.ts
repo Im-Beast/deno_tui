@@ -70,6 +70,7 @@ export class ComboboxComponent<
           },
           label: option,
           theme: this.theme,
+          zIndex: this.zIndex,
         });
 
         button.addEventListener("stateChange", ({ component }) => {
