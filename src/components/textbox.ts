@@ -8,7 +8,8 @@ import { ComboboxComponent } from "./combobox.ts";
 
 export interface TextboxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
-  multiline: boolean;
+  multiline?: boolean;
+  hidden?: boolean;
   value?: string;
 }
 
@@ -22,16 +23,18 @@ export class TextboxComponent<
   #value: string[] = [];
   #lastInteraction = 0;
 
-  declare cursorPosition: {
+  cursorPosition: {
     x: number;
     y: number;
   };
-  declare multiline: boolean;
+  multiline: boolean;
+  hidden: boolean;
 
   constructor(options: TextboxComponentOptions) {
     super(options);
-    this.multiline = options.multiline;
-    this.#value = options.value?.split?.("\n") ?? [""];
+    this.multiline = options.multiline ?? false;
+    this.hidden = options.hidden ?? false;
+    this.value = options.value ?? "";
     this.cursorPosition = { x: options.value?.length ?? 0, y: 0 };
 
     this.tui.addEventListener("keyPress", ({ keyPress }) => {
@@ -114,7 +117,8 @@ export class TextboxComponent<
   }
 
   set value(value: string) {
-    this.#value = value.split("\n");
+    const split = value.split("\n");
+    this.#value = this.multiline ? split : [split.join("")];
   }
 
   draw() {
@@ -136,10 +140,12 @@ export class TextboxComponent<
       if (i < offsetY) continue;
       if (i - offsetY >= height) break;
 
+      const lineText = line.slice(offsetX, offsetX + width);
+
       canvas.draw(
         column,
         row + i - offsetY,
-        style(line.slice(offsetX, offsetX + width)),
+        style(this.hidden ? "*".repeat(lineText.length) : lineText),
       );
     }
 
