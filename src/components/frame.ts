@@ -39,8 +39,8 @@ export type FrameComponentOptions = {
 export class FrameComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> {
-  declare component?: Component;
-  declare rounded: boolean;
+  component?: Component;
+  rounded: boolean;
 
   constructor(
     { tui, component, rectangle, theme, rounded }: FrameComponentOptions,

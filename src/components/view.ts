@@ -32,7 +32,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     x: number;
     y: number;
   };
-  declare components: SortedArray<Component>;
+  components: SortedArray<Component>;
 
   constructor(options: ViewComponentOptions) {
     super(options);
