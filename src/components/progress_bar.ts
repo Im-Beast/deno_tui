@@ -6,6 +6,8 @@ import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
 
+// TODO(Im-Beast): Make it "smooth" – use unicode characters to simulate fluidity
+// ▏> ▎> ▍> ▋ > ▊ > ▉ > ▇ > █
 export interface ProgressBarTheme extends Theme {
   progress: Theme;
 }
