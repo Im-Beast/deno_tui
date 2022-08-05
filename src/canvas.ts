@@ -1,7 +1,7 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import { fits, sleep, textEncoder, Timing, TypedEventTarget } from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
-import { crayon, replace, replaceAll } from "./deps.ts";
+import { crayon, replace } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
 export interface CanvasSize {
@@ -72,12 +72,23 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
     column = ~~column;
     row = ~~row;
+    if (typeof value !== "string") return;
 
     if (value.length > 1) {
       const stripped = crayon.strip(value);
       if (stripped.length === 0) return;
 
-      const style = replaceAll(replace(value, stripped, ""), "\x1b[0m", "");
+      // deno-lint-ignore no-control-regex
+      const styles = replace(value, stripped, "").split(/\x1b\[0m+/).filter((x) => x.length > 0);
+
+      if (styles.length > 1) {
+        for (const [i, style] of styles.entries()) {
+          this.draw(column + i, row, style);
+        }
+        return;
+      }
+
+      const style = styles[0] ?? "";
 
       if (value.includes("\n")) {
         for (const [i, line] of value.split("\n").entries()) {
