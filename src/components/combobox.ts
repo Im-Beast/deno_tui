@@ -9,7 +9,7 @@ export interface ComboboxComponentOptions<
   OptionType extends string[] = string[],
 > extends ComponentOptions {
   rectangle: Rectangle;
-  label: string;
+  label?: string;
   options: OptionType;
 }
 
@@ -50,11 +50,11 @@ export class ComboboxComponent<
     }
   }
 
-  interact() {
+  interact(method?: "keyboard" | "mouse") {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
+    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
 
     if (this.state === "active") {
       const { column, row, width, height } = this.rectangle;

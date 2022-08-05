@@ -38,11 +38,11 @@ export class CheckboxComponent<
     super.draw();
   }
 
-  interact() {
+  interact(method?: "mouse" | "keyboard") {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    if (interactionDelay < 500) {
+    if (method === "keyboard" || interactionDelay < 500) {
       this.value = !this.value;
     } else {
       this.state = "focused";

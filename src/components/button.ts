@@ -35,7 +35,7 @@ export class ButtonComponent<
     }
   }
 
-  interact(method: "mouse" | "keyboard") {
+  interact(method?: "mouse" | "keyboard") {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
