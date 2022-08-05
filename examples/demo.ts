@@ -1,6 +1,6 @@
 import { Canvas } from "../src/canvas.ts";
+import { ProgressBarComponent } from "../src/components/progress_bar.ts";
 import { crayon } from "../src/deps.ts";
-import { ButtonComponent } from "../src/components/button.ts";
 import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
@@ -18,33 +18,43 @@ handleKeypresses(tui);
 handleMouseControls(tui);
 handleKeyboardControls(tui);
 
-for (let i = 0; i < 30; ++i) {
-  const col = ~~(i % 10) * 10;
-  const row = ~~(i / 10) * 5;
-
-  new ButtonComponent({
-    tui,
-    rectangle: {
-      column: col,
-      row,
-      height: 5,
-      width: 10,
+const pb = new ProgressBarComponent({
+  tui,
+  direction: "horizontal",
+  min: 0,
+  max: 100,
+  value: 50,
+  rectangle: {
+    column: 3,
+    row: 3,
+    height: 2,
+    width: 30,
+  },
+  theme: {
+    base: crayon.bgBlue,
+    active: crayon.bgRed,
+    focused: crayon.bgYellow,
+    progress: {
+      base: (text) => {
+        let str = "";
+        for (let i = 0; i < text.length; ++i) {
+          str += crayon.bgHsl(i * (120 / pb.rectangle.width), 50, 50)(text[i]);
+        }
+        return str;
+      },
     },
-    theme: {
-      base: crayon.bgHex(Math.random() * 0xffffff).black,
-      focused: crayon.bgRed,
-      active: crayon.bgYellow,
-    },
-    label: `(${i})`,
-  });
-}
+  },
+});
 
+let dir = 2;
 for await (const event of tui.run()) {
   if (event.type === "update") {
-    tui.canvas.draw(
-      0,
-      0,
-      tui.style(tui.canvas.fps.toFixed(2)),
-    );
+    const fpsText = tui.canvas.fps.toFixed(2);
+
+    tui.canvas.draw(0, 0, tui.style(fpsText));
+
+    if (pb.value === pb.max || pb.value === pb.min || Math.random() < 0.02) dir *= -1;
+
+    pb.value += dir;
   }
 }
