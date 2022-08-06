@@ -33,6 +33,9 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
 export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component = tui.components[0];
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
+    const keyPress = event instanceof MultiKeyPressEvent ? event.multiKeyPress : event.keyPress;
+    if (!keyPress.ctrl) return;
+
     const pressedKeys = event instanceof MultiKeyPressEvent ? event.multiKeyPress.keys : [event.keyPress.key];
 
     const moveVector = {
@@ -71,8 +74,15 @@ export function handleKeyboardControls(tui: Tui): void {
     const lastRectangle = lastSelectedComponent.rectangle;
 
     for (const component of tui.components) {
-      // TODO: Find a good way to move between components in views
-      if ((component.tui as FakeTui).realTui) continue;
+      // TODO: Handle keyboard controls in views
+      // Proposed option: Ctrl+F-keys switch between views and then you can control them using normal controls?
+      // This should then display info somewhere (presumably right-top corner about current view)
+      if (
+        component.interact === Component.prototype.interact ||
+        (component.tui as FakeTui).realTui
+      ) {
+        continue;
+      }
 
       const { rectangle } = component;
       if (!rectangle || component === lastSelectedComponent) continue;
