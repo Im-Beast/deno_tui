@@ -15,6 +15,7 @@ import { SliderComponent } from "../src/components/slider.ts";
 import { TextboxComponent } from "../src/components/textbox.ts";
 import { ViewComponent } from "../src/components/view.ts";
 import { Theme } from "../src/theme.ts";
+import { Component } from "../src/component.ts";
 
 const baseTheme: Theme = {
   base: crayon.bgLightBlue,
@@ -78,7 +79,7 @@ new ComboboxComponent({
     width: 7,
   },
   options: ["one", "two", "three", "four"],
-  zIndex: 1,
+  zIndex: 2,
 });
 
 new ComboboxComponent({
@@ -86,7 +87,7 @@ new ComboboxComponent({
   theme: baseTheme,
   rectangle: {
     column: 38,
-    row: 6,
+    row: 7,
     height: 1,
     width: 7,
   },
@@ -101,8 +102,8 @@ const progressBar1 = new ProgressBarComponent({
     ...baseTheme,
     progress: {
       base: crayon.bgLightBlue.green,
-      focused: crayon.bgLightBlue.lightGreen,
-      active: crayon.bgLightBlue.lightYellow,
+      focused: crayon.bgCyan.lightGreen,
+      active: crayon.bgBlue.lightYellow,
     },
   },
   value: 50,
@@ -124,8 +125,8 @@ const progressBar2 = new ProgressBarComponent({
     ...baseTheme,
     progress: {
       base: crayon.bgLightBlue.green,
-      focused: crayon.bgLightBlue.lightGreen,
-      active: crayon.bgLightBlue.lightYellow,
+      focused: crayon.bgCyan.lightGreen,
+      active: crayon.bgBlue.lightYellow,
     },
   },
   value: 75,
@@ -233,7 +234,7 @@ queueMicrotask(() => {
 
     const name = component.constructor.name.replace("Component", "");
 
-    new ButtonComponent({
+    const btn = new ButtonComponent({
       tui,
       rectangle: {
         column: rectangle.column - 1,
@@ -247,12 +248,15 @@ queueMicrotask(() => {
       label: name,
     });
 
+    btn.interact = Component.prototype.interact;
+
     new FrameComponent({
       tui,
       component,
       rounded: true,
       theme: {
-        base: tui.style,
+        base: crayon.bgHex(0x333333).white,
+        focused: crayon.bgHex(0x333333).bold,
       },
     });
   }
