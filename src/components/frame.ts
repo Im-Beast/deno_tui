@@ -55,6 +55,12 @@ export class FrameComponent<
     this.rounded = rounded ?? false;
   }
 
+  set state(_value) {}
+
+  get state() {
+    return this.component?.state ?? "base";
+  }
+
   draw() {
     super.draw();
 
