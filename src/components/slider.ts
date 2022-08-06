@@ -53,26 +53,32 @@ export class SliderComponent<
       base: thumb?.base ?? crayon,
     };
 
-    const lastMove = { x: 0, y: 0 };
+    const lastMove = { x: -1, y: -1, time: 0 };
 
     this.tui.addEventListener("mousePress", ({ mousePress }) => {
       const { x, y, drag } = mousePress;
+
+      if (Date.now() - lastMove.time > 300) {
+        lastMove.x = -1;
+        lastMove.y = -1;
+      }
 
       if (!drag || (this.state !== "active" && this.state !== "focused")) return;
 
       switch (this.direction) {
         case "horizontal":
-          if (lastMove.x === 0) break;
+          if (lastMove.x === -1) break;
           this.value += (x - lastMove.x) * this.step;
           break;
         case "vertical":
-          if (lastMove.y === 0) break;
+          if (lastMove.y === -1) break;
           this.value += (y - lastMove.y) * this.step;
           break;
       }
 
       lastMove.x = x;
       lastMove.y = y;
+      lastMove.time = Date.now();
     });
   }
 
