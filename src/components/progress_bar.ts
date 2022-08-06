@@ -6,8 +6,9 @@ import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
 
-// TODO(Im-Beast): Make it "smooth" – use unicode characters to simulate fluidity
-// ▏> ▎> ▍> ▋ > ▊ > ▉ > ▇ > █
+export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
+export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
+
 export interface ProgressBarTheme extends Theme {
   progress: Theme;
 }
@@ -19,6 +20,7 @@ export interface ProgressBarComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
   direction: "horizontal" | "vertical";
   theme?: DeepPartial<ProgressBarTheme>;
+  smooth?: boolean;
 }
 
 export type ProgressBarComponentEventMap = {
@@ -28,11 +30,13 @@ export type ProgressBarComponentEventMap = {
 export class ProgressBarComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & ProgressBarComponentEventMap> {
+  #value: number;
+
   declare theme: ProgressBarTheme;
   direction: "horizontal" | "vertical";
   min: number;
   max: number;
-  #value: number;
+  smooth: boolean;
 
   constructor(options: ProgressBarComponentOptions) {
     super(options);
@@ -40,6 +44,7 @@ export class ProgressBarComponent<
     this.min = options.min;
     this.max = options.max;
     this.#value = options.value;
+    this.smooth = options.smooth ?? false;
 
     const progress = options.theme?.progress;
     this.theme.progress = {
@@ -73,22 +78,48 @@ export class ProgressBarComponent<
 
     const progressStyle = theme.progress[state];
 
+    let valueString: string;
+
+    if (this.smooth) {
+      valueString = "";
+
+      const vertical = direction === "vertical";
+      const charMap = vertical ? verticalSmoothProgressChars : horizontalSmoothProgressChars;
+
+      main:
+      for (let i = normalizedValue * (vertical ? height : width); i > 0;) {
+        for (const [j, char] of charMap.entries()) {
+          const step = (8 - j) / 8;
+
+          if (i - step > 0) {
+            valueString += vertical ? char.repeat(width) + "\n" : char;
+            i -= step;
+            continue main;
+          }
+        }
+
+        i = 0;
+      }
+    }
+
     switch (direction) {
       case "horizontal":
-        for (let r = 0; r < height; ++r) {
+        {
+          valueString ??= " ".repeat(normalizedValue * width);
           canvas.draw(
             column,
-            row + r,
-            progressStyle(" ".repeat(normalizedValue * width)),
+            row,
+            progressStyle((valueString + "\n").repeat(height)),
           );
         }
         break;
       case "vertical":
-        for (let r = 0; r < normalizedValue * height; ++r) {
+        {
+          valueString ??= (" ".repeat(width) + "\n").repeat(normalizedValue * height);
           canvas.draw(
             column,
-            row + r,
-            progressStyle(" ".repeat(width)),
+            row,
+            progressStyle(valueString),
           );
         }
         break;
