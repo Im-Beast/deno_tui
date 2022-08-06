@@ -1,4 +1,3 @@
-import { hex } from "https://deno.land/x/crayon@3.3.1/mod.ts";
 import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
