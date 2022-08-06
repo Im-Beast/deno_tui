@@ -1,5 +1,5 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
-import { fits, sleep, textEncoder, Timing, TypedEventTarget } from "./util.ts";
+import { fits, sleep, textEncoder, Timing, TypedEventTarget, UNICODE_CHAR_REGEXP } from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { crayon, replace } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
@@ -72,6 +72,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
     column = ~~column;
     row = ~~row;
+
     if (typeof value !== "string") return;
 
     if (value.length > 1) {
@@ -83,7 +84,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
       if (styles.length > 1) {
         for (const [i, style] of styles.entries()) {
-          this.draw(column + i, row, style);
+          this.draw(column + (crayon.strip(styles?.[i - 1] ?? "").length), row, style);
         }
         return;
       }
@@ -100,18 +101,20 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
         return;
       }
 
-      if (stripped.length > 1) {
+      const realCharacters = stripped.match(UNICODE_CHAR_REGEXP)!;
+
+      if (realCharacters.length > 1) {
         if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) {
           return;
         }
 
-        for (let i = 0; i < stripped.length; ++i) {
+        for (let i = 0; i < realCharacters.length; ++i) {
           this.frameBuffer[row] ||= [];
           if (rectangle && !fits(column + i, rectangle.column, rectangle.column + rectangle.width)) {
             continue;
           }
 
-          this.frameBuffer[row][column + i] = style + stripped[i] + "\x1b[0m";
+          this.frameBuffer[row][column + i] = style + realCharacters[i] + "\x1b[0m";
         }
         return;
       }
