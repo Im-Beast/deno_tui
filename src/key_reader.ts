@@ -121,8 +121,6 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
         Deno.setRaw(stdin.rid, true);
       } catch { /**/ }
       while (true) {
-        // TODO: Make reading keypresses happen in a Worker
-        // Not sure whether this is actually needed although worth consideration
         let char = await dll.symbols._getch();
 
         let special: number;
