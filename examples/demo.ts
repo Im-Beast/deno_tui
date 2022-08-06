@@ -100,17 +100,18 @@ const progressBar1 = new ProgressBarComponent({
   theme: {
     ...baseTheme,
     progress: {
-      base: crayon.bgGreen,
-      focused: crayon.bgLightGreen,
-      active: crayon.bgLightYellow,
+      base: crayon.bgLightBlue.green,
+      focused: crayon.bgLightBlue.lightGreen,
+      active: crayon.bgLightBlue.lightYellow,
     },
   },
   value: 50,
   min: 0,
   max: 100,
   direction: "horizontal",
+  smooth: true,
   rectangle: {
-    column: 50,
+    column: 48,
     height: 2,
     row: 3,
     width: 10,
@@ -122,17 +123,18 @@ const progressBar2 = new ProgressBarComponent({
   theme: {
     ...baseTheme,
     progress: {
-      base: crayon.bgGreen,
-      focused: crayon.bgLightGreen,
-      active: crayon.bgLightYellow,
+      base: crayon.bgLightBlue.green,
+      focused: crayon.bgLightBlue.lightGreen,
+      active: crayon.bgLightBlue.lightYellow,
     },
   },
   value: 75,
   min: 0,
   max: 100,
   direction: "vertical",
+  smooth: true,
   rectangle: {
-    column: 50,
+    column: 48,
     height: 5,
     row: 10,
     width: 2,
@@ -153,10 +155,31 @@ new SliderComponent({
   step: 1,
   direction: "horizontal",
   rectangle: {
-    column: 63,
+    column: 61,
     height: 2,
     row: 3,
     width: 10,
+  },
+});
+
+new SliderComponent({
+  tui,
+  theme: {
+    ...baseTheme,
+    thumb: {
+      base: crayon.bgMagenta,
+    },
+  },
+  value: 5,
+  min: 1,
+  max: 10,
+  step: 1,
+  direction: "vertical",
+  rectangle: {
+    column: 61,
+    height: 5,
+    row: 10,
+    width: 2,
   },
 });
 
@@ -184,7 +207,7 @@ new TextboxComponent({
     height: 1,
     width: 10,
   },
-  value: "hello",
+  value: "hi!",
 });
 
 new TextboxComponent({
@@ -198,7 +221,7 @@ new TextboxComponent({
     height: 5,
     width: 10,
   },
-  value: "hello\nwhats\nup\nwoman",
+  value: "hello!\nwhats up?",
 });
 
 // Generate frames and labels for every component
