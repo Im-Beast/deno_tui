@@ -40,7 +40,6 @@ export class Component<
   tui: Tui;
   rectangle?: Rectangle;
   theme: Theme;
-  style: Style;
   #state: ComponentState;
   zIndex: number;
 
@@ -55,7 +54,6 @@ export class Component<
     };
     this.zIndex = zIndex ?? 0;
 
-    this.style = this.theme.base;
     this.#state = "base";
 
     this.tui = tui;
@@ -66,20 +64,12 @@ export class Component<
     });
   }
 
+  get style(): Style {
+    return this.theme[this.state];
+  }
+
   set state(state) {
     this.#state = state;
-
-    switch (state) {
-      case "active":
-        this.style = this.theme.active;
-        break;
-      case "focused":
-        this.style = this.theme.focused;
-        break;
-      case "base":
-        this.style = this.theme.base;
-        break;
-    }
 
     this.dispatchEvent(new ComponentEvent("stateChange", this));
   }
