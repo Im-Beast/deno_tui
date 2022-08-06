@@ -105,26 +105,22 @@ export class SliderComponent<
         {
           const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
 
-          for (let r = 0; r < height; ++r) {
-            canvas.draw(
-              column + normalizedValue * (width - thumbWidth),
-              row + r,
-              thumbStyle(" ".repeat(thumbWidth)),
-            );
-          }
+          canvas.draw(
+            column + normalizedValue * (width - thumbWidth),
+            row,
+            thumbStyle((" ".repeat(thumbWidth) + "\n").repeat(height)),
+          );
         }
         break;
       case "vertical":
         {
           const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
 
-          for (let r = 0; r < thumbHeight; ++r) {
-            canvas.draw(
-              column,
-              row + normalizedValue * (height - thumbHeight) + r,
-              thumbStyle(" ".repeat(width)),
-            );
-          }
+          canvas.draw(
+            column,
+            row + normalizedValue * (height - thumbHeight),
+            thumbStyle((" ".repeat(width) + "\n").repeat(thumbHeight)),
+          );
         }
         break;
     }

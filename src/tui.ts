@@ -1,3 +1,4 @@
+import { hex } from "https://deno.land/x/crayon@3.3.1/mod.ts";
 import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
@@ -100,10 +101,14 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     for await (const timing of this.canvas.render()) {
       if (timing === Timing.Post) {
         const { columns, rows } = this.canvas.size;
-        const textRow = this.style(" ".repeat(columns));
-        for (let r = 0; r < rows; ++r) {
-          this.canvas.draw(0, r, textRow);
-        }
+
+        this.canvas.draw(
+          0,
+          0,
+          this.style(
+            (" ".repeat(columns) + "\n").repeat(rows),
+          ),
+        );
       }
 
       this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));

@@ -22,10 +22,6 @@ export class BoxComponent<
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    const textRow = style(" ".repeat(width));
-
-    for (let r = row; r < row + height; ++r) {
-      canvas.draw(column, r, textRow);
-    }
+    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
   }
 }

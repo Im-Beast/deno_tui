@@ -102,10 +102,6 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     const { canvas } = this.tui.realTui;
     const { column, row, width, height } = this.rectangle;
 
-    const textRow = style(" ".repeat(width));
-
-    for (let r = row; r < row + height; ++r) {
-      canvas.draw(column, r, textRow);
-    }
+    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
   }
 }
