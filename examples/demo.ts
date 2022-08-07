@@ -10,12 +10,10 @@ import { CheckboxComponent } from "../src/components/checkbox.ts";
 import { ComboboxComponent } from "../src/components/combobox.ts";
 import { FrameComponent } from "../src/components/frame.ts";
 import { ProgressBarComponent } from "../src/components/progress_bar.ts";
-import { ScrollableViewComponent } from "../src/components/scrollable_view.ts";
 import { SliderComponent } from "../src/components/slider.ts";
 import { TextboxComponent } from "../src/components/textbox.ts";
-import { ViewComponent } from "../src/components/view.ts";
 import { Theme } from "../src/theme.ts";
-import { Component } from "../src/component.ts";
+import { LabelComponent } from "../src/components/label.ts";
 
 const baseTheme: Theme = {
   base: crayon.bgLightBlue,
@@ -234,21 +232,23 @@ queueMicrotask(() => {
 
     const name = component.constructor.name.replace("Component", "");
 
-    const btn = new ButtonComponent({
+    new LabelComponent({
       tui,
+      align: {
+        horizontal: "left",
+        vertical: "top",
+      },
       rectangle: {
         column: rectangle.column - 1,
         row: rectangle.row - 2,
-        height: 1,
-        width: name.length,
+        height: -1,
+        width: -1,
       },
       theme: {
         base: tui.style,
       },
-      label: name,
+      value: name,
     });
-
-    btn.interact = Component.prototype.interact;
 
     new FrameComponent({
       tui,
@@ -263,9 +263,11 @@ queueMicrotask(() => {
 });
 
 let direction = 1;
+let avgFps = 60;
 for await (const event of tui.run()) {
   if (event.type === "update") {
-    const fpsText = `${tui.canvas.fps.toFixed(2)} FPS`;
+    avgFps = ((avgFps * 99) + tui.canvas.fps) / 100;
+    const fpsText = `${avgFps.toFixed(2)} FPS`;
     tui.canvas.draw(0, 0, baseTheme.base(fpsText));
 
     if (progressBar1.value === progressBar1.max || progressBar1.value === progressBar1.min) {
