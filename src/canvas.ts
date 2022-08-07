@@ -1,7 +1,16 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
-import { fits, sleep, textEncoder, Timing, TypedEventTarget, UNICODE_CHAR_REGEXP } from "./util.ts";
+import {
+  fitsInRectangle,
+  isFullWidth,
+  sleep,
+  textEncoder,
+  textWidth,
+  Timing,
+  TypedEventTarget,
+  UNICODE_CHAR_REGEXP,
+} from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
-import { crayon, replace } from "./deps.ts";
+import { crayon } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
 export interface CanvasSize {
@@ -70,67 +79,68 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   }
 
   draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
-    column = ~~column;
-    row = ~~row;
-
-    if (typeof value !== "string") return;
-
-    if (value.length > 1) {
-      const stripped = crayon.strip(value);
-      if (stripped.length === 0) return;
-
-      // deno-lint-ignore no-control-regex
-      const styles = replace(value, stripped, "").split(/\x1b\[0m+/).filter((x) => x.length > 0);
-
-      if (styles.length > 1) {
-        for (const [i, style] of styles.entries()) {
-          this.draw(column + (crayon.strip(styles?.[i - 1] ?? "").length), row, style);
-        }
-        return;
-      }
-
-      const style = styles[0] ?? "";
-
-      if (value.includes("\n")) {
-        for (const [i, line] of value.split("\n").entries()) {
-          if (rectangle && !fits(row + i, rectangle.row, rectangle.row + rectangle.height)) {
-            break;
-          }
-          this.draw(column, row + i, style + line);
-        }
-        return;
-      }
-
-      const realCharacters = stripped.match(UNICODE_CHAR_REGEXP)!;
-
-      if (realCharacters.length > 1) {
-        if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) {
-          return;
-        }
-
-        for (let i = 0; i < realCharacters.length; ++i) {
-          this.frameBuffer[row] ||= [];
-          if (rectangle && !fits(column + i, rectangle.column, rectangle.column + rectangle.width)) {
-            continue;
-          }
-
-          this.frameBuffer[row][column + i] = style + realCharacters[i] + "\x1b[0m";
-        }
-        return;
-      }
-    }
-
-    if (
-      rectangle && (
-        !fits(column, rectangle.column, rectangle.column + rectangle.width) ||
-        !fits(row, rectangle.row, rectangle.row + rectangle.height)
-      )
-    ) {
+    if (typeof value !== "string" || value.length === 0 || typeof column !== "number" || typeof row !== "number") {
       return;
     }
 
+    column = ~~column;
+    row = ~~row;
+
+    const stripped = crayon.strip(value);
+
+    if (stripped.length === 0) return;
+    if (stripped.length === 1) {
+      if (!fitsInRectangle(column, row, rectangle)) return;
+
+      this.frameBuffer[row] ||= [];
+      this.frameBuffer[row][column] = value;
+      if (this.frameBuffer[row][column + 1] === undefined) {
+        const style = value.replace(crayon.strip(value), "").replaceAll("\x1b[0m", "");
+        this.frameBuffer[row][column + 1] = `${style} \x1b[0m`;
+      }
+      return;
+    }
+
+    const distinctStyles = value
+      .replace(stripped, "")
+      .split("\x1b[0m")
+      .filter((v) => v.length > 0);
+
+    if (distinctStyles.length > 1) {
+      for (const [i, style] of distinctStyles.entries()) {
+        const previousStyle = distinctStyles?.[i - 1];
+        this.draw(column + textWidth(previousStyle), row, style, rectangle);
+      }
+      return;
+    }
+
+    const style = distinctStyles[0] ?? "";
+
+    if (value.includes("\n")) {
+      for (const [i, line] of value.split("\n").entries()) {
+        this.draw(column, row + i, style + line + "\x1b[0m", rectangle);
+      }
+      return;
+    }
+
+    const realCharacters = stripped.match(UNICODE_CHAR_REGEXP);
+    if (!realCharacters?.length) return;
+
     this.frameBuffer[row] ||= [];
-    this.frameBuffer[row][column] = value;
+    let offset = 0;
+    for (const character of realCharacters) {
+      const offsetColumn = column + offset;
+
+      this.frameBuffer[row][offsetColumn] = `${style}${character}\x1b[0m`;
+      if (isFullWidth(character)) {
+        delete this.frameBuffer[row][offsetColumn + 1];
+        ++offset;
+      } else if (offsetColumn + 1 < this.frameBuffer[row].length) {
+        this.frameBuffer[row][offsetColumn + 1] ??= `${style} \x1b[0m`;
+      }
+
+      ++offset;
+    }
   }
 
   renderFrame(frame: string[][]): void {
