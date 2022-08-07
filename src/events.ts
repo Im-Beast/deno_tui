@@ -1,7 +1,7 @@
 import { CanvasSize } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import { Timing } from "./util.ts";
+import { Timing } from "./types.ts";
 
 export class FrameEvent extends Event {
   readonly timing: Timing;

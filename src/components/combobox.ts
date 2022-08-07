@@ -2,8 +2,8 @@ import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
 import { Component, ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { EventRecord } from "../util.ts";
 import { ComponentEvent } from "../events.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
 export interface ComboboxComponentOptions<
   OptionType extends string[] = string[],

@@ -2,7 +2,8 @@ import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { EventRecord, SortedArray } from "../util.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+import { SortedArray } from "../utils/sorted_array.ts";
 
 export type ViewedComponent = Omit<Component, "tui"> & { tui: FakeTui };
 

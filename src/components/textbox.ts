@@ -1,10 +1,12 @@
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { clamp, EventRecord, insertAt } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
 import { ComboboxComponent } from "./combobox.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+import { insertAt } from "../utils/strings.ts";
+import { clamp } from "../utils/numbers.ts";
 
 export interface TextboxComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
@@ -17,9 +19,8 @@ export type TextboxComponentEventMap = {
   value: ComponentEvent<"valueChange", ComboboxComponent>;
 };
 
-export class TextboxComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & TextboxComponentEventMap> {
+export class TextboxComponent<EventMap extends EventRecord = Record<never, never>>
+  extends BoxComponent<EventMap & TextboxComponentEventMap> {
   #value: string[] = [];
   #lastInteraction = 0;
 

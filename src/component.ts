@@ -3,7 +3,7 @@ import { ComponentEvent } from "./events.ts";
 import { Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
 import { Rectangle } from "./types.ts";
-import { EventRecord, TypedEventTarget } from "./util.ts";
+import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
 
 export interface ComponentOptions {
   tui: Tui;

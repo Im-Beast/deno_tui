@@ -2,9 +2,10 @@ import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
-import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+import { clamp, normalize } from "../utils/numbers.ts";
 
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
@@ -27,9 +28,8 @@ export type ProgressBarComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", ProgressBarComponent>;
 };
 
-export class ProgressBarComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & ProgressBarComponentEventMap> {
+export class ProgressBarComponent<EventMap extends EventRecord = Record<never, never>>
+  extends BoxComponent<EventMap & ProgressBarComponentEventMap> {
   #value: number;
 
   declare theme: ProgressBarTheme;

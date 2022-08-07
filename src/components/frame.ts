@@ -2,7 +2,7 @@ import { Component } from "../component.ts";
 import { Theme } from "../theme.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
-import { EventRecord } from "../util.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
 export enum SharpFramePieces {
   TopLeft = "┌",
@@ -36,9 +36,7 @@ export type FrameComponentOptions = {
   rounded?: boolean;
 };
 
-export class FrameComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> {
+export class FrameComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
   component?: Component;
   rounded: boolean;
 

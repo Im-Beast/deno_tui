@@ -2,7 +2,8 @@ import { ComponentOptions } from "../component.ts";
 import { crayon } from "../deps.ts";
 import { Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
-import { clamp, EventRecord } from "../util.ts";
+import { clamp } from "../utils/numbers.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 import { SliderComponent } from "./slider.ts";
 import { ViewComponent } from "./view.ts";
 
@@ -20,7 +21,7 @@ export interface ScrollableViewTheme extends Theme {
   };
 }
 
-export interface ViewComponentOptions extends ComponentOptions {
+export interface ScrollableViewComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
   theme?: DeepPartial<ScrollableViewTheme>;
 }
@@ -34,7 +35,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
     horizontal?: SliderComponent;
   };
 
-  constructor(options: ViewComponentOptions) {
+  constructor(options: ScrollableViewComponentOptions) {
     super(options);
 
     const { theme } = options;

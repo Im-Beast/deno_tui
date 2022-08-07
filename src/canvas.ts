@@ -1,18 +1,16 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
-import {
-  fits,
-  fitsInRectangle,
-  isFullWidth,
-  sleep,
-  textEncoder,
-  textWidth,
-  Timing,
-  TypedEventTarget,
-  UNICODE_CHAR_REGEXP,
-} from "./util.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { crayon } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
+
+import { isFullWidth, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
+import { fits, fitsInRectangle } from "./utils/numbers.ts";
+import { sleep } from "./utils/async.ts";
+import { textWidth } from "./utils/strings.ts";
+import { Timing } from "./types.ts";
+import { TypedEventTarget } from "./utils/typed_event_target.ts";
+
+const textEncoder = new TextEncoder();
 
 export interface CanvasSize {
   columns: number;

@@ -1,8 +1,8 @@
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
 import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
-import { fits } from "./util.ts";
 import type { ViewedComponent } from "./components/view.ts";
+import { fits } from "./utils/numbers.ts";
 
 const encoder = new TextEncoder();
 

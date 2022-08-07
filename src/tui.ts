@@ -5,7 +5,14 @@ import { crayon } from "./deps.ts";
 import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import type { Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
-import { CombinedAsyncIterator, sleep, SortedArray, textEncoder, Timing, TypedEventTarget } from "./util.ts";
+
+import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
+import { sleep } from "./utils/async.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
+import { Timing } from "./types.ts";
+import { TypedEventTarget } from "./utils/typed_event_target.ts";
+
+const textEncoder = new TextEncoder();
 
 export interface TuiOptions {
   canvas?: Canvas;

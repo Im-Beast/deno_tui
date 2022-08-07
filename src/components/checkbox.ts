@@ -1,6 +1,6 @@
 import { ButtonComponent } from "./button.ts";
 import { BoxComponentOptions } from "./box.ts";
-import { EventRecord } from "../util.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
 export enum Mark {
   Check = "✓",
@@ -11,9 +11,7 @@ export interface CheckboxComponentOptions extends BoxComponentOptions {
   value?: boolean;
 }
 
-export class CheckboxComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends ButtonComponent<EventMap> {
+export class CheckboxComponent<EventMap extends EventRecord = Record<never, never>> extends ButtonComponent<EventMap> {
   #lastInteraction = 0;
   #value: boolean;
   label: string;

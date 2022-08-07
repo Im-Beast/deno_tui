@@ -1,16 +1,14 @@
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { EventRecord } from "../util.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
 export interface ButtonComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
   label?: string;
 }
 
-export class ButtonComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap> {
+export class ButtonComponent<EventMap extends EventRecord = Record<never, never>> extends BoxComponent<EventMap> {
   #lastInteraction = 0;
   label?: string;
 

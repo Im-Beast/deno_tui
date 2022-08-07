@@ -2,9 +2,10 @@ import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
-import { clamp, EventRecord, normalize } from "../util.ts";
 import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
+import { clamp, normalize } from "../utils/numbers.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
 export interface SliderTheme extends Theme {
   thumb: Theme;
@@ -25,9 +26,8 @@ export type SliderComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", SliderComponent>;
 };
 
-export class SliderComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & SliderComponentEventMap> {
+export class SliderComponent<EventMap extends EventRecord = Record<never, never>>
+  extends BoxComponent<EventMap & SliderComponentEventMap> {
   declare theme: SliderTheme;
   direction: "horizontal" | "vertical";
   min: number;
