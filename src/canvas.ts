@@ -1,5 +1,6 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import {
+  fits,
   fitsInRectangle,
   isFullWidth,
   sleep,
@@ -126,10 +127,13 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     const realCharacters = stripped.match(UNICODE_CHAR_REGEXP);
     if (!realCharacters?.length) return;
 
+    if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) return;
+
     this.frameBuffer[row] ||= [];
     let offset = 0;
     for (const character of realCharacters) {
       const offsetColumn = column + offset;
+      if (rectangle && !fits(offsetColumn, rectangle.column, rectangle.column + rectangle.width)) return;
 
       this.frameBuffer[row][offsetColumn] = `${style}${character}\x1b[0m`;
       if (isFullWidth(character)) {
