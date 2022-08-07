@@ -55,6 +55,21 @@ export class SliderComponent<
 
     const lastMove = { x: -1, y: -1, time: 0 };
 
+    this.tui.addEventListener("keyPress", ({ keyPress }) => {
+      if (this.state !== "active" && this.state !== "focused") return;
+
+      switch (keyPress.key) {
+        case "up":
+        case "right":
+          this.value += this.step;
+          break;
+        case "down":
+        case "left":
+          this.value -= this.step;
+          break;
+      }
+    });
+
     this.tui.addEventListener("mousePress", ({ mousePress }) => {
       const { x, y, drag } = mousePress;
 
