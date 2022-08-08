@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "demo": "deno run --watch --unstable -A ./examples/demo.ts"
+  },
+  "fmt": {
+    "options": {
+      "lineWidth": 120
+    }
+  }
+}

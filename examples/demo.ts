@@ -1,315 +1,301 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import {
-  ButtonComponent,
-  capitalize,
-  compileStyler,
-  createBox,
-  createButton,
-  createCheckbox,
-  createCombobox,
-  createFrame,
-  createLabel,
-  createMenu,
-  createTextbox,
-  createTui,
-  handleKeyboardControls,
-  handleKeypresses,
-  handleMouseControls,
-  loopDrawing,
-  removeComponent,
-  textWidth,
-  TuiStyler,
-} from "../mod.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
-const tuiStyler = compileStyler<TuiStyler>({
-  foreground: "white",
-  background: "black",
-  focused: {
-    attributes: ["bold"],
-    background: "green",
-  },
-  active: {
-    attributes: ["bold", "italic"],
-    foreground: "black",
-    background: "lightCyan",
-  },
-});
+import { Canvas } from "../src/canvas.ts";
+import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
+import { handleMouseControls } from "../src/mouse.ts";
+import { Tui } from "../src/tui.ts";
 
-const componentStyler = compileStyler<TuiStyler>({
-  ...tuiStyler as TuiStyler,
-  background: "blue",
-});
+import { BoxComponent } from "../src/components/box.ts";
+import { ButtonComponent } from "../src/components/button.ts";
+import { CheckboxComponent } from "../src/components/checkbox.ts";
+import { ComboboxComponent } from "../src/components/combobox.ts";
+import { FrameComponent } from "../src/components/frame.ts";
+import { ProgressBarComponent } from "../src/components/progress_bar.ts";
+import { SliderComponent } from "../src/components/slider.ts";
+import { TextboxComponent } from "../src/components/textbox.ts";
+import { Theme } from "../src/theme.ts";
+import { LabelComponent } from "../src/components/label.ts";
 
-const frameStyler = compileStyler<TuiStyler>({
-  foreground: "white",
-  background: "black",
-});
-
-const frame = {
-  enabled: true,
-  rounded: true,
-  styler: frameStyler,
+const baseTheme: Theme = {
+  base: crayon.bgLightBlue,
+  focused: crayon.bgCyan,
+  active: crayon.bgBlue,
 };
 
-const tui = createTui({
-  reader: Deno.stdin,
-  writer: Deno.stdout,
-  styler: tuiStyler,
+const tui = new Tui({
+  style: crayon.bgHex(0x333333),
+  canvas: new Canvas({
+    refreshRate: 1000 / 60,
+    size: await Deno.consoleSize(Deno.stdout.rid),
+    stdout: Deno.stdout,
+  }),
 });
 
 handleKeypresses(tui);
-handleKeyboardControls(tui);
 handleMouseControls(tui);
+handleKeyboardControls(tui);
 
-const menu = createMenu(tui, {
-  styler: componentStyler,
-});
-
-createCombobox(menu, {
-  label: {
-    text: "File",
-  },
-  items: ["Open", "Save", "Close"],
-  expandItemsWidth: true,
-  // When styler property is missing it is inherited from parent
-});
-
-const help = createButton(menu, {
-  label: {
-    text: "Help",
-  },
-});
-
-help.on("active", () => {
-  helpHidden = !helpHidden;
-  if (helpHidden) removeComponent(helpMessage);
-  else createHelpButton();
-});
-
-let helpHidden = true;
-let helpMessage: ButtonComponent;
-
-const createHelpButton = () => {
-  helpMessage = createButton(help, {
-    interactive: false,
-    // Set dynamic properties as functions so they'll be reactive!
-    get rectangle() {
-      const { width, height } = tui.rectangle;
-      return {
-        column: ~~(width / 4),
-        row: ~~((height - 1) / 4),
-        width: ~~(width / 2),
-        height: ~~((height - 1) / 2),
-      };
-    },
-    label: {
-      text:
-        `There would be an help message.\nHowever its just demo to show Deno TUI possibilities.`,
-    },
-    drawPriority: 4, // draw over components with lower priority (default 0)
-    frame,
-  });
-};
-
-createBox(tui, {
+new BoxComponent({
+  tui,
+  theme: baseTheme,
   rectangle: {
     column: 2,
-    row: 2,
-    width: 5,
-    height: 4,
-  },
-  styler: componentStyler,
-});
-
-createFrame(tui, {
-  rectangle: {
-    column: 1,
-    row: 1,
-    width: 6,
+    row: 3,
     height: 5,
+    width: 10,
   },
-  styler: frameStyler,
 });
 
-createLabel(tui, {
+new ButtonComponent({
+  tui,
+  theme: baseTheme,
   rectangle: {
-    column: 1,
-    row: 8,
-    width: 50,
-    height: 2,
-  },
-  value: {
-    text: "↓ This is label\nＱuick Ｂrown Ｆox\njumped over the lazy dog.",
-    align: {
-      vertical: "top",
-      horizontal: "left",
-    },
+    column: 15,
+    row: 3,
+    height: 5,
+    width: 10,
   },
 });
 
-createCheckbox(tui, {
+new CheckboxComponent({
+  tui,
+  theme: baseTheme,
   rectangle: {
     column: 28,
-    row: 2,
+    row: 3,
+    height: 1,
     width: 1,
+  },
+});
+
+new ComboboxComponent({
+  tui,
+  theme: baseTheme,
+  rectangle: {
+    column: 38,
+    row: 3,
     height: 1,
-  },
-  value: false,
-  styler: componentStyler,
-  frame,
-});
-
-createCheckbox(tui, {
-  rectangle: {
-    column: 28,
-    row: 5,
-    width: 1,
-    height: 1,
-  },
-  value: true,
-  styler: componentStyler,
-  frame,
-});
-
-createCombobox(tui, {
-  items: ["one", "two", "three", "four", { label: "five", value: 5 }],
-  rectangle: {
-    column: 55,
-    row: 2,
-    width: 9,
-    height: 1,
-  },
-  styler: componentStyler,
-  frame,
-});
-
-createTextbox(tui, {
-  rectangle: {
-    column: 55,
-    row: 5,
-    width: 9,
-    height: 1,
-  },
-  value: ["visible"],
-  hidden: false,
-  multiline: false,
-  styler: componentStyler,
-  frame,
-});
-
-createTextbox(tui, {
-  rectangle: {
-    column: 55,
-    row: 8,
-    width: 9,
-    height: 1,
-  },
-  value: ["hidden"],
-  hidden: true,
-  multiline: false,
-  styler: componentStyler,
-  frame,
-});
-
-createTextbox(tui, {
-  rectangle: {
-    column: 55,
-    row: 11,
-    width: 9,
-    height: 3,
-  },
-  value: ["it", "is", "multiline", "overline", "overtwolines"],
-  hidden: false,
-  multiline: true,
-  styler: componentStyler,
-  frame,
-});
-
-createTextbox(tui, {
-  rectangle: {
-    column: 68,
-    row: 8,
-    width: 9,
-    height: 3,
-  },
-  value: ["it", "is", "hidden"],
-  hidden: true,
-  multiline: true,
-  styler: componentStyler,
-  frame,
-});
-
-createButton(tui, {
-  rectangle: {
-    column: 28,
-    row: 8,
     width: 7,
-    height: 3,
   },
-  label: {
-    text: "click",
-  },
-  styler: componentStyler,
-  frame,
+  options: ["one", "two", "three", "four"],
+  zIndex: 2,
 });
 
-const specifiedComponents: string[] = [];
-for (const component of tui.children) {
-  if (
-    component.name === "label" ||
-    specifiedComponents.some((x) => x === component.name)
-  ) {
-    continue;
-  }
+new ComboboxComponent({
+  tui,
+  theme: baseTheme,
+  rectangle: {
+    column: 38,
+    row: 7,
+    height: 1,
+    width: 7,
+  },
+  options: ["one", "two", "three", "four"],
+  label: "numer",
+  zIndex: 1,
+});
 
-  specifiedComponents.push(component.name);
-
-  const rectangle = component.rectangle;
-  const message = `← This is ${capitalize(component.name)}`;
-
-  createLabel(component, {
-    rectangle: {
-      column: rectangle.column + rectangle.width + 2,
-      row: rectangle.row,
-      width: textWidth(message),
-      height: 1,
+const progressBar1 = new ProgressBarComponent({
+  tui,
+  theme: {
+    ...baseTheme,
+    progress: {
+      base: crayon.bgLightBlue.green,
+      focused: crayon.bgCyan.lightGreen,
+      active: crayon.bgBlue.lightYellow,
     },
-    value: {
-      text: message,
+  },
+  value: 50,
+  min: 0,
+  max: 100,
+  direction: "horizontal",
+  smooth: true,
+  rectangle: {
+    column: 48,
+    height: 2,
+    row: 3,
+    width: 10,
+  },
+});
+
+new LabelComponent({
+  tui,
+  align: {
+    horizontal: "center",
+    vertical: "center",
+  },
+  rectangle: {
+    column: 75,
+    row: 3,
+    // Automatically adjust size
+    height: -1,
+    width: -1,
+  },
+  theme: {
+    base: tui.style,
+  },
+  value: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
+});
+
+const progressBar2 = new ProgressBarComponent({
+  tui,
+  theme: {
+    ...baseTheme,
+    progress: {
+      base: crayon.bgLightBlue.green,
+      focused: crayon.bgCyan.lightGreen,
+      active: crayon.bgBlue.lightYellow,
+    },
+  },
+  value: 75,
+  min: 0,
+  max: 100,
+  direction: "vertical",
+  smooth: true,
+  rectangle: {
+    column: 48,
+    height: 5,
+    row: 10,
+    width: 2,
+  },
+});
+
+new SliderComponent({
+  tui,
+  theme: {
+    ...baseTheme,
+    thumb: {
+      base: crayon.bgMagenta,
+    },
+  },
+  value: 5,
+  min: 1,
+  max: 10,
+  step: 1,
+  direction: "horizontal",
+  rectangle: {
+    column: 61,
+    height: 2,
+    row: 3,
+    width: 10,
+  },
+});
+
+new SliderComponent({
+  tui,
+  theme: {
+    ...baseTheme,
+    thumb: {
+      base: crayon.bgMagenta,
+    },
+  },
+  value: 5,
+  min: 1,
+  max: 10,
+  step: 1,
+  direction: "vertical",
+  rectangle: {
+    column: 61,
+    height: 5,
+    row: 10,
+    width: 2,
+  },
+});
+
+new TextboxComponent({
+  tui,
+  theme: baseTheme,
+  multiline: false,
+  rectangle: {
+    column: 2,
+    row: 11,
+    height: 1,
+    width: 10,
+  },
+  value: "hi",
+});
+
+new TextboxComponent({
+  tui,
+  theme: baseTheme,
+  multiline: false,
+  hidden: true,
+  rectangle: {
+    column: 15,
+    row: 11,
+    height: 1,
+    width: 10,
+  },
+  value: "hi!",
+});
+
+new TextboxComponent({
+  tui,
+  theme: baseTheme,
+  multiline: true,
+  hidden: false,
+  rectangle: {
+    column: 29,
+    row: 11,
+    height: 5,
+    width: 10,
+  },
+  value: "hello!\nwhats up?",
+});
+
+// Generate frames and labels for every component
+
+queueMicrotask(() => {
+  for (const component of tui.components) {
+    const { rectangle } = component;
+    if (!rectangle) continue;
+
+    const name = component.constructor.name.replace("Component", "");
+
+    new LabelComponent({
+      tui,
       align: {
-        horizontal: "center",
-        vertical: "center",
+        horizontal: "left",
+        vertical: "top",
       },
-    },
-    styler: tuiStyler,
-    frame,
-  });
-}
+      rectangle: {
+        column: rectangle.column - 1,
+        row: rectangle.row - 2,
+        height: -1,
+        width: -1,
+      },
+      theme: {
+        base: tui.style,
+      },
+      value: name,
+    });
 
-createLabel(tui, {
-  value: {
-    get text() {
-      return `FPS: ${tui.canvas.fps.toFixed(2)}`;
-    },
-    align: {
-      horizontal: "left",
-      vertical: "top",
-    },
-  },
-  get rectangle() {
-    const rectangle = tui.rectangle;
-
-    const width = textWidth(this.value.text);
-    return {
-      ...rectangle,
-      column: rectangle.width - width,
-      height: 1,
-      row: 0,
-    };
-  },
-  drawPriority: 1,
-  styler: componentStyler,
-  frame,
+    new FrameComponent({
+      tui,
+      component,
+      framePieces: "rounded",
+      theme: {
+        base: crayon.bgHex(0x333333).white,
+        focused: crayon.bgHex(0x333333).bold,
+      },
+    });
+  }
 });
 
-loopDrawing(tui);
+let direction = 1;
+let avgFps = 60;
+for await (const event of tui.run()) {
+  if (event.type === "update") {
+    avgFps = ((avgFps * 99) + tui.canvas.fps) / 100;
+    const fpsText = `${avgFps.toFixed(2)} FPS`;
+    tui.canvas.draw(0, 0, baseTheme.base(fpsText));
+
+    if (progressBar1.value === progressBar1.max || progressBar1.value === progressBar1.min) {
+      direction *= -1;
+    }
+
+    progressBar1.value += direction;
+    progressBar2.value += direction;
+  }
+}

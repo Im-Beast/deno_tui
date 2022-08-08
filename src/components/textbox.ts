@@ -1,258 +1,165 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { CanvasStyler, CompileStyler, drawPixel, drawText } from "../canvas.ts";
-import { TuiStyler } from "../tui.ts";
-import {
-  createComponent,
-  ExtendedComponent,
-  getCurrentStyler,
-} from "../tui_component.ts";
-import { TuiObject } from "../types.ts";
-import { cloneAndAssign, textWidth } from "../util.ts";
-import { createBox, CreateBoxOptions } from "./box.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-/** Definition on how TextboxComponent should look like */
-export type TextboxStyler = TuiStyler & {
-  cursor?: CanvasStyler;
-};
+import { BoxComponent } from "./box.ts";
+import { ComponentOptions } from "../component.ts";
+import { Rectangle } from "../types.ts";
+import { ComponentEvent } from "../events.ts";
+import { ComboboxComponent } from "./combobox.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+import { insertAt } from "../utils/strings.ts";
+import { clamp } from "../utils/numbers.ts";
 
-/** Interactive textbox component */
-export type TextboxComponent = ExtendedComponent<
-  "textbox",
-  {
-    /** Textbox content, each index of array starting by 1 represents newline */
-    value: string[];
-    /** `textbox.value` converted into a string using `textbox.value.join("\n")` */
-    string: () => string;
-    /** Whether textbox content is hidden by asteriks (*) */
-    hidden: boolean;
-    /** Whether textbox is multiline */
-    multiline: boolean;
-    /** Definition on how component looks like */
-    styler?: CompileStyler<TextboxStyler>;
-  },
-  "valueChange",
-  string[]
->;
-
-export interface CreateTextboxOptions extends CreateBoxOptions {
-  /** Textbox content, each index of array starting by 1 represents newline */
-  value?: string[];
-  /** Whether textbox content is hidden by asteriks (*) */
-  hidden?: boolean;
-  /** Whether textbox is multiline */
+export interface TextboxComponentOptions extends ComponentOptions {
+  rectangle: Rectangle;
   multiline?: boolean;
-  /** Definition on how component looks like */
-  styler?: CompileStyler<TextboxStyler>;
+  hidden?: boolean;
+  value?: string;
 }
 
-/**
- * Create TextboxComponent
- *
- * It is interactive by default
- * @param parent - parent of the created box, either tui or other component
- * @param options
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * createTextbox(tui, {
- *  column: 1,
- *  row: 1,
- *  width: 10,
- *  height: 1,
- *  value: ["one line"],
- *  //multiline: true,
- *  //hidden: true,
- * })
- * ```
- */
-export function createTextbox(
-  parent: TuiObject,
-  options: CreateTextboxOptions,
-): TextboxComponent {
-  const position = { x: 0, y: 0 };
+export type TextboxComponentEventMap = {
+  value: ComponentEvent<"valueChange", ComboboxComponent>;
+};
 
-  const textbox: TextboxComponent = createComponent(parent, options, {
-    name: "textbox",
-    interactive: true,
-    draw(this: TextboxComponent) {
-      const { row, column, width, height } = textbox.rectangle;
+export class TextboxComponent<EventMap extends EventRecord = Record<never, never>>
+  extends BoxComponent<EventMap & TextboxComponentEventMap> {
+  #value: string[] = [];
 
-      const offsetX = position.x >= width ? position.x - width + 1 : 0;
-      const offsetY = position.y >= height ? height - position.y - 1 : 0;
+  cursorPosition: {
+    x: number;
+    y: number;
+  };
+  multiline: boolean;
+  hidden: boolean;
 
-      for (let [i, line] of textbox.value.entries()) {
-        const y = i + offsetY;
-        if (y >= height || y < 0) continue;
-        if (textbox.hidden) {
-          line = "*".repeat(line.length);
+  constructor(options: TextboxComponentOptions) {
+    super(options);
+    this.multiline = options.multiline ?? false;
+    this.hidden = options.hidden ?? false;
+    this.value = options.value ?? "";
+    this.cursorPosition = { x: this.#value.at(-1)?.length ?? 0, y: this.#value.length - 1 ?? 0 };
+
+    this.tui.addEventListener("keyPress", ({ keyPress }) => {
+      if (this.state === "base") return;
+
+      const { key, ctrl, meta } = keyPress;
+
+      if (ctrl || meta) return;
+
+      let { x, y } = this.cursorPosition;
+
+      if (key.length === 1) {
+        this.#value[y] = insertAt(this.#value[y], x, key);
+        ++x;
+      } else {
+        switch (key) {
+          case "space":
+            this.#value[y] = insertAt(this.#value[y], ++x, " ");
+            break;
+          case "tab":
+            this.#value[y] = insertAt(this.#value[y], ++x, "\t");
+            break;
+          case "home":
+            x = 0;
+            break;
+          case "end":
+            x = this.#value[y].length;
+            break;
+          case "up":
+            x = Math.min(x, this.#value[--y]?.length ?? 0);
+            break;
+          case "down":
+            x = Math.min(x, this.#value[++y]?.length ?? 0);
+            break;
+          case "left":
+            x = Math.max(x - 1, 0);
+            break;
+          case "right":
+            x = Math.min(x + 1, this.#value[y].length);
+            break;
+          case "backspace":
+            this.#value[y] = this.#value[y].slice(0, x - 1) +
+              this.#value[y].slice(x);
+            --x;
+            break;
+          case "delete":
+            this.#value[y] = this.#value[y].slice(0, x) +
+              this.#value[y].slice(x + 1);
+            break;
+          case "return":
+            if (!this.multiline) break;
+
+            if (x === this.#value[y].length) {
+              ++y;
+            } else {
+              this.#value.splice(
+                y,
+                1,
+                this.#value[y].slice(0, x),
+                this.#value[y].slice(x),
+              );
+              ++y;
+              x = 0;
+            }
+            break;
         }
-
-        line = line.slice(offsetX);
-
-        let tw = textWidth(line);
-        while (tw > width) {
-          line = line.slice(0, -1);
-          tw = textWidth(line);
-        }
-
-        drawText(textbox.tui.canvas, {
-          column,
-          row: row + y,
-          text: line,
-          styler: getCurrentStyler(textbox),
-        });
       }
 
-      if (textbox.tui.focused.items[0] === textbox) {
-        const currentCharacter = textbox.value?.[position.y]?.[position.x];
-        const cursorCol = column + Math.min(position.x, width - 1);
-        const cursorRow = row + Math.min(position.y, height - 1);
-        drawPixel(textbox.canvas, {
-          column: cursorCol,
-          row: cursorRow,
-          value: currentCharacter
-            ? textbox.hidden ? "*" : currentCharacter
-            : " ",
-          styler: textbox.styler?.cursor ||
-            { foreground: "\x1b[30m", background: "\x1b[47m" },
-        });
-      }
-    },
-    drawPriority: options.drawPriority ?? 1,
-    value: options?.value?.length ? options.value : [""],
-    string: () => textbox.value.join("\n"),
-    hidden: options.hidden ?? false,
-    multiline: options.multiline ?? false,
-  });
+      this.#value[y] ||= "";
+      y = clamp(y, 0, this.#value.length);
+      x = clamp(x, 0, this.#value[y].length);
 
-  createBox(
-    textbox,
-    cloneAndAssign(options, {
-      focusedWithin: [textbox, ...textbox.focusedWithin],
-      get styler() {
-        return textbox.styler;
-      },
-      get drawPriority() {
-        return textbox.drawPriority - 1;
-      },
-    }),
-  );
+      this.cursorPosition = { x, y };
+      this.dispatchEvent(new ComponentEvent("valueChange", this));
+    });
+  }
 
-  textbox.on("key", ({ key, shift, ctrl, meta }) => {
-    const controls = textbox.tui.keyboardControls;
-    if (!key || shift) return;
+  get value(): string {
+    return this.#value.join("\n");
+  }
 
-    const startValue = textbox.value;
+  set value(value: string) {
+    const split = value.split("\n");
+    this.#value = this.multiline ? split : [split.join("")];
+  }
 
-    const insertValue = (value: string) => {
-      textbox.value[position.y] =
-        textbox.value[position.y].slice(0, position.x) + value +
-        textbox.value[position.y].slice(position.x);
-    };
+  draw() {
+    const { value } = this;
 
-    if (!ctrl && !meta && key.length === 1) {
-      textbox.value[position.y] ||= "";
-      insertValue(key);
-      ++position.x;
-      textbox.emit("valueChange", startValue);
-      return;
+    super.draw();
+
+    if (!value) return;
+
+    const { style } = this;
+    const { canvas } = this.tui;
+    const { column, row, width, height } = this.rectangle;
+    const { x, y } = this.cursorPosition;
+
+    const offsetX = Math.max(x - width + 1, 0);
+    const offsetY = Math.max(y - height + 1, 0);
+
+    for (const [i, line] of this.#value.entries()) {
+      if (i < offsetY) continue;
+      if (i - offsetY >= height) break;
+
+      const lineText = line.slice(offsetX, offsetX + width);
+
+      canvas.draw(
+        column,
+        row + i - offsetY,
+        style(this.hidden ? "*".repeat(lineText.length) : lineText),
+      );
     }
 
-    switch (key) {
-      case "space":
-        insertValue(" ");
-        ++position.x;
-        break;
-      case "tab":
-        insertValue("  ");
-        position.x += 2;
-        break;
-      case controls.get("up"):
-        position.y = Math.max(0, position.y - 1);
-        textbox.value[position.y] ||= "";
-        position.x = textbox.value[position.y].length >= position.x
-          ? position.x
-          : textbox.value[position.y].length;
-        break;
-      case controls.get("down"):
-        position.y = Math.min(position.y + 1, textbox.value.length - 1);
-        textbox.value[position.y] ||= "";
-        position.x = textbox.value[position.y].length >= position.x
-          ? position.x
-          : textbox.value[position.y].length;
-        break;
-      case controls.get("left"):
-        position.x = Math.max(0, position.x - 1);
-        break;
-      case controls.get("right"):
-        position.x = Math.min(position.x + 1, textbox.value[position.y].length);
-        break;
-      case "return":
-        if (!textbox.multiline) break;
+    if (this.state === "base") return;
 
-        if (position.x === textbox.value[position.y].length) {
-          if (textbox.multiline) {
-            textbox.value.splice(position.y + 1, 0, "");
-          }
-          position.y = Math.min(position.y + 1, textbox.value.length - 1);
-          position.x = textbox.value[position.y].length;
-        } else {
-          const start = textbox.value[position.y].slice(0, position.x);
-          const end = textbox.value[position.y].slice(position.x);
-          textbox.value[position.y] = start;
-          if (textbox.multiline) {
-            textbox.value.splice(position.y + 1, 0, end);
-          }
-          position.y = Math.min(position.y + 1, textbox.value.length - 1);
-          position.x = 0;
-        }
-        break;
-      case "backspace":
-        if (position.x === 0 && position.y !== 0) {
-          position.y = Math.max(0, position.y - 1);
-          const start = textbox.value[position.y] ?? "";
-          const end = textbox.value.splice(position.y + 1, 1);
-          if (end) {
-            textbox.value[position.y] = start + end;
-          }
-          position.x = start.length;
-        } else {
-          textbox.value[position.y] ||= "";
-          textbox.value[position.y] =
-            textbox.value[position.y].substring(0, position.x - 1) +
-            textbox.value[position.y].substring(position.x);
-          position.x = Math.max(0, position.x - 1);
-        }
-        break;
-      case "delete":
-        if (position.x === textbox.value[position.y]?.length) {
-          const del = textbox.value.splice(position.y, 1);
-          if (del) {
-            textbox.value[position.y] = del + (textbox.value[position.y] ?? "");
-          }
-        } else if (!textbox.value[position.y]?.length) {
-          textbox.value.splice(position.y, 1);
-        } else {
-          textbox.value[position.y] =
-            textbox.value[position.y].substring(0, position.x) +
-            textbox.value[position.y].substring(position.x + 1);
-        }
-        break;
-      case "home":
-        position.x = 0;
-        break;
-      case "end":
-        position.x = textbox.value[position.y].length;
-        break;
-      default:
-        return;
-    }
+    canvas.draw(
+      column + Math.min(x, width - 1),
+      row + Math.min(y, height - 1),
+      style("\x1b[7m" + (this.#value[y][x] ?? " ") + "\x1b[0m"),
+    );
+  }
 
-    if (textbox.value !== startValue) {
-      textbox.emit("valueChange", startValue);
-    }
-  });
-
-  return textbox;
+  interact() {
+    this.state = "focused";
+  }
 }

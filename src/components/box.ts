@@ -1,104 +1,27 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { CompileStyler, drawRectangle } from "../canvas.ts";
-import { TuiStyler } from "../tui.ts";
-import {
-  createComponent,
-  CreateComponentOptions,
-  ExtendedComponent,
-  getCurrentStyler,
-  removeComponent,
-} from "../tui_component.ts";
-import { TuiObject } from "../types.ts";
-import { createFrame, FrameComponent } from "./frame.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-export type FrameAssignment =
-  & ({ enabled: true; styler: CompileStyler<TuiStyler> } | {
-    enabled: false;
-    styler?: CompileStyler<TuiStyler>;
-  })
-  & { rounded?: boolean };
+import { Component, ComponentOptions } from "../component.ts";
+import { Rectangle } from "../types.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
-/** Not interactive box component */
-export type BoxComponent = ExtendedComponent<"box", {
-  frame: FrameAssignment;
-}>;
+export interface BoxComponentOptions extends ComponentOptions {
+  rectangle: Rectangle;
+}
 
-export type CreateBoxOptions =
-  & Omit<
-    CreateComponentOptions,
-    "interactive" | "name" | "draw" | "update"
-  >
-  & {
-    interactive?: boolean;
-    frame?: FrameAssignment;
-  };
+export class BoxComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
+  declare rectangle: Rectangle;
 
-/**
- * Create BoxComponent
- *
- * It is not interactive by default
- * @param parent - parent of the created box, either tui or other component
- * @param options
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * createBox(tui, {
- *  rectangle: {
- *    column: 2,
- *    row: 2,
- *    width: 10,
- *    height: 5
- *  }
- * })
- * ```
- */
-export function createBox(
-  parent: TuiObject,
-  options: CreateBoxOptions,
-): BoxComponent {
-  let frame: FrameComponent | undefined;
+  constructor(options: BoxComponentOptions) {
+    super(options);
+  }
 
-  const box: BoxComponent = createComponent(parent, options, {
-    name: "box",
-    interactive: false,
-    update(this: BoxComponent) {
-      if (frame && !box.frame.enabled) {
-        removeComponent(frame);
-        frame = undefined;
-        return;
-      }
+  draw() {
+    super.draw();
 
-      if (!!frame === !!box.frame?.enabled) return;
+    const { style } = this;
+    const { canvas } = this.tui;
+    const { column, row, width, height } = this.rectangle;
 
-      frame = createFrame(box, {
-        get rectangle() {
-          const { column, row, width, height } = box.rectangle;
-          return {
-            column: column - 1,
-            row: row - 1,
-            width: width + 1,
-            height: height + 1,
-          };
-        },
-        get styler() {
-          return box.frame.styler ?? box.styler;
-        },
-        get rounded() {
-          return box.frame.rounded ?? false;
-        },
-      });
-    },
-    draw(this: BoxComponent) {
-      drawRectangle(box.canvas, {
-        ...box.rectangle,
-        styler: getCurrentStyler(box),
-      });
-    },
-    frame: options.frame ?? {
-      enabled: false,
-    },
-  });
-
-  return box;
+    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
+  }
 }

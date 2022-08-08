@@ -1,81 +1,84 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { getInteractiveComponents, Tui } from "./tui.ts";
-import { AnyComponent } from "./types.ts";
-import { clamp } from "./util.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-/** ASCII escape code to enable mouse handling */
-export const ENABLE_MOUSE = "\x1b[?1000h\x1b[?1002h";
-/** ASCII escape code to disable mouse handling */
-export const DISABLE_MOUSE = "\x1b[?1000l\x1b[?1002l";
+import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
+import { Component } from "./component.ts";
+import { Tui } from "./tui.ts";
+import type { ViewedComponent } from "./components/view.ts";
+import { fits } from "./utils/numbers.ts";
 
 const encoder = new TextEncoder();
 
-const selections: { [id: number]: number } = {};
-
-export interface HandleMouseControlsOptions {
-  /** Maximum delay between two clicks that allows activating component */
-  doubleClickDelay?: number;
-}
-
 /**
- * Handle mouse controls
- *  - Single click to focus component
- *  - Double click/Single click focused component to activate
- * @param tui – tui which components will be manipulated
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * handleKeypresses(tui);
- * handleMouseControls(tui);
- * ```
+ * `handleKeypresses()` has to be called in order for this function to work.
+ * Clicking component calls `interact("mouse")` on it.
+ * It's up to component how it handles it.
  */
-export function handleMouseControls(
-  tui: Tui,
-  options?: HandleMouseControlsOptions,
-): void {
-  Deno.writeSync(tui.canvas.writer.rid, encoder.encode(ENABLE_MOUSE));
-  addEventListener("unload", () => {
-    Deno.writeSync(tui.writer.rid, encoder.encode(DISABLE_MOUSE));
+export function handleMouseControls(tui: Tui): void {
+  Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
+
+  tui.addEventListener("close", () => {
+    Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  tui.on("mouse", ({ x, y, release, button, drag }) => {
-    if (release || drag || button !== 0) return;
+  tui.addEventListener("mousePress", ({ mousePress }) => {
+    const { x, y, drag, scroll, shift, meta, ctrl, release } = mousePress;
 
-    const components = getInteractiveComponents(tui);
-    let item!: AnyComponent;
+    if (drag || scroll !== 0 || shift || meta || ctrl) return;
 
-    for (const component of components) {
-      let { column, height, row, width } = component.rectangle;
-      column += component.canvas.offset.columns;
-      row += component.canvas.offset.rows;
+    const possibleComponents: Component[] = [];
 
-      if (
-        clamp(x, column, column + width - 1) === x &&
-        clamp(y, row, row + height - 1) === y &&
-        (!item || component.drawPriority > item.drawPriority)
-      ) {
-        item = component;
+    for (const component of tui.components) {
+      const viewedComponent = component as unknown as ViewedComponent;
+      if (!viewedComponent.rectangle) continue;
+
+      let { column, row, width, height } = viewedComponent.rectangle;
+
+      const view = viewedComponent.tui.view;
+      if (view && view !== viewedComponent) {
+        const { column: viewColumn, row: viewRow, width: viewWidth, height: viewHeight } = view.rectangle;
+        const { x: xOffset, y: yOffset } = view.offset;
+        column += viewColumn - xOffset;
+        row += viewRow - yOffset;
+
+        const xBoundary = Math.min(
+          column + width - 1,
+          viewColumn + viewWidth - 1,
+        );
+
+        const yBoundary = Math.min(
+          row + height - 1,
+          viewRow + viewHeight - 1,
+        );
+
+        if (!fits(x, column, xBoundary) || !fits(y, row, yBoundary)) {
+          continue;
+        }
+      } else if (!fits(x, column, column + width - 1) || !fits(y, row, row + height - 1)) {
+        continue;
+      }
+
+      const candidate = possibleComponents[0];
+
+      if (!possibleComponents.length || viewedComponent.zIndex > candidate.zIndex) {
+        possibleComponents.length = 0;
+        possibleComponents.push(component);
+      } else if (viewedComponent.zIndex === candidate.zIndex) {
+        possibleComponents.push(component);
       }
     }
 
-    if (
-      tui.focused.items.includes(item) &&
-      Date.now() - selections[tui.id] < (options?.doubleClickDelay ?? 300)
-    ) {
-      tui.focused.active = true;
-      tui.emit("active");
-      tui.focused.items.forEach((c) => c?.emit("active"));
-      tui.focused.items.forEach((c) => c?.active?.());
+    const impossibleComponents = tui.components.filter((value) => possibleComponents.indexOf(value) === -1);
+
+    for (const component of impossibleComponents) {
+      component.state = "base";
     }
 
-    tui.focused.items = [item];
-    selections[tui.id] = Date.now();
-
-    if (!tui.focused.active) {
-      tui.emit("focus");
-      tui.focused.items.forEach((c) => c?.emit("focus"));
-      tui.focused.items.forEach((c) => c?.focus?.());
+    for (const component of possibleComponents) {
+      if (!release) {
+        component.interact("mouse");
+      } else if (component.state === "active") {
+        component.state = "base";
+      }
     }
   });
 }

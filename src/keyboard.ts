@@ -1,154 +1,142 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { KeyPress } from "./key_reader.ts";
-import { getInteractiveComponents, Tui } from "./tui.ts";
-import { AnyComponent } from "./types.ts";
-import { clamp } from "./util.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
+import { Component } from "./component.ts";
+import { FakeTui } from "./components/view.ts";
+import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
+import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
+import { Tui } from "./tui.ts";
 
 /**
- * Change focused component using 2 axis vector
- * @param tui – tui which components will be manipulated
- * @param vector – object which holds x and y (they should equal -1 or 0 or 1)
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * changeComponent(tui, { x: 1, y: 1});
- * ```
+ * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
+ * that way keyPress, multiKeyPress and mousePress events work
  */
-export function changeComponent(
-  tui: Tui,
-  vector: { x: number; y: number },
-): AnyComponent {
-  let item = tui.focused.items[0] || tui.components[0];
+export async function handleKeypresses(tui: Tui): Promise<void> {
+  for await (const keyPresses of readKeypresses(tui.stdin)) {
+    const multiKeyPress: MultiKeyPress = {
+      keys: [],
+      buffer: [],
+      ctrl: false,
+      meta: false,
+      shift: false,
+    };
 
-  let { row, column } = item?.rectangle;
-  row += item?.canvas?.offset?.rows ?? 0;
-  column += item?.canvas?.offset?.columns ?? 0;
+    for (const keyPress of keyPresses) {
+      tui.dispatchEvent(keyPress.key === "mouse" ? new MousePressEvent(keyPress) : new KeypressEvent(keyPress));
 
-  const components = getInteractiveComponents(tui);
-
-  if (vector.y !== 0) {
-    let vertical = components
-      .filter(
-        (a) => a === item || (a.rectangle.row + a.canvas.offset.rows !== row),
-      )
-      .sort(
-        (a, b) =>
-          (a.rectangle.row + a.canvas.offset.rows) -
-          (b.rectangle.row + b.canvas.offset.rows),
-      );
-
-    vertical = vertical.filter(({ rectangle: a }) =>
-      a.row ===
-        vertical[
-          clamp(vertical.indexOf(item) + vector.y, 0, vertical.length - 1)
-        ].rectangle.row
-    );
-
-    let closest!: AnyComponent;
-    for (const component of vertical) {
-      if (!closest) {
-        closest = component;
-        continue;
-      }
-
-      const distA = Math.abs(
-        column - (component.rectangle.column + component.canvas.offset.columns),
-      );
-      const distB = Math.abs(
-        column - (closest.rectangle.column + closest.canvas.offset.columns),
-      );
-
-      if (distA < distB) {
-        closest = component;
-      } else if (distA === distB) {
-        closest = component.drawPriority > closest.drawPriority
-          ? component
-          : closest;
-      }
+      multiKeyPress.keys.push(keyPress.key);
+      multiKeyPress.buffer.push(keyPress.buffer);
+      multiKeyPress.shift ||= keyPress.shift;
+      multiKeyPress.meta ||= keyPress.meta;
+      multiKeyPress.ctrl ||= keyPress.ctrl;
     }
 
-    item = closest;
+    if (multiKeyPress.keys.length > 1) {
+      tui.dispatchEvent(new MultiKeyPressEvent(multiKeyPress));
+    }
   }
-
-  if (vector.x !== 0) {
-    const horizontal = components
-      .filter(
-        ({ rectangle: a }) => a.row === row,
-      )
-      .sort(
-        ({ rectangle: a }, { rectangle: b }) => a.column - b.column,
-      );
-
-    item = horizontal[
-      clamp(horizontal.indexOf(item) + vector.x, 0, horizontal.length - 1)
-    ];
-  }
-
-  return item;
 }
 
 /**
- * Handle keyboard controls
- *  - Hold shift + press up/down/left/right to move between components
- *  - Press enter to activate item
- * @param tui – Tui of which components will be manipulated
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * handleKeypresses(tui);
- * handleKeyboardControls(tui);
- * ```
+ * `handleKeypresses()` has to be called in order for this function to work.
+ * CTRL+Arrows moves focus in appropriate direction.
+ * Just Enter (Return) calls `interact("keyboard")` on focused component.
+ * It's up to component how it handles it.
  */
 export function handleKeyboardControls(tui: Tui): void {
-  const handler = ({ meta, shift, ctrl, key }: KeyPress) => {
-    const controls = tui.keyboardControls;
-    if (key === controls.get("activate")) {
-      tui.focused.active = true;
-      tui.emit("active");
-      tui.focused.items[0]?.emit("active");
-      tui.focused.items[0]?.active?.();
-      return;
+  let lastSelectedComponent: Component;
+  tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
+    const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
+      ? [event.multiKeyPress, event.multiKeyPress.keys]
+      : [event.keyPress, [event.keyPress.key]];
+
+    if (!keyPress.ctrl && !pressedKeys.includes("return")) return;
+
+    lastSelectedComponent ??= tui.components[0];
+
+    const moveVector = {
+      x: 0,
+      y: 0,
+    };
+
+    for (const key of pressedKeys) {
+      switch (key) {
+        case "up":
+          --moveVector.y;
+          break;
+        case "down":
+          ++moveVector.y;
+          break;
+        case "left":
+          --moveVector.x;
+          break;
+        case "right":
+          ++moveVector.x;
+          break;
+        case "return":
+          lastSelectedComponent.interact("keyboard");
+          return;
+        default:
+          return;
+      }
     }
 
-    if (!shift || ctrl || meta) return;
+    if (!lastSelectedComponent) {
+      lastSelectedComponent = tui.components.find((x) => x.rectangle !== undefined)!;
+    }
+    if (!lastSelectedComponent.rectangle) return;
 
-    const vector = { x: 0, y: 0 };
+    const possibleComponents: Component[] = [];
+    const lastRectangle = lastSelectedComponent.rectangle;
 
-    switch (key) {
-      case controls.get("up"):
-        vector.y -= 1;
-        break;
-      case controls.get("down"):
-        vector.y += 1;
-        break;
-      case controls.get("left"):
-        vector.x -= 1;
-        break;
-      case controls.get("right"):
-        vector.x += 1;
-        break;
-      default:
-        return;
+    for (const component of tui.components) {
+      // TODO: Handle keyboard controls in views
+      // Proposed option: Ctrl+F-keys switch between views and then you can control them using normal controls?
+      // This should then display info somewhere (presumably right-top corner about current view)
+      if (
+        component.interact === Component.prototype.interact ||
+        (component.tui as FakeTui).realTui
+      ) {
+        continue;
+      }
+
+      const { rectangle } = component;
+      if (!rectangle || component === lastSelectedComponent) continue;
+
+      if (
+        (
+          moveVector.y === 0 ||
+          (moveVector.y > 0 && rectangle.row > lastRectangle.row) ||
+          (moveVector.y < 0 && rectangle.row < lastRectangle.row)
+        ) &&
+        (
+          moveVector.x === 0 ||
+          (moveVector.x > 0 && rectangle.column > lastRectangle.column) ||
+          (moveVector.x < 0 && rectangle.column < lastRectangle.column)
+        )
+      ) {
+        possibleComponents.push(component);
+      }
     }
 
-    tui.focused.items = [changeComponent(tui, vector)];
-    tui.focused.items[0]?.focus?.();
-    tui.emit("focus");
-    tui.focused.items[0]?.emit("focus");
-  };
+    if (!possibleComponents.length) return;
 
-  tui.on("key", handler);
-  tui.on("multiKey", ({ keys, meta, shift, ctrl, buffer }) => {
-    for (const i in keys) {
-      handler({
-        key: keys[i],
-        buffer: buffer[i],
-        meta,
-        shift,
-        ctrl,
-      });
+    let closest!: Component;
+
+    let closestDistance!: number;
+    for (const component of possibleComponents) {
+      const distance = Math.sqrt(
+        Math.pow(lastSelectedComponent.rectangle!.column - component.rectangle!.column, 2) +
+          Math.pow(lastSelectedComponent.rectangle!.row - component.rectangle!.row, 2),
+      );
+
+      if (!closest || distance < closestDistance) {
+        closest = component;
+        closestDistance = distance;
+      }
     }
+
+    lastSelectedComponent.state = "base";
+    closest.state = "focused";
+    lastSelectedComponent = closest;
   });
 }

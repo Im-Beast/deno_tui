@@ -1,125 +1,133 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { CanvasStyler, CompileStyler, drawRectangle } from "../canvas.ts";
-import { TuiStyler } from "../tui.ts";
-import {
-  createComponent,
-  ExtendedComponent,
-  getCurrentStyler,
-} from "../tui_component.ts";
-import { TuiObject } from "../types.ts";
-import { cloneAndAssign } from "../util.ts";
-import { CreateBoxOptions } from "./box.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-/** Definition on how ProgressBarComponent should look like */
-export type ProgressBarStyler = TuiStyler<{
-  progress?: CanvasStyler;
-}>;
+import { BoxComponent } from "./box.ts";
+import { ComponentOptions } from "../component.ts";
+import { DeepPartial, Rectangle } from "../types.ts";
+import { emptyStyle, Theme } from "../theme.ts";
+import { ComponentEvent } from "../events.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+import { clamp, normalize } from "../utils/numbers.ts";
 
-/** Not interactive progress bar component */
-export interface ProgressBarExtension {
-  /** Whether progress bar is rendered as horizontal or vertical one */
-  direction: "vertical" | "horizontal";
-  /** ProgressBar progress  */
-  value: number;
-  /** Definition on how component looks like */
-  styler?: CompileStyler<ProgressBarStyler>;
+export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
+export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
+
+export interface ProgressBarTheme extends Theme {
+  progress: Theme;
 }
 
-/** Interactive button component */
-export type ProgressBarComponent = ExtendedComponent<
-  "progressBar",
-  ProgressBarExtension
->;
+export interface ProgressBarComponentOptions extends ComponentOptions {
+  value: number;
+  min: number;
+  max: number;
+  rectangle: Rectangle;
+  direction: "horizontal" | "vertical";
+  theme?: DeepPartial<ProgressBarTheme>;
+  smooth?: boolean;
+}
 
-export type CreateProgressBarOptions =
-  & Omit<CreateBoxOptions, "styler">
-  & ProgressBarExtension;
+export type ProgressBarComponentEventMap = {
+  valueChange: ComponentEvent<"valueChange", ProgressBarComponent>;
+};
 
-/**
- * Create ButtonComponent
- *
- * It is interactive by default
- * @param parent - parent of the created button, either tui or other component
- * @param options
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * createProgressBar(tui, {
- *  rectangle: {
- *    column: 2,
- *    row: 2,
- *    width: 10,
- *    height: 5
- *  },
- *  direction: "horizontal",
- *  value: 0.3,
- * });
- * ```
- */
-export function createProgressBar(
-  parent: TuiObject,
-  options: CreateProgressBarOptions,
-): ProgressBarComponent {
-  let value = options.value;
-  const progressBar: ProgressBarComponent = createComponent(
-    parent,
-    cloneAndAssign<
-      Parameters<typeof createComponent>[1],
-      CreateProgressBarOptions
-    >(
-      {
-        name: "progressBar",
-        interactive: false,
+export class ProgressBarComponent<EventMap extends EventRecord = Record<never, never>>
+  extends BoxComponent<EventMap & ProgressBarComponentEventMap> {
+  #value: number;
 
-        draw(this: ProgressBarComponent) {
-          const { canvas, rectangle } = this;
-          const styler = getCurrentStyler(this);
+  declare theme: ProgressBarTheme;
+  direction: "horizontal" | "vertical";
+  min: number;
+  max: number;
+  smooth: boolean;
 
-          drawRectangle(canvas, {
-            ...rectangle,
-            styler,
-          });
+  constructor(options: ProgressBarComponentOptions) {
+    super(options);
+    this.direction = options.direction;
+    this.min = options.min;
+    this.max = options.max;
+    this.#value = options.value;
+    this.smooth = options.smooth ?? false;
 
-          const progress = this.value;
+    const progress = options.theme?.progress;
+    this.theme.progress = {
+      active: progress?.active ?? progress?.focused ?? progress?.base ?? emptyStyle,
+      focused: progress?.focused ?? progress?.base ?? emptyStyle,
+      base: progress?.base ?? emptyStyle,
+    };
+  }
 
-          if (this.direction === "horizontal") {
-            drawRectangle(canvas, {
-              column: rectangle.column,
-              row: rectangle.row,
-              height: rectangle.height,
-              width: Math.round(progress * rectangle.width),
-              styler: styler.progress,
-            });
-          } else {
-            drawRectangle(canvas, {
-              column: rectangle.column,
-              row: rectangle.row,
-              height: Math.round(progress * rectangle.height),
-              width: rectangle.width,
-              styler: styler.progress,
-            });
+  get value() {
+    return this.#value;
+  }
+
+  set value(value) {
+    const prev = this.#value;
+    this.#value = clamp(value, this.min, this.max);
+
+    if (this.#value !== prev) {
+      this.dispatchEvent(new ComponentEvent("valueChange", this));
+    }
+  }
+
+  draw() {
+    super.draw();
+
+    const { theme, state, value, min, max, direction } = this;
+    const { canvas } = this.tui;
+    const { column, row, width, height } = this.rectangle;
+
+    const normalizedValue = normalize(value, min, max);
+
+    const progressStyle = theme.progress[state];
+
+    let valueString: string;
+
+    if (this.smooth) {
+      valueString = "";
+
+      const vertical = direction === "vertical";
+      const charMap = vertical ? verticalSmoothProgressChars : horizontalSmoothProgressChars;
+
+      main:
+      for (let i = normalizedValue * (vertical ? height : width); i > 0;) {
+        for (const [j, char] of charMap.entries()) {
+          const step = (8 - j) / 8;
+
+          if (i - step > 0) {
+            valueString += vertical ? char.repeat(width) + "\n" : char;
+            i -= step;
+            continue main;
           }
-        },
-      },
-      cloneAndAssign<
-        CreateProgressBarOptions,
-        Omit<CreateProgressBarOptions, "direction">
-      >(options, {
-        set value(v) {
-          if (v > 1 || v < 0) {
-            throw new Error(
-              "ProgressBar progress value needs to be within 0 and 1!",
-            );
-          }
-          value = v;
-        },
-        get value() {
-          return value;
-        },
-      }),
-    ),
-  );
+        }
 
-  return progressBar;
+        i = 0;
+      }
+    }
+
+    switch (direction) {
+      case "horizontal":
+        {
+          valueString ??= " ".repeat(normalizedValue * width);
+          canvas.draw(
+            column,
+            row,
+            progressStyle((valueString + "\n").repeat(height)),
+          );
+        }
+        break;
+      case "vertical":
+        {
+          valueString ??= (" ".repeat(width) + "\n").repeat(normalizedValue * height);
+          canvas.draw(
+            column,
+            row,
+            progressStyle(valueString),
+          );
+        }
+        break;
+    }
+  }
+
+  interact() {
+    this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
+  }
 }

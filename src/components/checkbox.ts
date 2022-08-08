@@ -1,95 +1,53 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import { CompileStyler } from "../canvas.ts";
-import { TuiStyler } from "../tui.ts";
-import {
-  createComponent,
-  CreateComponentOptions,
-  ExtendedComponent,
-} from "../tui_component.ts";
-import { TuiObject } from "../types.ts";
-import { cloneAndAssign } from "../util.ts";
-import { createButton, CreateButtonOptions } from "./button.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-/** Interactive checkbox component */
-export type CheckboxComponent = ExtendedComponent<
-  "checkbox",
-  {
-    /** Whether checkbox is checked or not */
-    value: boolean;
-    frame: { enabled: true; styler: CompileStyler<TuiStyler> } | {
-      enabled: false;
-      styler?: CompileStyler<TuiStyler>;
-    };
-  },
-  "valueChange",
-  boolean
->;
+import { ButtonComponent } from "./button.ts";
+import { BoxComponentOptions } from "./box.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
 
-export type CreateCheckboxOptions =
-  & Omit<CreateComponentOptions, "name" | "interactive">
-  & Pick<CreateButtonOptions, "frame">
-  & {
-    /** Whether checkbox is checked or not */
-    value?: boolean;
-    interactive?: boolean;
-  };
+export enum Mark {
+  Check = "✓",
+  Cross = "✗",
+}
 
-/**
- * Create CheckboxComponent
- *
- * It is interactive by default
- * @param parent - parent of the created box, either tui or other component
- * @param options
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * createCheckbox(tui, {
- *  rectangle: {
- *    column: 2,
- *    row: 2,
- *    width: 10,
- *    height: 5
- *  },
- *  value: true,
- * });
- * ```
- */
-export function createCheckbox(
-  parent: TuiObject,
-  options: CreateCheckboxOptions,
-): CheckboxComponent {
-  const checkbox: CheckboxComponent = createComponent(parent, options, {
-    name: "checkbox",
-    interactive: false,
-    value: !!options.value,
-    frame: options.frame ?? {
-      enabled: false,
-    },
-  });
+export interface CheckboxComponentOptions extends BoxComponentOptions {
+  value?: boolean;
+}
 
-  const button = createButton(
-    checkbox,
-    cloneAndAssign<CreateCheckboxOptions, CreateButtonOptions>(options, {
-      interactive: true,
-      label: {
-        get text() {
-          return checkbox.value ? "✓" : "✗";
-        },
-        align: {
-          horizontal: "center",
-          vertical: "center",
-        },
-      },
-    }),
-  );
+export class CheckboxComponent<EventMap extends EventRecord = Record<never, never>> extends ButtonComponent<EventMap> {
+  #lastInteraction = 0;
+  #value: boolean;
+  label: string;
 
-  button.on("active", () => checkbox.value = !checkbox.value);
+  constructor(options: CheckboxComponentOptions) {
+    super(options);
+    this.#value = options.value ?? false;
+    this.label = this.value ? Mark.Check : Mark.Cross;
+  }
 
-  checkbox.on("active", () => {
-    checkbox.value = !checkbox.value;
-    checkbox.emit("valueChange", !checkbox.value);
-  });
+  get value() {
+    return this.#value;
+  }
 
-  return checkbox;
+  set value(value: boolean) {
+    this.label = value ? Mark.Check : Mark.Cross;
+    this.state = value ? "active" : "base";
+    this.#value = value;
+  }
+
+  draw() {
+    super.draw();
+  }
+
+  interact(method?: "mouse" | "keyboard") {
+    const now = Date.now();
+    const interactionDelay = now - this.#lastInteraction;
+
+    if (method === "keyboard" || interactionDelay < 500) {
+      this.value = !this.value;
+    } else {
+      this.state = "focused";
+    }
+
+    this.#lastInteraction = now;
+  }
 }

@@ -1,545 +1,233 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import {
-  Attribute,
-  Color,
-  FgColor,
-  keyword,
-  Style,
-  StyleCode,
-} from "./colors.ts";
-import { debugMode } from "./tui.ts";
-import { ConsoleSize, Dynamic, Writer } from "./types.ts";
-import {
-  capitalize,
-  getStaticValue,
-  isFullWidth,
-  removeStyleCodes,
-} from "./util.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-const encoder = new TextEncoder();
+import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
+import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
+import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
-/** ASCII escape code to hide terminal cursor  */
-export const HIDE_CURSOR = `\x1b[?25l`;
-/** ASCII escape code to show terminal cursor  */
-export const SHOW_CURSOR = `\x1b[?25h`;
+import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
+import { fits, fitsInRectangle } from "./utils/numbers.ts";
+import { sleep } from "./utils/async.ts";
+import { textWidth } from "./utils/strings.ts";
+import { Timing } from "./types.ts";
+import { TypedEventTarget } from "./utils/typed_event_target.ts";
 
-/**
- * Get ASCII escape code that moves terminal cursor to given position
- * @param row - terminal row tow which cursor will be moved
- * @param column - terminal column tow which cursor will be moved
- */
-export function moveCursor(
-  row: number,
-  column: number,
-): string {
-  return `\x1b[${row};${column}H`;
+const textEncoder = new TextEncoder();
+
+export interface CanvasSize {
+  columns: number;
+  rows: number;
 }
 
-/** Canvas is object which manages high-level "painting" on the terminal */
-export interface Canvas {
-  /** Writer that canvas will write data to */
-  writer: Writer;
-  /** Size of canvas, limits size of frameBuffer too */
-  size: ConsoleSize;
-  /** Offset of canvas rendering */
-  offset: ConsoleSize;
-  /** Character which will be used to fill empty space */
-  filler: string;
-  /** Matrix which stores pixels which later will be used to render to the terminal */
-  frameBuffer: [string, string][][];
-  /** Map of previously used frameBuffer, used to calculate changes */
-  prevBuffer: Map<string, string>;
-  /** Whether canvas should only redraw changes */
-  smartRender: boolean;
-  /** Canvas FPS */
-  fps: number;
-  /** Last time canvas was rendered */
-  lastTime: number;
-  /** How long it took to render last frame */
-  deltaTime: number;
-  /** Fix for smartRender cutting off fullWidth characters */
-  refreshed: boolean;
+export interface CanvasOptions {
+  /** Size of canvas */
+  size: CanvasSize;
+  /** How often canvas tries to find differences in its frameBuffer and render */
+  refreshRate: number;
+  /** Stdout to which canvas will render frameBuffer */
+  stdout: Stdout;
 }
 
-export interface CreateCanvasOptions {
-  /** Writer that canvas will write data to */
-  writer: Writer;
-  /** Size of canvas, limits size of frameBuffer too */
-  size?: Dynamic<ConsoleSize>;
-  /** Offset of canvas rendering */
-  offset?: Dynamic<ConsoleSize>;
-  /** Character which will be used to fill empty space */
-  filler: string;
-  /** Whether canvas should only redraw changes, defaults to true */
-  smartRender?: boolean;
-}
-
-/**
- * Create new canvas instance
- * It is used to render on terminal screen
- * @param options
- * @example
- * ```ts
- * createCanvas({
- *  writer: Deno.stdout,
- *  filler: "\x1b[32m \x1b[0m",
- *  //size: {
- *  // columns: 10,
- *  // rows: 10,
- *  //},
- *  //smartRender: false
- * });
- * ```
- */
-export function createCanvas(
-  {
-    writer,
-    filler,
-    size = () => Deno.consoleSize(writer.rid),
-    smartRender = true,
-    offset = {
-      columns: 0,
-      rows: 0,
-    },
-  }: CreateCanvasOptions,
-): Canvas {
-  const canvas: Canvas = {
-    get size() {
-      return getStaticValue(size);
-    },
-    set size(value) {
-      size = value;
-    },
-    get offset() {
-      return getStaticValue(offset);
-    },
-    set offset(value) {
-      offset = value;
-    },
-    filler,
-    writer,
-    smartRender,
-    fps: 0,
-    lastTime: Date.now(),
-    deltaTime: 16,
-    frameBuffer: [],
-    prevBuffer: new Map(),
-    refreshed: false,
-  };
-
-  const updateCanvas = (render = true) => {
-    fillBuffer(canvas);
-    if (render) {
-      renderFull(canvas);
-    }
-  };
-
-  updateCanvas(false);
-
-  addEventListener("unload", () => {
-    Deno.writeSync(canvas.writer.rid, encoder.encode(SHOW_CURSOR));
-  });
-
-  if (Deno.build.os !== "windows") {
-    Deno.addSignalListener("SIGWINCH", () => {
-      updateCanvas(true);
-    });
-  } else {
-    // TODO: Improve it later
-    let lastSize = canvas.size;
-    setInterval(() => {
-      if (canvas.size !== lastSize) {
-        updateCanvas(true);
-        lastSize = canvas.size;
-      }
-    }, 33);
-  }
-
-  return canvas;
-}
-
-/**
- * Fills empty spaces in canvas frameBuffer
- * @param canvas - canvas instance which frameBuffer will be filled
- */
-export function fillBuffer(canvas: Canvas): void {
-  const fullWidth = isFullWidth(removeStyleCodes(canvas.filler));
-
-  const { rows, columns } = canvas.size;
-
-  for (let r = 0; r < rows; ++r) {
-    canvas.frameBuffer[r] ||= [];
-    for (let c = 0; c < ~~(columns / 2); ++c) {
-      canvas.frameBuffer[r][c] ||= [
-        canvas.filler,
-        fullWidth ? "" : canvas.filler,
-      ];
-    }
-  }
-}
-
-/**
- * Compares changes between frames and then renders only them on terminal screen
- * @param canvas - canvas instance which will be rendered
- */
-export function renderChanges(canvas: Canvas): void {
-  const { rows, columns } = canvas.size;
-
-  let string = "";
-  for (let r = 0; r < rows; ++r) {
-    for (let c = 0; c < ~~(columns / 2); ++c) {
-      const value = canvas.frameBuffer?.[r]?.[c];
-      if (!value?.join) break;
-
-      if (canvas.prevBuffer.get(`${r}/${c}`) != String(value)) {
-        canvas.prevBuffer.set(`${r}/${c}`, String(value));
-
-        string += moveCursor(
-          r + canvas.offset.rows + 1,
-          (c * 2) + canvas.offset.columns + 1,
-        ) +
-          value.join("");
-      }
-    }
-  }
-
-  if (!debugMode) {
-    Deno.writeSync(canvas.writer.rid, encoder.encode(string));
-  }
-}
-
-/**
- * Renders canvas frameBuffer on terminal screen
- * @param canvas - canvas instance which will be rendered
- */
-export function renderFull(canvas: Canvas): void {
-  const { rows, columns } = canvas.size;
-
-  const { rows: offsetRows, columns: offsetCols } = canvas.offset;
-
-  if (!debugMode) {
-    Deno.writeSync(
-      canvas.writer.rid,
-      encoder.encode(moveCursor(offsetRows, offsetCols)),
-    );
-  }
-
-  for (let r = 0; r < rows; ++r) {
-    let string = `\r` + moveCursor(offsetRows + r + 1, offsetCols + 1);
-    for (let c = 0; c < ~~(columns / 2); ++c) {
-      string += canvas.frameBuffer[r][c].join("");
-    }
-    if (r < rows - 1) string += "\n";
-    if (!debugMode) {
-      Deno.writeSync(canvas.writer.rid, encoder.encode(string));
-    }
-  }
-}
-
-/**
- * Render terminal depending to its options
- *
- * Calculates running metrics (fps/lastTime/deltaTime)
- * @param canvas - canvas instance which will be rendered
- */
-export function render(canvas: Canvas): void {
-  const start = Date.now();
-  if (!debugMode) {
-    Deno.writeSync(canvas.writer.rid, encoder.encode(HIDE_CURSOR));
-  }
-
-  if (canvas.smartRender) {
-    renderChanges(canvas);
-
-    /** Fix for full-width characters */
-    if (!canvas.refreshed && canvas.fps > 0) {
-      fillBuffer(canvas);
-      renderFull(canvas);
-      canvas.refreshed = true;
-    }
-  } else {
-    renderFull(canvas);
-  }
-
-  canvas.fps = 1000 / (Date.now() - canvas.lastTime);
-  canvas.lastTime = Date.now();
-  canvas.deltaTime = Date.now() - start;
-}
-
-interface DrawPixelOptions {
-  /** Column on which pixel will be drawn */
-  column: number;
-  /** Row on which pixel will be drawn */
-  row: number;
-  /** String that will be set as pixel */
-  value: string;
-  /** Definition on how pixel will look like */
-  styler?: CompileStyler<CanvasStyler>;
-}
-
-/**
- * Draw pixel on canvas
- * @param canvas - canvas instance on which pixel will be drawn
- * @param options
- * @example
- * ```ts
- * const canvas = createCanvas(...);
- * ...
- * drawPixel(canvas, {
- *  column: 3,
- *  row: 3,
- *  value: "o",
- *  styler: {
- *    foreground: "\x1b[32m",
- *  },
- * });
- * ```
- */
-export function drawPixel(
-  canvas: Canvas,
-  { column, row, styler, value }: DrawPixelOptions,
-): void {
-  const index = column % 2;
-  column = ~~(column / 2);
-  const pos = canvas.frameBuffer?.[row]?.[column];
-  if (!pos) return;
-
-  const fullWidth = isFullWidth(value);
-
-  if (styler && !Deno.noColor) {
-    value = styleStringFromStyler(value, styler);
-  }
-
-  const revIndex = (index - 1) * -1;
-  if (fullWidth) {
-    if (index === 1) {
-      canvas.frameBuffer[row][column + 1][0] = "";
-    } else {
-      canvas.frameBuffer[row][column][revIndex] = "";
-    }
-  }
-
-  canvas.frameBuffer[row][column][index] = value;
-}
-
-export interface DrawRectangleOptions {
-  /** Column on which rectangle will be drawn */
-  column: number;
-  /** Row on which rectangle will be drawn */
-  row: number;
-  /** Width of rectangle */
-  width: number;
-  /** Height of rectangle */
-  height: number;
-  /** String that will be set as pixel */
-  value?: string;
-  /** Definition on how pixel will look like */
-  styler?: CompileStyler<CanvasStyler>;
-}
-
-/**
- * Draw rectangle on canvas
- * @param canvas - canvas instance on which rectangle will be drawn
- * @param options
- * @example
- * ```ts
- * const canvas = createCanvas(...);
- * ...
- * drawRectangle(canvas, {
- *  column: 3,
- *  row: 3,
- *  width: 5,
- *  height: 5,
- *  value: "=",
- *  styler: {
- *    foreground: "\x1b[32m",
- *  },
- * });
- * ```
- */
-export function drawRectangle(
-  canvas: Canvas,
-  { column, row, width, height, value = " ", styler }: DrawRectangleOptions,
-): void {
-  for (let r = row; r < row + height; ++r) {
-    for (let c = column; c < column + width; ++c) {
-      drawPixel(canvas, {
-        column: c,
-        row: r,
-        value,
-        styler,
-      });
-    }
-  }
-}
-
-export interface DrawTextOptions {
-  /** Terminal's column on which text drawing will start */
-  column: number;
-  /** Terminal's row on which text drawing will start */
-  row: number;
-  /** String that will be drawn */
-  text: string;
-  /** Definition on how drawn text will look like */
-  styler?: CompileStyler<CanvasStyler>;
-}
-
-/**
- * Draw text on canvas
- * @param canvas - canvas instance on which text will be drawn
- * @param options
- * @example
- * ```ts
- * const canvas = createCanvas(...);
- * ...
- * drawText(canvas, {
- *  column: 3,
- *  row: 3,
- *  text: "Hello world",
- *  styler: {
- *    foreground: "\x1b[32m",
- *  },
- * });
- * ```
- */
-export function drawText(
-  canvas: Canvas,
-  { column, row, text, styler }: DrawTextOptions,
-): void {
-  const lines = text.split("\n");
-
-  for (const [l, line] of lines.entries()) {
-    let offset = 0;
-    for (let i = 0; i < line.length; ++i) {
-      const char = line[i];
-
-      drawPixel(canvas, {
-        column: column + i + offset,
-        row: row + l,
-        value: char,
-        styler: styler,
-      });
-
-      if (isFullWidth(char)) offset += 1;
-    }
-  }
-}
-
-/**
- * Used to define looks of elements drawn on canvas
- */
-export interface CanvasStyler {
-  /** ANSI escape code sequence specifying foreground color of characters that ill be drawn */
-  foreground?: FgColor;
-  /** ANSI escape code sequence specifying background color of characters that will be drawn */
-  background?: Color;
-  /** ANSI escape code sequence specifying attributes of characters that will be drawn */
-  attributes?: Attribute[];
-}
-
-// deno-lint-ignore ban-types
-type _object = object;
-export type CompileStyler<T> = {
-  [key in keyof T]?: T[key] extends (_object | undefined)
-    ? CompileStyler<T[key]>
-    : T[key] extends _object ? CompileStyler<T[key]>
-    : StyleCode;
+export type CanvasEventMap = {
+  "render": RenderEvent;
+  "frame": FrameEvent;
+  "resize": CanvasResizeEvent;
 };
 
-/**
- * Compiles every parameter of a styler to ANSI escape code.
- * @param styler - styler that will be compiled
- * @example
- * ```ts
- * compileStyler({
- *  foreground: "red", // -> "\x1b[31m"
- *  background: "blue", // -> "\x1b[44m"
- *  foo: "magenta" // -> "\x1b[35m"
- * });
- * ```
- */
-export function compileStyler<T extends CanvasStyler>(
-  styler: T,
-): CompileStyler<T> {
-  const obj = {} as CompileStyler<T>;
-  if (Deno.noColor) return obj;
+export class Canvas extends TypedEventTarget<CanvasEventMap> {
+  size: CanvasSize;
+  refreshRate: number;
+  stdout: Stdout;
+  frameBuffer: string[][];
+  previousFrameBuffer: this["frameBuffer"];
+  lastRender: number;
+  fps: number;
 
-  for (const [index, value] of Object.entries(styler)) {
-    if (typeof value === "number") continue;
+  constructor({ size, refreshRate, stdout }: CanvasOptions) {
+    super();
 
-    if (Array.isArray(value)) {
-      Reflect.set(obj, index, value.map((v) => compileStylerValue(v, index)));
-    } else if (typeof value === "object") {
-      Reflect.set(obj, index, compileStyler(value));
-    } else {
-      Reflect.set(obj, index, compileStylerValue(value, index));
+    this.size = size;
+    this.refreshRate = refreshRate;
+    this.stdout = stdout;
+    this.frameBuffer = [];
+    this.previousFrameBuffer = [];
+    this.fps = 0;
+    this.lastRender = 0;
+
+    switch (Deno.build.os) {
+      case "windows":
+        this.addEventListener("render", async ({ timing }) => {
+          if (timing !== Timing.Pre) return;
+
+          const currentSize = await Deno.consoleSize(this.stdout.rid);
+          if (currentSize.columns !== this.size.columns || currentSize.rows !== this.size.rows) {
+            this.resizeCanvas(currentSize);
+          }
+        });
+        break;
+      default:
+        Deno.addSignalListener("SIGWINCH", () => {
+          this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
+        });
+        break;
     }
   }
 
-  return obj;
-}
+  /**
+   * Change `size` property, then clear `frameBuffer` and `previousFrameBuffer` to force re-render all of the canvas
+   * If `size` parameter matches canvas's `size` property then nothing happens
+   */
+  resizeCanvas(size: ConsoleSize): void {
+    const { columns, rows } = this.size;
+    if (size.columns === columns && size.rows === rows) return;
 
-/**
- * Returns text with applied ANSI escape code
- * @param text - text that will be styled
- * @param style - ANSI escape code that will be applied to the text
- * @example
- * ```ts
- * styleText("Hi", "\x1b[32m"); // -> "\x1b[32mHi\x1b[0m"
- * ```
- */
-export function styleText(
-  text: string,
-  style: StyleCode,
-): string {
-  return `${style}${text}\x1b[0m`;
-}
-
-/**
- * Compiles value found in styler to StyleCode
- * @param value - value that needs to be compiled
- * @param property - styler property name on which value is located
- * @example
- * ```ts
- * compileStylerValue("red", "background"); // -> "\x1b[41m"
- * ```
- */
-export function compileStylerValue(value: string, property: string): StyleCode {
-  if (!value?.includes) throw value;
-  return value.includes("\x1b") ? value as StyleCode : keyword(
-    property.includes("background") && !value.includes("bg")
-      ? `bg${capitalize(value)}` as Style
-      : value as Style,
-  );
-}
-
-/**
- * Applies ansi escape codesfrom styler to given string
- * @param string - string to be styled
- * @param styler - definition for styling string
- * @example
- * styleStringFromStyler("Hello", {
- *   foreground: "\x1b[32m",
- *   background: "\x1b[44m",
- * }); // -> "\x1b[32m\x1b[44mHello\x1b[0m"
- */
-export function styleStringFromStyler(
-  string: string,
-  styler: CompileStyler<CanvasStyler>,
-): string {
-  let style = "";
-  if (styler.foreground) {
-    style += styler.foreground;
-  }
-  if (styler.background) {
-    style += styler.background;
+    this.dispatchEvent(new CanvasResizeEvent(size));
+    this.size = size;
+    this.frameBuffer = [];
+    this.previousFrameBuffer = [];
   }
 
-  if (styler.attributes) {
-    for (const attribute of styler.attributes) {
-      style += attribute;
+  /**
+   * Render value starting on column and row on canvas
+   *
+   * When rectangle is given:
+   * If particular part of the rendering doesn't fit within rectangle boundaries then it's not drawn
+   */
+  draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
+    if (typeof value !== "string" || value.length === 0 || typeof column !== "number" || typeof row !== "number") {
+      return;
+    }
+
+    column = ~~column;
+    row = ~~row;
+
+    const stripped = stripStyles(value);
+
+    if (stripped.length === 0) return;
+
+    const frameBufferRow = this.frameBuffer[row] ||= [];
+
+    if (stripped.length === 1) {
+      if (!fitsInRectangle(column, row, rectangle)) return;
+
+      frameBufferRow[column] = value;
+      if (frameBufferRow[column + 1] === undefined) {
+        const style = value.replace(stripped, "").replaceAll("\x1b[0m", "");
+        frameBufferRow[column + 1] = `${style} \x1b[0m`;
+      }
+      return;
+    }
+
+    const distinctStyles = value
+      .replace(stripped, "")
+      .split("\x1b[0m")
+      .filter((v) => v.length > 0);
+
+    if (distinctStyles.length > 1) {
+      for (const [i, style] of distinctStyles.entries()) {
+        const previousStyle = distinctStyles?.[i - 1];
+        this.draw(column + textWidth(previousStyle), row, style, rectangle);
+      }
+      return;
+    }
+
+    const style = distinctStyles[0] ?? "";
+
+    if (value.includes("\n")) {
+      for (const [i, line] of value.split("\n").entries()) {
+        this.draw(column, row + i, style + line + "\x1b[0m", rectangle);
+      }
+      return;
+    }
+
+    const realCharacters = stripped.match(UNICODE_CHAR_REGEXP);
+    if (!realCharacters?.length) return;
+
+    if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) return;
+
+    let offset = 0;
+    for (const character of realCharacters) {
+      const offsetColumn = column + offset;
+
+      if (rectangle && !fits(offsetColumn, rectangle.column, rectangle.column + rectangle.width)) {
+        offset += isFullWidth(character) ? 2 : 1;
+        continue;
+      }
+
+      frameBufferRow[offsetColumn] = `${style}${character}\x1b[0m`;
+      if (isFullWidth(character)) {
+        delete frameBufferRow[offsetColumn + 1];
+        ++offset;
+      } else if (offsetColumn + 1 < frameBufferRow.length) {
+        frameBufferRow[offsetColumn + 1] ??= `${style} \x1b[0m`;
+      }
+
+      ++offset;
     }
   }
 
-  return styleText(string, style as StyleCode);
+  /**
+   * Checks for individual row and column changes in canvas, then renders just the changes.
+   * In the way yield and emit proper events.
+   */
+  renderFrame(frame: string[][]): void {
+    this.dispatchEvent(new RenderEvent(Timing.Pre));
+
+    const { previousFrameBuffer, size } = this;
+
+    if (previousFrameBuffer.length === 0) {
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN));
+    }
+
+    rows:
+    for (let r = 0; r < frame.length; ++r) {
+      if (r >= size.rows) break rows;
+
+      const previousRow = previousFrameBuffer[r];
+      const row = this.frameBuffer[r];
+
+      if (row && JSON.stringify(previousRow) === JSON.stringify(row)) {
+        continue rows;
+      }
+
+      columns:
+      for (let c = 0; c < row.length; ++c) {
+        if (c >= size.columns) continue rows;
+
+        const column = row[c];
+        if (previousRow?.[c] === column) continue columns;
+
+        Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(r, c) + column));
+      }
+    }
+
+    this.lastRender = performance.now();
+    this.previousFrameBuffer = structuredClone(frame);
+
+    this.dispatchEvent(new RenderEvent(Timing.Post));
+  }
+
+  /**
+   * Runs a loop in which it checks whether frameBuffer has changed (anything new has been drawn).
+   * If so, run `renderFrame()` with current frame buffer and in the way yield and emit proper events.
+   * On each iteration it sleeps for adjusted `refreshRate` time.
+   */
+  async *render() {
+    while (true) {
+      let deltaTime = performance.now();
+      this.fps = 1000 / (performance.now() - this.lastRender);
+
+      if (this.lastRender === 0 || JSON.stringify(this.frameBuffer) !== JSON.stringify(this.previousFrameBuffer)) {
+        yield Timing.Pre;
+        this.dispatchEvent(new FrameEvent(Timing.Pre));
+
+        this.renderFrame(this.frameBuffer);
+
+        yield Timing.Post;
+        this.dispatchEvent(new FrameEvent(Timing.Post));
+      }
+
+      deltaTime -= performance.now();
+      await sleep(this.refreshRate + (this.fps / 1000) + deltaTime);
+    }
+  }
 }

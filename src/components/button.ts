@@ -1,109 +1,46 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import {
-  createComponent,
-  ExtendedComponent,
-  removeComponent,
-} from "../tui_component.ts";
-import { TextAlign, TuiObject } from "../types.ts";
-import { cloneAndAssign } from "../util.ts";
-import { createBox, CreateBoxOptions } from "./box.ts";
-import { createLabel, LabelComponent } from "./label.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-interface ButtonExtension {
-  /** Label's text displayed on the button */
-  label?: {
-    /** Value of the label */
-    text?: string;
-    /**
-     * Position of the label
-     * Requires `label` property to be set.
-     */
-    align?: TextAlign;
-  };
+import { BoxComponent } from "./box.ts";
+import { ComponentOptions } from "../component.ts";
+import { Rectangle } from "../types.ts";
+import { EventRecord } from "../utils/typed_event_target.ts";
+
+export interface ButtonComponentOptions extends ComponentOptions {
+  rectangle: Rectangle;
+  label?: string;
 }
 
-/** Interactive button component */
-export type ButtonComponent = ExtendedComponent<"button", ButtonExtension>;
+export class ButtonComponent<EventMap extends EventRecord = Record<never, never>> extends BoxComponent<EventMap> {
+  #lastInteraction = 0;
+  label?: string;
 
-export type CreateButtonOptions = CreateBoxOptions & ButtonExtension;
+  constructor(options: ButtonComponentOptions) {
+    super(options);
+    this.label = options.label;
+  }
 
-/**
- * Create ButtonComponent
- *
- * It is interactive by default
- * @param parent - parent of the created button, either tui or other component
- * @param options
- * @example
- * ```ts
- * const tui = createTui(...);
- * ...
- * createButton(tui, {
- *  rectangle: {
- *    column: 2,
- *    row: 2,
- *    width: 10,
- *    height: 5
- *  },
- *  label: "Click me",
- * });
- * ```
- */
-export function createButton(
-  parent: TuiObject,
-  options: CreateButtonOptions,
-): ButtonComponent {
-  let label: LabelComponent | undefined;
+  draw() {
+    super.draw();
 
-  const button: ButtonComponent = createComponent(parent, options, {
-    name: "button",
-    interactive: true,
-    update(this: ButtonComponent) {
-      if (label && !button.label) {
-        removeComponent(label);
-      }
+    if (this.label) {
+      const { style } = this;
+      const { canvas } = this.tui;
+      const { column, row, width, height } = this.rectangle;
 
-      if (!label && button.label) {
-        label = createLabel(button, {
-          drawPriority: button.drawPriority + 1,
-          value: {
-            get text() {
-              const text = button.label?.text;
+      canvas.draw(
+        column + (width / 2) - (this.label.length / 2),
+        row + (height / 2),
+        style(this.label),
+      );
+    }
+  }
 
-              if (label && typeof text !== "string") {
-                removeComponent(label);
-                label = undefined;
-              }
+  interact(method?: "mouse" | "keyboard") {
+    const now = Date.now();
+    const interactionDelay = now - this.#lastInteraction;
 
-              return text ?? "";
-            },
-            align: button.label?.align ?? ({
-              horizontal: "center",
-              vertical: "center",
-            }),
-          },
-          rectangle: button.rectangle,
-          styler: button.styler,
-          focusedWithin: [button, ...button.focusedWithin],
-        });
-      }
-    },
-    label: options.label,
-  });
+    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
 
-  createBox(
-    button,
-    cloneAndAssign(options, {
-      get focusedWithin() {
-        return [button, ...button.focusedWithin];
-      },
-      get canvas() {
-        return button.canvas;
-      },
-      get rectangle() {
-        return button.rectangle;
-      },
-    }),
-  );
-
-  return button;
+    this.#lastInteraction = now;
+  }
 }

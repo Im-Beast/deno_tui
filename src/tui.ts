@@ -1,284 +1,140 @@
-// Copyright 2021 Im-Beast. All rights reserved. MIT license.
-import {
-  Canvas,
-  CanvasStyler,
-  CompileStyler,
-  createCanvas,
-  drawRectangle,
-  render,
-  styleStringFromStyler,
-} from "./canvas.ts";
-import { createEventEmitter, EventEmitter } from "./event_emitter.ts";
-import { Key, KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import { AnyComponent, Dynamic, Reader, Rectangle, Writer } from "./types.ts";
-import { getStaticValue } from "./util.ts";
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-/** Whether debugMode is enabled */
-export let debugMode = false;
+import { SHOW_CURSOR } from "./ansi_codes.ts";
+import { Canvas } from "./canvas.ts";
+import { Component } from "./component.ts";
+import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
+import { emptyStyle, Style } from "./theme.ts";
+import type { Stdin, Stdout } from "./types.ts";
 
-/**
- * Enable/disable debug mode
- *  - when debug mode is enabled tui doesn't render canvas on screen
- */
-export function setDebugMode(value: boolean): void {
-  debugMode = value;
-}
+import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
+import { sleep } from "./utils/async.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
+import { Timing } from "./types.ts";
+import { TypedEventTarget } from "./utils/typed_event_target.ts";
 
-/**
- * Get interactive components from tui
- * @param tui – Tui to get components from
- * @example
- * ```ts
- * const tui = createTui(...);
- * createButton(tui, ...);
- * createCombobox(tui, ...);
- * createBox(tui, ...);
- * ...
- * getInteractiveComponents(tui); // -> array containing button and combobox
- * ```
- */
-export function getInteractiveComponents(
-  tui: Tui,
-): AnyComponent[] {
-  return tui.components.filter((
-    { interactive },
-  ) => interactive);
-}
-const timeoutHandle: { [id: number]: number } = {};
+const textEncoder = new TextEncoder();
 
-/**
- * Render tui and its components every refreshRate ms
- *  - Also emits update and draw events to tui and components
- *  - When debugMode is enabled tui isn't rendered on terminal
- * @param tui - Tui to be rendered
- */
-export function loopDrawing(
-  tui: Tui,
-  refreshRate: Dynamic<number> = 32,
-): (() => void) {
-  draw(tui);
-
-  timeoutHandle[tui.id] = setTimeout(
-    () => loopDrawing(tui, refreshRate),
-    getStaticValue(refreshRate) - tui.canvas.deltaTime,
-  );
-
-  return () => clearTimeout(timeoutHandle[tui.id]);
-}
-
-/**
- * Render tui and its components only once
- *  - Also emits update and draw events to tui and components
- *  - When debugMode is enabled tui isn't rendered on terminal
- * @param tui - Tui to be rendered
- */
-export function draw(tui: Tui): void {
-  tui.emit("update", Date.now());
-
-  if (!debugMode) {
-    drawRectangle(tui.canvas, {
-      ...tui.rectangle,
-      styler: tui.styler,
-    });
-  }
-
-  for (
-    const component of tui.components.sort((a, b) =>
-      a.drawPriority - b.drawPriority
-    )
-  ) {
-    component.update?.();
-    component.emit("update", Date.now());
-    component.draw?.();
-    component.emit("draw", Date.now());
-  }
-
-  if (!debugMode) {
-    render(tui.canvas);
-  }
-
-  tui.emit("draw", Date.now());
-  tui.focused.active = false;
-}
-
-/** Definition on how Tui or TuiComponent should look like */
-export type TuiStyler<
-  E extends Record<string, CanvasStyler> = Record<never, never>,
-> =
-  & CanvasStyler
-  & {
-    active?: CanvasStyler & E;
-    focused?: CanvasStyler & E;
-  }
-  & {
-    [key in keyof E]: E[key];
-  };
-
-/** Private properties for Tui */
-export interface PrivateTui extends Tui {
-  /** TUI's EventEmitter */
-  readonly emitter:
-    & EventEmitter<"key", KeyPress>
-    & EventEmitter<"mouse", MousePress>
-    & EventEmitter<"multiKey", MultiKeyPress>
-    & EventEmitter<"focus" | "active", undefined>
-    & EventEmitter<"draw" | "update", number>
-    & EventEmitter<"createComponent" | "removeComponent", AnyComponent>;
-}
-
-/** Main object – "root" of tui components */
-export interface Tui {
-  /** Unique ID for tuis */
-  readonly id: number;
-
-  /** Stdin from which tui can read keypresses */
-  readonly reader: Reader;
-  /** Stdout to which tui will draw by default */
-  readonly writer: Writer;
-
-  /** Tui's canvas instance */
-  readonly canvas: Canvas;
-
-  /** All components of tui */
-  readonly components: AnyComponent[];
-  /** Children components of tui */
-  readonly children: AnyComponent[];
-  /** Information about currently focused item */
-  readonly focused: {
-    /** Which item is focused */
-    items: AnyComponent[];
-    /** Whether focused item is active */
-    active: boolean;
-  };
-
-  /** Definition of tui's look */
-  readonly styler: CompileStyler<TuiStyler>;
-  /** Size and position of tui */
-  readonly rectangle: Rectangle;
-
-  /** Handle given functions on specific tui events */
-  readonly on: PrivateTui["emitter"]["on"];
-  /** Handle given functions only once on specific tui events */
-  readonly once: PrivateTui["emitter"]["once"];
-  /** Disable handling specific functions on tui events */
-  readonly off: PrivateTui["emitter"]["off"];
-  /** Emit event which will fire functions specified to it */
-  readonly emit: PrivateTui["emitter"]["emit"];
-
-  /** Global configuration for keyboard controls */
-  readonly keyboardControls: Map<
-    "up" | "down" | "left" | "right" | "activate",
-    Key
-  >;
-}
-
-export interface CreateTuiOptions {
-  /** Stdin from which tui can read keypresses */
-  reader?: Reader;
-  /** Stdout to which tui will draw by default */
-  writer?: Writer;
-  /** Canvas which will be used for drawing to writer */
+export type TuiOptions = {
+  /** Tui will use that canvas to draw on the terminal */
   canvas?: Canvas;
-  /** Definition of tui's look */
-  styler: CompileStyler<TuiStyler>;
+  /** Stdin from which tui can read keypresses in `handleKeypresses()`, defaults to `Deno.stdin` */
+  stdin?: Stdin;
+  /** Stdout to which tui will write when necessary, defaults to `Deno.stdout` */
+  stdout?: Stdout;
+  /** Style of background drawn by tui */
+  style?: Style;
+  /** Distinct update rate at which component `draw()` function will be called, defaults to canvas `refreshRate`*/
+  updateRate?: number;
+};
+
+export interface TuiPrivate {
+  canvas: Canvas;
+  stdin: Stdin;
+  stdout: Stdout;
+  components: SortedArray<Component>;
+  updateRate: number;
 }
 
-let id = 0;
-/**
- * Create new tui instance
- *
- * It's root of all other components
- *
- * Components create tree-like structure (by parent/child relationship)
- * @param options
- * @example
- * ```ts
- * const tui = createTui({
- *  reader: Deno.stdin,
- *  writer: Deno.stdout,
- *  styler: {
- *    foreground: "\x1b[32m",
- *    background: "\x1b[43m"
- *  }
- * });
- * ```
- */
-export function createTui({
-  reader = Deno.stdin,
-  writer = Deno.stdout,
-  styler,
-  canvas = createCanvas({
-    writer,
-    filler: styleStringFromStyler(" ", styler),
-  }),
-}: CreateTuiOptions): Tui {
-  const emitter = createEventEmitter() as PrivateTui["emitter"];
+export type TuiImplementation = TuiOptions & TuiPrivate;
 
-  const isWindows = Deno.build.os === "windows";
+export type TuiEventMap = {
+  render: RenderEvent;
+  update: Event;
+  keyPress: KeypressEvent;
+  multiKeyPress: MultiKeyPressEvent;
+  mousePress: MousePressEvent;
+  close: CustomEvent<"close">;
+  addComponent: ComponentEvent<"addComponent">;
+  removeComponent: ComponentEvent<"removeComponent">;
+};
 
-  const tui: PrivateTui = {
-    id: id++,
+export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementation {
+  canvas: Canvas;
+  stdin: Stdin;
+  stdout: Stdout;
+  style: Style;
+  components: SortedArray<Component>;
+  updateRate: number;
 
-    reader,
-    writer,
+  constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {
+    super();
 
-    styler,
-    get rectangle() {
-      const { columns, rows } = canvas.size;
+    addEventListener("unload", () => {
+      this.dispatchEvent(new CustomEvent("close"));
+    });
 
-      return {
-        column: 0,
-        row: 0,
-        width: columns,
-        height: rows,
-      };
-    },
-    canvas,
-
-    emitter,
-    on: emitter.on,
-    once: emitter.once,
-    off: emitter.off,
-    emit: emitter.emit,
-
-    components: [],
-    children: [],
-    focused: {
-      items: [],
-      active: false,
-    },
-
-    keyboardControls: new Map(
-      !isWindows
-        ? [
-          ["activate", "return"],
-          ["up", "up"],
-          ["down", "down"],
-          ["left", "left"],
-          ["right", "right"],
-        ]
-        : [
-          ["activate", "return"],
-          ["up", "i"],
-          ["down", "k"],
-          ["left", "j"],
-          ["right", "l"],
-        ],
-    ),
-  };
-  if (!isWindows) {
     Deno.addSignalListener("SIGINT", () => {
-      dispatchEvent(new Event("unload"));
-      Deno.exit(0);
+      this.dispatchEvent(new CustomEvent("close"));
     });
-  } else {
-    tui.on("key", ({ buffer }) => {
-      if (buffer[0] === 3) {
-        dispatchEvent(new Event("unload"));
+
+    if (Deno.build.os === "windows") {
+      this.addEventListener("keyPress", ({ keyPress }) => {
+        const { key, ctrl } = keyPress;
+        if (key === "c" && ctrl) this.dispatchEvent(new CustomEvent("close"));
+      });
+    }
+
+    this.addEventListener("close", () => {
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
+
+      queueMicrotask(() => {
         Deno.exit(0);
-      }
+      });
     });
+
+    this.stdin = stdin ?? Deno.stdin;
+    this.stdout = stdout ?? Deno.stdout;
+    this.style = style ?? emptyStyle;
+    this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
+
+    this.canvas = canvas ?? new Canvas({
+      size: { columns: 0, rows: 0 },
+      refreshRate: 16,
+      stdout: this.stdout,
+    });
+
+    this.updateRate = updateRate ?? this.canvas.refreshRate;
   }
 
-  return tui;
+  async *update(): AsyncGenerator<{ type: "update" }> {
+    while (true) {
+      let deltaTime = performance.now();
+
+      this.dispatchEvent(new CustomEvent("update"));
+      yield { type: "update" };
+
+      deltaTime -= performance.now();
+      await sleep(this.updateRate + (deltaTime / 2));
+    }
+  }
+
+  async *render(): AsyncGenerator<{ type: "render"; timing: Timing }> {
+    for await (const timing of this.canvas.render()) {
+      this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
+      yield { type: "render", timing };
+    }
+  }
+
+  async *run(): AsyncGenerator<
+    | { type: "render"; timing: Timing }
+    | { type: "update" }
+  > {
+    const iterator = new CombinedAsyncIterator<
+      { type: "render"; timing: Timing } | { type: "update" }
+    >(this.update(), this.render());
+
+    for await (const event of iterator) {
+      if (event.type === "update") {
+        const { columns, rows } = this.canvas.size;
+        this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
+
+        for (const component of this.components) {
+          component.draw();
+        }
+      }
+
+      yield event;
+    }
+  }
 }
