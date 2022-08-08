@@ -49,5 +49,5 @@ jobs:
           git config user.name Github Actions
           git config user.email github-actions@github.com
           git add .
-          git commit -m "chore: Prepend missing license headers"
+          git commit -m "chore: prepend missing license headers"
           git push
