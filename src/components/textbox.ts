@@ -21,7 +21,6 @@ export type TextboxComponentEventMap = {
 export class TextboxComponent<EventMap extends EventRecord = Record<never, never>>
   extends BoxComponent<EventMap & TextboxComponentEventMap> {
   #value: string[] = [];
-  #lastInteraction = 0;
 
   cursorPosition: {
     x: number;
@@ -159,11 +158,6 @@ export class TextboxComponent<EventMap extends EventRecord = Record<never, never
   }
 
   interact() {
-    const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
-
-    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
-
-    this.#lastInteraction = now;
+    this.state = "focused";
   }
 }
