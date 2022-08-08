@@ -34,7 +34,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   refreshRate: number;
   stdout: Stdout;
   frameBuffer: string[][];
-  prevFrameBuffer: this["frameBuffer"];
+  previousFrameBuffer: this["frameBuffer"];
   lastRender: number;
   fps: number;
 
@@ -45,7 +45,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.refreshRate = refreshRate;
     this.stdout = stdout;
     this.frameBuffer = [];
-    this.prevFrameBuffer = [];
+    this.previousFrameBuffer = [];
     this.fps = 0;
     this.lastRender = 0;
 
@@ -69,12 +69,13 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   }
 
   resizeCanvas(size: ConsoleSize): void {
-    if (size.columns === this.size.columns && size.rows === this.size.rows) return;
+    const { columns, rows } = this.size;
+    if (size.columns === columns && size.rows === rows) return;
 
     this.dispatchEvent(new CanvasResizeEvent(size));
     this.size = size;
     this.frameBuffer = [];
-    this.prevFrameBuffer = [];
+    this.previousFrameBuffer = [];
   }
 
   draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
@@ -152,9 +153,9 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
   renderFrame(frame: string[][]): void {
     this.dispatchEvent(new RenderEvent(Timing.Pre));
-    const { prevFrameBuffer, size } = this;
+    const { previousFrameBuffer, size } = this;
 
-    if (prevFrameBuffer.length === 0) {
+    if (previousFrameBuffer.length === 0) {
       Deno.writeSync(
         this.stdout.rid,
         textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN),
@@ -164,14 +165,14 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     rows:
     for (const r in frame) {
       if (+r > size.rows) break rows;
-      if (prevFrameBuffer?.[r]?.join("") === frame?.[r]?.join("")) {
+      if (previousFrameBuffer?.[r]?.join("") === frame?.[r]?.join("")) {
         continue rows;
       }
 
       columns:
       for (const c in frame[r]) {
         if (+c > size.columns) break columns;
-        if (prevFrameBuffer?.[r]?.[c] === frame?.[r]?.[c]) continue columns;
+        if (previousFrameBuffer?.[r]?.[c] === frame?.[r]?.[c]) continue columns;
 
         Deno.writeSync(
           this.stdout.rid,
@@ -183,7 +184,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.dispatchEvent(new RenderEvent(Timing.Post));
 
     this.lastRender = performance.now();
-    this.prevFrameBuffer = structuredClone(frame);
+    this.previousFrameBuffer = structuredClone(frame);
   }
 
   async *render() {
@@ -191,17 +192,14 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
       let deltaTime = performance.now();
       this.fps = 1000 / (performance.now() - this.lastRender);
 
-      if (
-        this.lastRender === 0 ||
-        `${this.frameBuffer}` !== `${this.prevFrameBuffer}`
-      ) {
+      if (this.lastRender === 0 || JSON.stringify(this.frameBuffer) !== JSON.stringify(this.previousFrameBuffer)) {
         yield Timing.Pre;
         this.dispatchEvent(new FrameEvent(Timing.Pre));
 
         this.renderFrame(this.frameBuffer);
 
-        this.dispatchEvent(new FrameEvent(Timing.Post));
         yield Timing.Post;
+        this.dispatchEvent(new FrameEvent(Timing.Post));
       }
 
       deltaTime -= performance.now();
