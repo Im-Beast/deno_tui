@@ -117,9 +117,11 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
       const dll = Deno.dlopen("C:\\Windows\\System32\\msvcrt.dll", {
         "_getch": { parameters: [], result: "i32", nonblocking: true },
       });
+
       try {
         Deno.setRaw(stdin.rid, true);
       } catch { /**/ }
+
       while (true) {
         let char = await dll.symbols._getch();
 
