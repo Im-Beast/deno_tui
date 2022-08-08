@@ -153,38 +153,39 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
   renderFrame(frame: string[][]): void {
     this.dispatchEvent(new RenderEvent(Timing.Pre));
+
     const { previousFrameBuffer, size } = this;
 
     if (previousFrameBuffer.length === 0) {
-      Deno.writeSync(
-        this.stdout.rid,
-        textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN),
-      );
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN));
     }
 
     rows:
-    for (const r in frame) {
-      if (+r > size.rows) break rows;
-      if (previousFrameBuffer?.[r]?.join("") === frame?.[r]?.join("")) {
+    for (let r = 0; r < frame.length; ++r) {
+      if (r >= size.rows) break rows;
+
+      const previousRow = previousFrameBuffer[r];
+      const row = this.frameBuffer[r];
+
+      if (row && JSON.stringify(previousRow) === JSON.stringify(row)) {
         continue rows;
       }
 
       columns:
-      for (const c in frame[r]) {
-        if (+c > size.columns) break columns;
-        if (previousFrameBuffer?.[r]?.[c] === frame?.[r]?.[c]) continue columns;
+      for (let c = 0; c < row.length; ++c) {
+        if (c >= size.columns) continue rows;
 
-        Deno.writeSync(
-          this.stdout.rid,
-          textEncoder.encode(moveCursor(+r, +c) + frame[r][c]),
-        );
+        const column = row[c];
+        if (previousRow?.[c] === column) continue columns;
+
+        Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(r, c) + column));
       }
     }
 
-    this.dispatchEvent(new RenderEvent(Timing.Post));
-
     this.lastRender = performance.now();
     this.previousFrameBuffer = structuredClone(frame);
+
+    this.dispatchEvent(new RenderEvent(Timing.Post));
   }
 
   async *render() {
