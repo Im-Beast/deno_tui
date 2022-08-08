@@ -15,15 +15,3 @@ export * from "./src/utils/numbers.ts";
 export * from "./src/utils/sorted_array.ts";
 export * from "./src/utils/strings.ts";
 export * from "./src/utils/typed_event_target.ts";
-
-export * from "./src/components/box.ts";
-export * from "./src/components/button.ts";
-export * from "./src/components/checkbox.ts";
-export * from "./src/components/combobox.ts";
-export * from "./src/components/frame.ts";
-export * from "./src/components/label.ts";
-export * from "./src/components/progress_bar.ts";
-export * from "./src/components/scrollable_view.ts";
-export * from "./src/components/slider.ts";
-export * from "./src/components/textbox.ts";
-export * from "./src/components/view.ts";
