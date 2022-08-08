@@ -88,14 +88,16 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     const stripped = crayon.strip(value);
 
     if (stripped.length === 0) return;
+
+    const frameBufferRow = this.frameBuffer[row] ||= [];
+
     if (stripped.length === 1) {
       if (!fitsInRectangle(column, row, rectangle)) return;
 
-      this.frameBuffer[row] ||= [];
-      this.frameBuffer[row][column] = value;
-      if (this.frameBuffer[row][column + 1] === undefined) {
+      frameBufferRow[column] = value;
+      if (frameBufferRow[column + 1] === undefined) {
         const style = value.replace(crayon.strip(value), "").replaceAll("\x1b[0m", "");
-        this.frameBuffer[row][column + 1] = `${style} \x1b[0m`;
+        frameBufferRow[column + 1] = `${style} \x1b[0m`;
       }
       return;
     }
@@ -127,18 +129,21 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
     if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) return;
 
-    this.frameBuffer[row] ||= [];
     let offset = 0;
     for (const character of realCharacters) {
       const offsetColumn = column + offset;
-      if (rectangle && !fits(offsetColumn, rectangle.column, rectangle.column + rectangle.width)) return;
 
-      this.frameBuffer[row][offsetColumn] = `${style}${character}\x1b[0m`;
+      if (rectangle && !fits(offsetColumn, rectangle.column, rectangle.column + rectangle.width)) {
+        offset += isFullWidth(character) ? 2 : 1;
+        continue;
+      }
+
+      frameBufferRow[offsetColumn] = `${style}${character}\x1b[0m`;
       if (isFullWidth(character)) {
-        delete this.frameBuffer[row][offsetColumn + 1];
+        delete frameBufferRow[offsetColumn + 1];
         ++offset;
-      } else if (offsetColumn + 1 < this.frameBuffer[row].length) {
-        this.frameBuffer[row][offsetColumn + 1] ??= `${style} \x1b[0m`;
+      } else if (offsetColumn + 1 < frameBufferRow.length) {
+        frameBufferRow[offsetColumn + 1] ??= `${style} \x1b[0m`;
       }
 
       ++offset;
