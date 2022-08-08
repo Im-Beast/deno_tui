@@ -1,5 +1,6 @@
+import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
+
 import { Canvas } from "../src/canvas.ts";
-import { crayon } from "../src/deps.ts";
 import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
@@ -115,6 +116,25 @@ const progressBar1 = new ProgressBarComponent({
     row: 3,
     width: 10,
   },
+});
+
+new LabelComponent({
+  tui,
+  align: {
+    horizontal: "center",
+    vertical: "center",
+  },
+  rectangle: {
+    column: 75,
+    row: 3,
+    // Automatically adjust size
+    height: -1,
+    width: -1,
+  },
+  theme: {
+    base: tui.style,
+  },
+  value: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
 });
 
 const progressBar2 = new ProgressBarComponent({
