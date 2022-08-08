@@ -31,12 +31,15 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
 }
 
 export function handleKeyboardControls(tui: Tui): void {
-  let lastSelectedComponent: Component = tui.components[0];
+  let lastSelectedComponent: Component;
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
-    const keyPress = event instanceof MultiKeyPressEvent ? event.multiKeyPress : event.keyPress;
-    if (!keyPress.ctrl) return;
+    const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
+      ? [event.multiKeyPress, event.multiKeyPress.keys]
+      : [event.keyPress, [event.keyPress.key]];
 
-    const pressedKeys = event instanceof MultiKeyPressEvent ? event.multiKeyPress.keys : [event.keyPress.key];
+    if (!keyPress.ctrl && !pressedKeys.includes("return")) return;
+
+    lastSelectedComponent ??= tui.components[0];
 
     const moveVector = {
       x: 0,
@@ -106,6 +109,7 @@ export function handleKeyboardControls(tui: Tui): void {
     if (!possibleComponents.length) return;
 
     let closest!: Component;
+
     let closestDistance!: number;
     for (const component of possibleComponents) {
       const distance = Math.sqrt(
