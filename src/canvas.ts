@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
@@ -18,8 +19,11 @@ export interface CanvasSize {
 }
 
 export interface CanvasOptions {
+  /** Size of canvas */
   size: CanvasSize;
+  /** How often canvas tries to find differences in its frameBuffer and render */
   refreshRate: number;
+  /** Stdout to which canvas will render frameBuffer */
   stdout: Stdout;
 }
 
@@ -68,6 +72,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     }
   }
 
+  /**
+   * Change `size` property, then clear `frameBuffer` and `previousFrameBuffer` to force re-render all of the canvas
+   * If `size` parameter matches canvas's `size` property then nothing happens
+   */
   resizeCanvas(size: ConsoleSize): void {
     const { columns, rows } = this.size;
     if (size.columns === columns && size.rows === rows) return;
@@ -78,6 +86,12 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.previousFrameBuffer = [];
   }
 
+  /**
+   * Render value starting on column and row on canvas
+   *
+   * When rectangle is given:
+   * If particular part of the rendering doesn't fit within rectangle boundaries then it's not drawn
+   */
   draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
     if (typeof value !== "string" || value.length === 0 || typeof column !== "number" || typeof row !== "number") {
       return;
@@ -151,6 +165,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     }
   }
 
+  /**
+   * Checks for individual row and column changes in canvas, then renders just the changes.
+   * In the way yield and emit proper events.
+   */
   renderFrame(frame: string[][]): void {
     this.dispatchEvent(new RenderEvent(Timing.Pre));
 
@@ -188,6 +206,11 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.dispatchEvent(new RenderEvent(Timing.Post));
   }
 
+  /**
+   * Runs a loop in which it checks whether frameBuffer has changed (anything new has been drawn).
+   * If so, run `renderFrame()` with current frame buffer and in the way yield and emit proper events.
+   * On each iteration it sleeps for adjusted `refreshRate` time.
+   */
   async *render() {
     while (true) {
       let deltaTime = performance.now();

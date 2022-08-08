@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
 import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
@@ -7,6 +8,11 @@ import { fits } from "./utils/numbers.ts";
 
 const encoder = new TextEncoder();
 
+/**
+ * `handleKeypresses()` has to be called in order for this function to work.
+ * Clicking component calls `interact("mouse")` on it.
+ * It's up to component how it handles it.
+ */
 export function handleMouseControls(tui: Tui): void {
   Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
 

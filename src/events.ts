@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { CanvasSize } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
@@ -58,6 +59,7 @@ export class MousePressEvent extends Event {
   }
 }
 
+/** Event that defines changes regarding given component */
 export class ComponentEvent<EventType extends string = string, ComponentType extends Component = Component>
   extends Event {
   readonly component: ComponentType;

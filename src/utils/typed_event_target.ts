@@ -1,6 +1,8 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 export type EventRecord = Record<string, Event>;
 
+/** Typed version of EventTarget */
 export class TypedEventTarget<EventMap extends EventRecord> {
   eventTarget: EventTarget;
 

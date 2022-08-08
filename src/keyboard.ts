@@ -1,10 +1,15 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { Component } from "./component.ts";
 import { FakeTui } from "./components/view.ts";
 import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
 import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
 import { Tui } from "./tui.ts";
 
+/**
+ * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
+ * that way keyPress, multiKeyPress and mousePress events work
+ */
 export async function handleKeypresses(tui: Tui): Promise<void> {
   for await (const keyPresses of readKeypresses(tui.stdin)) {
     const multiKeyPress: MultiKeyPress = {
@@ -31,6 +36,12 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
   }
 }
 
+/**
+ * `handleKeypresses()` has to be called in order for this function to work.
+ * CTRL+Arrows moves focus in appropriate direction.
+ * Just Enter (Return) calls `interact("keyboard")` on focused component.
+ * It's up to component how it handles it.
+ */
 export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component;
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {

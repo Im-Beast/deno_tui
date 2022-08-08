@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
@@ -14,13 +15,18 @@ import { TypedEventTarget } from "./utils/typed_event_target.ts";
 
 const textEncoder = new TextEncoder();
 
-export interface TuiOptions {
+export type TuiOptions = {
+  /** Tui will use that canvas to draw on the terminal */
   canvas?: Canvas;
+  /** Stdin from which tui can read keypresses in `handleKeypresses()`, defaults to `Deno.stdin` */
   stdin?: Stdin;
+  /** Stdout to which tui will write when necessary, defaults to `Deno.stdout` */
   stdout?: Stdout;
+  /** Style of background drawn by tui */
   style?: Style;
+  /** Distinct update rate at which component `draw()` function will be called, defaults to canvas `refreshRate`*/
   updateRate?: number;
-}
+};
 
 export interface TuiPrivate {
   canvas: Canvas;
@@ -85,7 +91,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     this.canvas = canvas ?? new Canvas({
       size: { columns: 0, rows: 0 },
       refreshRate: 16,
-      stdout: Deno.stdout,
+      stdout: this.stdout,
     });
 
     this.updateRate = updateRate ?? this.canvas.refreshRate;

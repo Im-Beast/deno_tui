@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { Component, ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
 import { textWidth } from "../utils/strings.ts";

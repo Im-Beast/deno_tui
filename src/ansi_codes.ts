@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 /** Get ANSI escape code for moving cursor to given location */
 export function moveCursor(row: number, column: number): string {
   return `\x1b[${row + 1};${column + 1}H`;

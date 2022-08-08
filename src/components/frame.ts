@@ -1,48 +1,49 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { Component } from "../component.ts";
 import { Theme } from "../theme.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 
-export enum SharpFramePieces {
-  TopLeft = "┌",
-  TopRight = "┐",
-  BottomLeft = "└",
-  BottomRight = "┘",
-  Horizontal = "─",
-  Vertical = "│",
-}
+export const sharpFramePieces = {
+  topLeft: "┌",
+  topRight: "┐",
+  bottomLeft: "└",
+  bottomRight: "┘",
+  horizontal: "─",
+  vertical: "│",
+} as const;
 
-export enum RoundedFramePieces {
-  TopLeft = "╭",
-  TopRight = "╮",
-  BottomLeft = "╰",
-  BottomRight = "╯",
-  Horizontal = "─",
-  Vertical = "│",
-}
+export const roundedFramePieces = {
+  topLeft: "╭",
+  topRight: "╮",
+  bottomLeft: "╰",
+  bottomRight: "╯",
+  horizontal: "─",
+  vertical: "│",
+} as const;
 
-export type FrameComponentOptions = {
-  tui: Tui;
-  component: Component;
-  rectangle?: never;
-  theme?: Partial<Theme>;
-  rounded?: boolean;
-} | {
-  tui: Tui;
-  component?: never;
-  rectangle: Rectangle;
-  theme?: Partial<Theme>;
-  rounded?: boolean;
+export type FramePieceType = {
+  [key in keyof typeof sharpFramePieces]: string;
 };
+
+export type FrameComponentOptions =
+  & {
+    tui: Tui;
+    theme?: Partial<Theme>;
+    framePieces?: "sharp" | "rounded" | FramePieceType;
+  }
+  & (
+    { rectangle?: never; component: Component } | { component?: never; rectangle: Rectangle }
+  );
 
 export class FrameComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
   component?: Component;
-  rounded: boolean;
+  framePieces: "sharp" | "rounded" | FramePieceType;
 
   constructor(
-    { tui, component, rectangle, theme, rounded }: FrameComponentOptions,
+    { tui, component, rectangle, theme, framePieces }: FrameComponentOptions,
   ) {
     super({
       tui,
@@ -51,7 +52,7 @@ export class FrameComponent<EventMap extends EventRecord = Record<never, never>>
       zIndex: component?.zIndex,
     });
     this.component = component;
-    this.rounded = rounded ?? false;
+    this.framePieces = framePieces ?? "sharp";
   }
 
   set state(_value) {}
@@ -63,7 +64,7 @@ export class FrameComponent<EventMap extends EventRecord = Record<never, never>>
   draw() {
     super.draw();
 
-    const { style } = this;
+    const { style, framePieces } = this;
     const { canvas } = this.tui;
     let { column, row, width, height } = (this.rectangle ?? this.component?.rectangle)!;
 
@@ -72,21 +73,25 @@ export class FrameComponent<EventMap extends EventRecord = Record<never, never>>
     width += 1;
     height += 1;
 
-    const pieces = this.rounded ? RoundedFramePieces : SharpFramePieces;
+    const pieces = framePieces === "sharp"
+      ? sharpFramePieces
+      : framePieces === "rounded"
+      ? roundedFramePieces
+      : framePieces;
 
-    canvas.draw(column, row, style(pieces.TopLeft));
-    canvas.draw(column + width, row, style(pieces.TopRight));
-    canvas.draw(column, row + height, style(pieces.BottomLeft));
-    canvas.draw(column + width, row + height, style(pieces.BottomRight));
+    canvas.draw(column, row, style(pieces.topLeft));
+    canvas.draw(column + width, row, style(pieces.topRight));
+    canvas.draw(column, row + height, style(pieces.bottomLeft));
+    canvas.draw(column + width, row + height, style(pieces.bottomRight));
 
     for (let x = column + 1; x < column + width; ++x) {
-      canvas.draw(x, row, style(pieces.Horizontal));
-      canvas.draw(x, row + height, style(pieces.Horizontal));
+      canvas.draw(x, row, style(pieces.horizontal));
+      canvas.draw(x, row + height, style(pieces.horizontal));
     }
 
     for (let y = row + 1; y < row + height; ++y) {
-      canvas.draw(column, y, style(pieces.Vertical));
-      canvas.draw(column + width, y, style(pieces.Vertical));
+      canvas.draw(column, y, style(pieces.vertical));
+      canvas.draw(column + width, y, style(pieces.vertical));
     }
   }
 }

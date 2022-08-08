@@ -1,4 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
+/** Combines multiple async iterators into one */
 export class CombinedAsyncIterator<T = unknown> {
   #asyncIterators: AsyncIterable<T>[] = [];
 

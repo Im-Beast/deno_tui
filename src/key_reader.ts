@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();
@@ -112,6 +113,11 @@ export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
   keys: (KeyPress["key"] | MousePress["key"])[];
 }
 
+/**
+ * Read keypresses from given stdin (except for Windows) and then parse them.
+ * On Windows keys are read by calling `_getch()` in `msvcrt.dll`.
+ * It yields array of either KeyPress or MousePress
+ */
 export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | MousePress)[], void, void> {
   switch (Deno.build.os) {
     case "windows": {

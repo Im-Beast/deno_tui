@@ -274,7 +274,7 @@ queueMicrotask(() => {
     new FrameComponent({
       tui,
       component,
-      rounded: true,
+      framePieces: "rounded",
       theme: {
         base: crayon.bgHex(0x333333).white,
         focused: crayon.bgHex(0x333333).bold,

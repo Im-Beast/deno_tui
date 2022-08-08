@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+
 import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
 import { Component, ComponentOptions } from "../component.ts";
