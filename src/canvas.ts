@@ -1,9 +1,8 @@
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
-import { crayon } from "./deps.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
-import { isFullWidth, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
+import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
 import { fits, fitsInRectangle } from "./utils/numbers.ts";
 import { sleep } from "./utils/async.ts";
 import { textWidth } from "./utils/strings.ts";
@@ -86,7 +85,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     column = ~~column;
     row = ~~row;
 
-    const stripped = crayon.strip(value);
+    const stripped = stripStyles(value);
 
     if (stripped.length === 0) return;
 
@@ -97,7 +96,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
       frameBufferRow[column] = value;
       if (frameBufferRow[column + 1] === undefined) {
-        const style = value.replace(crayon.strip(value), "").replaceAll("\x1b[0m", "");
+        const style = value.replace(stripped, "").replaceAll("\x1b[0m", "");
         frameBufferRow[column + 1] = `${style} \x1b[0m`;
       }
       return;

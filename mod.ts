@@ -1,7 +1,6 @@
 export * from "./src/ansi_codes.ts";
 export * from "./src/canvas.ts";
 export * from "./src/component.ts";
-export * from "./src/deps.ts";
 export * from "./src/events.ts";
 export * from "./src/key_reader.ts";
 export * from "./src/keyboard.ts";

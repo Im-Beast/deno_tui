@@ -1,8 +1,7 @@
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
-import { Theme } from "../theme.ts";
-import { crayon } from "../deps.ts";
+import { emptyStyle, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
 import { clamp, normalize } from "../utils/numbers.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
@@ -48,9 +47,9 @@ export class SliderComponent<EventMap extends EventRecord = Record<never, never>
 
     const thumb = options.theme?.thumb;
     this.theme.thumb = {
-      active: thumb?.active ?? thumb?.focused ?? thumb?.base ?? crayon,
-      focused: thumb?.focused ?? thumb?.base ?? crayon,
-      base: thumb?.base ?? crayon,
+      active: thumb?.active ?? thumb?.focused ?? thumb?.base ?? emptyStyle,
+      focused: thumb?.focused ?? thumb?.base ?? emptyStyle,
+      base: thumb?.base ?? emptyStyle,
     };
 
     const lastMove = { x: -1, y: -1, time: 0 };

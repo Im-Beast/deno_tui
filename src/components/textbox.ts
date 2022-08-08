@@ -1,7 +1,6 @@
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
-import { crayon } from "../deps.ts";
 import { ComponentEvent } from "../events.ts";
 import { ComboboxComponent } from "./combobox.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
@@ -155,9 +154,7 @@ export class TextboxComponent<EventMap extends EventRecord = Record<never, never
     canvas.draw(
       column + Math.min(x, width - 1),
       row + Math.min(y, height - 1),
-      crayon.invert(
-        this.#value[y][x] ?? " ",
-      ),
+      style("\x1b[7m" + (this.#value[y][x] ?? " ") + "\x1b[0m"),
     );
   }
 

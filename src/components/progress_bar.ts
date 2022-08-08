@@ -1,8 +1,7 @@
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
-import { Theme } from "../theme.ts";
-import { crayon } from "../deps.ts";
+import { emptyStyle, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { clamp, normalize } from "../utils/numbers.ts";
@@ -48,9 +47,9 @@ export class ProgressBarComponent<EventMap extends EventRecord = Record<never, n
 
     const progress = options.theme?.progress;
     this.theme.progress = {
-      active: progress?.active ?? progress?.focused ?? progress?.base ?? crayon,
-      focused: progress?.focused ?? progress?.base ?? crayon,
-      base: progress?.base ?? crayon,
+      active: progress?.active ?? progress?.focused ?? progress?.base ?? emptyStyle,
+      focused: progress?.focused ?? progress?.base ?? emptyStyle,
+      base: progress?.base ?? emptyStyle,
     };
   }
 

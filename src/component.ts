@@ -1,6 +1,5 @@
-import { crayon } from "./deps.ts";
 import { ComponentEvent } from "./events.ts";
-import { Style, Theme } from "./theme.ts";
+import { emptyStyle, Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
 import { Rectangle } from "./types.ts";
 import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
@@ -48,9 +47,9 @@ export class Component<
 
     this.rectangle = rectangle;
     this.theme = {
-      base: theme?.base ?? crayon,
-      focused: theme?.focused ?? theme?.base ?? crayon,
-      active: theme?.active ?? theme?.focused ?? theme?.base ?? crayon,
+      base: theme?.base ?? emptyStyle,
+      focused: theme?.focused ?? theme?.base ?? emptyStyle,
+      active: theme?.active ?? theme?.focused ?? theme?.base ?? emptyStyle,
     };
     this.zIndex = zIndex ?? 0;
 

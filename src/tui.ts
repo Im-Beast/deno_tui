@@ -1,9 +1,8 @@
 import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
-import { crayon } from "./deps.ts";
 import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
-import type { Style } from "./theme.ts";
+import { emptyStyle, Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
 
 import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
@@ -79,7 +78,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
 
     this.stdin = stdin ?? Deno.stdin;
     this.stdout = stdout ?? Deno.stdout;
-    this.style = style ?? crayon;
+    this.style = style ?? emptyStyle;
     this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
 
     this.canvas = canvas ?? new Canvas({

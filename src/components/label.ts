@@ -44,7 +44,6 @@ export class LabelComponent<EventMap extends EventRecord = Record<never, never>>
 
     if (dynamicWidth) this.rectangle.width = -1;
     if (dynamicHeight) this.rectangle.height = -1;
-
     if (dynamicWidth || dynamicHeight) {
       for (const [i, line] of lines.entries()) {
         if (dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));

@@ -1,6 +1,5 @@
 import { ComponentOptions } from "../component.ts";
-import { crayon } from "../deps.ts";
-import { Style, Theme } from "../theme.ts";
+import { emptyStyle, Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { clamp } from "../utils/numbers.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
@@ -46,14 +45,14 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
     const corner = theme?.scrollbar?.corner;
     this.theme.scrollbar = {
       horizontal: {
-        track: horizontal?.track ?? crayon,
-        thumb: horizontal?.thumb ?? crayon,
+        track: horizontal?.track ?? emptyStyle,
+        thumb: horizontal?.thumb ?? emptyStyle,
       },
       vertical: {
-        track: vertical?.track ?? crayon,
-        thumb: vertical?.thumb ?? crayon,
+        track: vertical?.track ?? emptyStyle,
+        thumb: vertical?.thumb ?? emptyStyle,
       },
-      corner: corner ?? crayon,
+      corner: corner ?? emptyStyle,
     };
 
     this.#scrollbars = {};
