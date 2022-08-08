@@ -15,6 +15,9 @@ export interface LabelComponentOptions extends ComponentOptions {
 }
 
 export class LabelComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
+  #dynamicWidth: boolean;
+  #dynamicHeight: boolean;
+
   declare rectangle: Rectangle;
   value: string;
   align: LabelTextAlign;
@@ -23,6 +26,9 @@ export class LabelComponent<EventMap extends EventRecord = Record<never, never>>
     super(options);
     this.value = options.value;
     this.align = options.align;
+
+    this.#dynamicWidth = this.rectangle.width === -1;
+    this.#dynamicHeight = this.rectangle.height === -1;
   }
 
   draw() {
@@ -30,33 +36,51 @@ export class LabelComponent<EventMap extends EventRecord = Record<never, never>>
 
     const { style, align, value } = this;
     const { canvas } = this.tui;
+
+    const lines = value.split("\n");
+
+    const dynamicWidth = this.#dynamicWidth;
+    const dynamicHeight = this.#dynamicHeight;
+
+    if (dynamicWidth) this.rectangle.width = -1;
+    if (dynamicHeight) this.rectangle.height = -1;
+
+    if (dynamicWidth || dynamicHeight) {
+      for (const [i, line] of lines.entries()) {
+        if (dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
+        if (dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
+      }
+    }
+
     const { column, row, width, height } = this.rectangle;
 
-    let r = row;
-    let c = column;
+    for (const [i, line] of lines.entries()) {
+      let r = row + i;
+      let c = column;
 
-    switch (align.horizontal) {
-      case "left":
-        break;
-      case "center":
-        c += width / 2;
-        break;
-      case "right":
-        c += width - textWidth(value);
-        break;
+      switch (align.horizontal) {
+        case "left":
+          break;
+        case "center":
+          c += (width - textWidth(line)) / 2;
+          break;
+        case "right":
+          c += width - textWidth(line);
+          break;
+      }
+
+      switch (align.vertical) {
+        case "top":
+          break;
+        case "center":
+          r += height / 2 - lines.length / 2;
+          break;
+        case "bottom":
+          r += height - lines.length;
+          break;
+      }
+
+      canvas.draw(c, r, style(line), this.rectangle);
     }
-
-    switch (align.vertical) {
-      case "top":
-        break;
-      case "center":
-        r += height / 2;
-        break;
-      case "bottom":
-        r += height - 1;
-        break;
-    }
-
-    canvas.draw(c, r, style(value));
   }
 }
