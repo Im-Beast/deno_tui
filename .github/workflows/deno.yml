@@ -31,15 +31,16 @@ jobs:
       - name: Run linter
         run: deno lint
 
-      - name: Run tests
-        run: deno test -A --unstable
+      # TODO: Uncomment when tests will be done
+      # - name: Run tests
+      #  run: deno test -A --unstable
 
       - name: Check license headers
         run: |
           deno run -A --no-check https://deno.land/x/anzu@1.0.0/src/cli.ts \
            -i ./ "/.+\.ts/" \
            -e "deps.ts" \
-           -l "// Copyright 2021 Im-Beast. All rights reserved. MIT license." \
+           -l "// Copyright 2022 Im-Beast. All rights reserved. MIT license." \
            -p
 
       - name: Push changes
