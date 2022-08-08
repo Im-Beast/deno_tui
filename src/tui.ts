@@ -105,18 +105,6 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
 
   async *render(): AsyncGenerator<{ type: "render"; timing: Timing }> {
     for await (const timing of this.canvas.render()) {
-      if (timing === Timing.Post) {
-        const { columns, rows } = this.canvas.size;
-
-        this.canvas.draw(
-          0,
-          0,
-          this.style(
-            (" ".repeat(columns) + "\n").repeat(rows),
-          ),
-        );
-      }
-
       this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
       yield { type: "render", timing };
     }
@@ -132,6 +120,9 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
 
     for await (const event of iterator) {
       if (event.type === "update") {
+        const { columns, rows } = this.canvas.size;
+        this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
+
         for (const component of this.components) {
           component.draw();
         }
