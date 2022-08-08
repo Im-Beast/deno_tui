@@ -24,7 +24,7 @@ const baseTheme: Theme = {
 };
 
 const tui = new Tui({
-  style: crayon.bgHex(0x333333),
+  style: crayon.bgBlack,
   canvas: new Canvas({
     refreshRate: 1000 / 60,
     size: await Deno.consoleSize(Deno.stdout.rid),
@@ -276,8 +276,8 @@ queueMicrotask(() => {
       component,
       framePieces: "rounded",
       theme: {
-        base: crayon.bgHex(0x333333).white,
-        focused: crayon.bgHex(0x333333).bold,
+        base: crayon.bgBlack.white,
+        focused: crayon.bgBlack.bold,
       },
     });
   }
