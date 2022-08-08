@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 export class CombinedAsyncIterator<T = unknown> {
   #asyncIterators: AsyncIterable<T>[] = [];
 

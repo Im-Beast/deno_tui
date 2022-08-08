@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";

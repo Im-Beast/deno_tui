@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { ComponentEvent } from "./events.ts";
 import { emptyStyle, Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";

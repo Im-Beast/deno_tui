@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();

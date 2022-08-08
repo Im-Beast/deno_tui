@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
 import { Rectangle } from "../types.ts";

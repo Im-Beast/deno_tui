@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 export * from "./src/ansi_codes.ts";
 export * from "./src/canvas.ts";
 export * from "./src/component.ts";

@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { CanvasSize } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";

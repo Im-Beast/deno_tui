@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 export type CompareFn<T> = (a: T, b: T) => number;
 
 export class SortedArray<T = unknown> extends Array<T> {

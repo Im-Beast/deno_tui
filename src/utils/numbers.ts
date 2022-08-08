@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { Rectangle } from "../types.ts";
 
 export function clamp(number: number, min: number, max: number): number {

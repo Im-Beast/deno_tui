@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 export type Stdout = typeof Deno.stdout;
 export type Stdin = typeof Deno.stdin;
 
