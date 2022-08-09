@@ -1,10 +1,10 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
-import { Canvas } from "../src/canvas.ts";
 import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
 import { handleMouseControls } from "../src/mouse.ts";
 import { Tui } from "../src/tui.ts";
+import { Canvas } from "../src/canvas.ts";
 
 import { BoxComponent } from "../src/components/box.ts";
 import { ButtonComponent } from "../src/components/button.ts";
@@ -23,11 +23,11 @@ const baseTheme: Theme = {
   active: crayon.bgBlue,
 };
 
+const tuiStyle = crayon.bgBlack.white;
 const tui = new Tui({
-  style: crayon.bgHex(0x333333),
+  style: tuiStyle,
   canvas: new Canvas({
     refreshRate: 1000 / 60,
-    size: await Deno.consoleSize(Deno.stdout.rid),
     stdout: Deno.stdout,
   }),
 });
@@ -132,9 +132,7 @@ new LabelComponent({
     height: -1,
     width: -1,
   },
-  theme: {
-    base: tui.style,
-  },
+  theme: { base: tuiStyle },
   value: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
 });
 
@@ -245,7 +243,6 @@ new TextboxComponent({
 });
 
 // Generate frames and labels for every component
-
 queueMicrotask(() => {
   for (const component of tui.components) {
     const { rectangle } = component;
@@ -276,8 +273,8 @@ queueMicrotask(() => {
       component,
       framePieces: "rounded",
       theme: {
-        base: crayon.bgHex(0x333333).white,
-        focused: crayon.bgHex(0x333333).bold,
+        base: tuiStyle,
+        focused: tuiStyle.bold,
       },
     });
   }
