@@ -1,12 +1,18 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { SHOW_CURSOR } from "./ansi_codes.ts";
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import { emptyStyle, Style } from "./theme.ts";
 import type { Stdin, Stdout } from "./types.ts";
 
+import {
+  CLEAR_SCREEN,
+  HIDE_CURSOR,
+  SHOW_CURSOR,
+  USE_PRIMARY_BUFFER,
+  USE_SECONDARY_BUFFER,
+} from "./utils/ansi_codes.ts";
 import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
 import { sleep } from "./utils/async.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
@@ -76,7 +82,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     }
 
     this.addEventListener("close", () => {
-      Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR));
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
 
       queueMicrotask(() => {
         Deno.exit(0);
@@ -120,6 +126,8 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     | { type: "render"; timing: Timing }
     | { type: "update" }
   > {
+    Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR + CLEAR_SCREEN));
+
     const iterator = new CombinedAsyncIterator<
       { type: "render"; timing: Timing } | { type: "update" }
     >(this.update(), this.render());

@@ -1,9 +1,9 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { CLEAR_SCREEN, HIDE_CURSOR, moveCursor } from "./ansi_codes.ts";
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
 
+import { moveCursor } from "./utils/ansi_codes.ts";
 import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
 import { fits, fitsInRectangle } from "./utils/numbers.ts";
 import { sleep } from "./utils/async.ts";
@@ -173,10 +173,6 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.dispatchEvent(new RenderEvent(Timing.Pre));
 
     const { previousFrameBuffer, size } = this;
-
-    if (previousFrameBuffer.length === 0) {
-      Deno.writeSync(this.stdout.rid, textEncoder.encode(HIDE_CURSOR + CLEAR_SCREEN));
-    }
 
     rows:
     for (let r = 0; r < frame.length; ++r) {

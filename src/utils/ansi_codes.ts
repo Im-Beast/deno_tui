@@ -19,3 +19,9 @@ export const SHOW_CURSOR = `\x1b[?25h`;
 
 /** ANSI escape code to clear screen  */
 export const CLEAR_SCREEN = `\x1b[2J`;
+
+/** ANSI escape code to tell terminal to use secondary buffer */
+export const USE_SECONDARY_BUFFER = "\x1b[?1049h";
+
+/** ANSI escape code to tell terminal to switch back to primary buffer */
+export const USE_PRIMARY_BUFFER = "\x1b[?1049l";

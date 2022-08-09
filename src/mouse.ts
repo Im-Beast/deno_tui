@@ -1,9 +1,10 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { DISABLE_MOUSE, ENABLE_MOUSE } from "./ansi_codes.ts";
-import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
+import { Component } from "./component.ts";
 import type { ViewedComponent } from "./components/view.ts";
+
+import { DISABLE_MOUSE, ENABLE_MOUSE } from "./utils/ansi_codes.ts";
 import { fits } from "./utils/numbers.ts";
 
 const encoder = new TextEncoder();
