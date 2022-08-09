@@ -58,7 +58,6 @@ const tui = new Tui({
   style: crayon.bgBlue,
   canvas: new Canvas({
     refreshRate: 1000 / 60, // Run in 60FPS
-    size: await Deno.consoleSize(Deno.stdout.rid),
     stdout: Deno.stdout,
   }),
 });
