@@ -1,9 +1,8 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { CanvasSize } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import { Timing } from "./types.ts";
+import { ConsoleSize, Timing } from "./types.ts";
 
 export class FrameEvent extends Event {
   readonly timing: Timing;
@@ -24,9 +23,9 @@ export class RenderEvent extends Event {
 }
 
 export class CanvasResizeEvent extends Event {
-  readonly size: CanvasSize;
+  readonly size: ConsoleSize;
 
-  constructor(size: CanvasSize) {
+  constructor(size: ConsoleSize) {
     super("render");
     this.size = size;
   }

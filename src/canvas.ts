@@ -13,14 +13,7 @@ import { TypedEventTarget } from "./utils/typed_event_target.ts";
 
 const textEncoder = new TextEncoder();
 
-export interface CanvasSize {
-  columns: number;
-  rows: number;
-}
-
 export interface CanvasOptions {
-  /** Size of canvas */
-  size: CanvasSize;
   /** How often canvas tries to find differences in its frameBuffer and render */
   refreshRate: number;
   /** Stdout to which canvas will render frameBuffer */
@@ -34,7 +27,7 @@ export type CanvasEventMap = {
 };
 
 export class Canvas extends TypedEventTarget<CanvasEventMap> {
-  size: CanvasSize;
+  size: ConsoleSize;
   refreshRate: number;
   stdout: Stdout;
   frameBuffer: string[][];
@@ -42,26 +35,22 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
   lastRender: number;
   fps: number;
 
-  constructor({ size, refreshRate, stdout }: CanvasOptions) {
+  constructor({ refreshRate, stdout }: CanvasOptions) {
     super();
 
-    this.size = size;
     this.refreshRate = refreshRate;
     this.stdout = stdout;
     this.frameBuffer = [];
     this.previousFrameBuffer = [];
     this.fps = 0;
     this.lastRender = 0;
+    this.size = Deno.consoleSize(this.stdout.rid);
 
     switch (Deno.build.os) {
       case "windows":
-        this.addEventListener("render", async ({ timing }) => {
+        this.addEventListener("render", ({ timing }) => {
           if (timing !== Timing.Pre) return;
-
-          const currentSize = await Deno.consoleSize(this.stdout.rid);
-          if (currentSize.columns !== this.size.columns || currentSize.rows !== this.size.rows) {
-            this.resizeCanvas(currentSize);
-          }
+          this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
         });
         break;
       default:
@@ -80,10 +69,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     const { columns, rows } = this.size;
     if (size.columns === columns && size.rows === rows) return;
 
-    this.dispatchEvent(new CanvasResizeEvent(size));
     this.size = size;
     this.frameBuffer = [];
     this.previousFrameBuffer = [];
+    this.dispatchEvent(new CanvasResizeEvent(size));
   }
 
   /**
@@ -181,7 +170,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
       const previousRow = previousFrameBuffer[r];
       const row = this.frameBuffer[r];
 
-      if (row && JSON.stringify(previousRow) === JSON.stringify(row)) {
+      if (JSON.stringify(previousRow) === JSON.stringify(row)) {
         continue rows;
       }
 
@@ -192,7 +181,10 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
         const column = row[c];
         if (previousRow?.[c] === column) continue columns;
 
-        Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(r, c) + column));
+        Deno.writeSync(
+          this.stdout.rid,
+          textEncoder.encode(moveCursor(r, c) + column),
+        );
       }
     }
 
@@ -223,7 +215,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
       }
 
       deltaTime -= performance.now();
-      await sleep(this.refreshRate + (this.fps / 1000) + deltaTime);
+      await sleep(this.refreshRate + deltaTime);
     }
   }
 }

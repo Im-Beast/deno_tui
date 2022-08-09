@@ -95,7 +95,6 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
 
     this.canvas = canvas ?? new Canvas({
-      size: { columns: 0, rows: 0 },
       refreshRate: 16,
       stdout: this.stdout,
     });
@@ -105,13 +104,9 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
 
   async *update(): AsyncGenerator<{ type: "update" }> {
     while (true) {
-      let deltaTime = performance.now();
-
       this.dispatchEvent(new CustomEvent("update"));
       yield { type: "update" };
-
-      deltaTime -= performance.now();
-      await sleep(this.updateRate + (deltaTime / 2));
+      await sleep(this.updateRate);
     }
   }
 
@@ -122,10 +117,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     }
   }
 
-  async *run(): AsyncGenerator<
-    | { type: "render"; timing: Timing }
-    | { type: "update" }
-  > {
+  async *run(): AsyncGenerator<{ type: "render"; timing: Timing } | { type: "update" }> {
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR + CLEAR_SCREEN));
 
     const iterator = new CombinedAsyncIterator<
