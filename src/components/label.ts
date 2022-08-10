@@ -31,6 +31,13 @@ export class LabelComponent<EventMap extends EventRecord = Record<never, never>>
 
     this.#dynamicWidth = this.rectangle.width === -1;
     this.#dynamicHeight = this.rectangle.height === -1;
+
+    if (this.#dynamicWidth || this.#dynamicHeight) {
+      for (const [i, line] of this.value.split("\n").entries()) {
+        if (this.#dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
+        if (this.#dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
+      }
+    }
   }
 
   draw() {
