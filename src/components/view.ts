@@ -7,8 +7,6 @@ import { Component, ComponentOptions } from "../component.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 
-export type ViewedComponent = Omit<Component, "tui"> & { tui: FakeTui };
-
 export interface FakeCanvas extends Canvas {
   canvas: Canvas;
   rectangle: Rectangle;
@@ -16,7 +14,6 @@ export interface FakeCanvas extends Canvas {
 
 export interface FakeTui extends Tui {
   realTui: Tui;
-  view: ViewComponent;
   canvas: FakeCanvas;
 }
 
@@ -26,7 +23,8 @@ export interface ViewComponentOptions extends ComponentOptions {
 
 export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
   declare rectangle: Rectangle;
-  declare tui: FakeTui;
+
+  fakeTui: FakeTui;
   offset: {
     x: number;
     y: number;
@@ -62,15 +60,19 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     });
 
     const { tui } = this;
-    const fakeTui = { realTui: tui, canvas: fakeCanvas, view: this } as unknown as FakeTui;
+    const fakeTui = { realTui: tui, canvas: fakeCanvas } as unknown as FakeTui;
     Object.setPrototypeOf(fakeTui, tui);
 
     fakeTui.addEventListener("addComponent", ({ component }) => {
-      if (component === this || component.tui !== fakeTui) return;
+      if (component.view !== this) return;
+
       const { rectangle } = component;
       if (!rectangle) return;
 
+      component.tui = fakeTui;
+      component.view = this;
       this.components.push(component);
+
       const { column, row, width, height } = rectangle;
 
       this.maxOffset = {
@@ -80,10 +82,15 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     });
 
     fakeTui.addEventListener("removeComponent", ({ component }) => {
+      if (component.view !== this) return;
+
       let x = 0;
       let y = 0;
 
+      component.tui = fakeTui.realTui;
+      component.view = undefined;
       this.components.remove(component);
+
       for (const component of this.components) {
         const { rectangle } = component;
         if (!rectangle) continue;
@@ -95,14 +102,14 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
       this.maxOffset = { x, y };
     });
 
-    this.tui = fakeTui;
+    this.fakeTui = fakeTui;
   }
 
   draw() {
     super.draw();
 
     const { style } = this;
-    const { canvas } = this.tui.realTui;
+    const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
     canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));

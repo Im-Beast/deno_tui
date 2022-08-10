@@ -3,12 +3,16 @@
 import { ComponentEvent } from "./events.ts";
 import { emptyStyle, Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
-import { Rectangle } from "./types.ts";
 import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
+
+import type { ViewComponent } from "./components/view.ts";
+import type { Rectangle } from "./types.ts";
 
 export interface ComponentOptions {
   /** Parent tui, used for retrieving canvas and adding event listeners */
   tui: Tui;
+  /** Component that can manipulate drawing position on the canvas by replacing `tui` element with fake one */
+  view?: ViewComponent;
   /** Theme defining look of component */
   theme?: Partial<Theme>;
   /** Position and size of component */
@@ -43,12 +47,14 @@ export class Component<
   EventMap extends EventRecord = Record<never, never>,
 > extends TypedEventTarget<EventMap & ComponentEventMap> implements ComponentImplementation {
   tui: Tui;
-  rectangle?: Rectangle;
   theme: Theme;
   #state: ComponentState;
   zIndex: number;
 
-  constructor({ rectangle, theme, zIndex, tui }: ComponentOptions) {
+  view?: ViewComponent;
+  rectangle?: Rectangle;
+
+  constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
     super();
 
     this.rectangle = rectangle;
@@ -58,10 +64,9 @@ export class Component<
       active: theme?.active ?? theme?.focused ?? theme?.base ?? emptyStyle,
     };
     this.zIndex = zIndex ?? 0;
-
     this.#state = "base";
-
     this.tui = tui;
+    this.view = view;
 
     // This should run after everything else is setup
     // That's why it's added after everything on even loop is ready
