@@ -90,6 +90,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
+    // FIXME: view should have display margin on the bottom and right when scrollbars are present
     if (this.maxOffset.x > 0 && !this.#scrollbars.horizontal) {
       this.#scrollbars.horizontal = new SliderComponent({
         tui,
@@ -100,9 +101,9 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
         step: 1,
         rectangle: {
           column,
-          row: row + height,
+          width: width - 1,
+          row: row + height - 1,
           height: 1,
-          width,
         },
         theme: {
           base: theme.scrollbar.vertical.track,
@@ -129,10 +130,10 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
         value: 0,
         step: 1,
         rectangle: {
-          column: column + width,
-          row,
-          height,
+          column: column + width - 1,
           width: 1,
+          height: height - 1,
+          row,
         },
         theme: {
           base: theme.scrollbar.vertical.track,
@@ -152,7 +153,8 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {
       const cornerStyle = theme.scrollbar.corner;
-      canvas.draw(column + width, row + height, cornerStyle(" "));
+      // FIXME: corner can be overdrawn by components
+      canvas.draw(column + width - 1, row + height - 1, cornerStyle(" "));
     }
   }
 
