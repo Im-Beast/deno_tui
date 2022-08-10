@@ -2,10 +2,10 @@
 
 import { Tui } from "./tui.ts";
 import { Component } from "./component.ts";
-import type { ViewedComponent } from "./components/view.ts";
 
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./utils/ansi_codes.ts";
-import { fits } from "./utils/numbers.ts";
+import { fitsInRectangle } from "./utils/numbers.ts";
+import { Rectangle } from "./types.ts";
 
 const encoder = new TextEncoder();
 
@@ -29,41 +29,34 @@ export function handleMouseControls(tui: Tui): void {
     const possibleComponents: Component[] = [];
 
     for (const component of tui.components) {
-      const viewedComponent = component as unknown as ViewedComponent;
-      if (!viewedComponent.rectangle) continue;
+      let { rectangle } = component;
+      if (!rectangle) continue;
 
-      let { column, row, width, height } = viewedComponent.rectangle;
+      const view = component.view;
+      if (view) {
+        const viewRectangle = view.rectangle;
+        const viewOffset = view.offset;
 
-      const view = viewedComponent.tui.view;
-      if (view && view !== viewedComponent) {
-        const { column: viewColumn, row: viewRow, width: viewWidth, height: viewHeight } = view.rectangle;
-        const { x: xOffset, y: yOffset } = view.offset;
-        column += viewColumn - xOffset;
-        row += viewRow - yOffset;
+        const viewedRectangle: Rectangle = {
+          column: viewRectangle.column - viewOffset.x,
+          row: viewRectangle.row - viewOffset.y,
+          width: Math.min(rectangle.column + rectangle.width, viewRectangle.column + viewRectangle.width),
+          height: Math.min(rectangle.row + rectangle.height, viewRectangle.row + viewRectangle.height),
+        };
 
-        const xBoundary = Math.min(
-          column + width - 1,
-          viewColumn + viewWidth - 1,
-        );
+        rectangle = viewedRectangle;
+      }
 
-        const yBoundary = Math.min(
-          row + height - 1,
-          viewRow + viewHeight - 1,
-        );
-
-        if (!fits(x, column, xBoundary) || !fits(y, row, yBoundary)) {
-          continue;
-        }
-      } else if (!fits(x, column, column + width - 1) || !fits(y, row, row + height - 1)) {
+      if (!fitsInRectangle(x, y, rectangle)) {
         continue;
       }
 
       const candidate = possibleComponents[0];
 
-      if (!possibleComponents.length || viewedComponent.zIndex > candidate.zIndex) {
+      if (!possibleComponents.length || component.zIndex > candidate.zIndex) {
         possibleComponents.length = 0;
         possibleComponents.push(component);
-      } else if (viewedComponent.zIndex === candidate.zIndex) {
+      } else if (component.zIndex === candidate.zIndex) {
         possibleComponents.push(component);
       }
     }
