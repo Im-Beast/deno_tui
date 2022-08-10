@@ -16,6 +16,7 @@ import { SliderComponent } from "../src/components/slider.ts";
 import { TextboxComponent } from "../src/components/textbox.ts";
 import { Theme } from "../src/theme.ts";
 import { LabelComponent } from "../src/components/label.ts";
+import { ScrollableViewComponent } from "../src/components/scrollable_view.ts";
 
 const baseTheme: Theme = {
   base: crayon.bgLightBlue,
@@ -242,16 +243,92 @@ new TextboxComponent({
   value: "hello!\nwhats up?",
 });
 
+const scrollView = new ScrollableViewComponent({
+  tui,
+  theme: {
+    base: crayon.bgLightBlack.lightWhite,
+    scrollbar: {
+      vertical: {
+        thumb: baseTheme.active,
+        track: baseTheme.base,
+      },
+      horizontal: {
+        thumb: baseTheme.active,
+        track: baseTheme.base,
+      },
+      corner: baseTheme.base,
+    },
+  },
+  rectangle: {
+    column: 75,
+    row: 11,
+    width: 20,
+    height: 8,
+  },
+});
+
+new LabelComponent({
+  tui,
+  view: scrollView,
+  theme: { base: scrollView.style },
+  align: {
+    horizontal: "center",
+    vertical: "top",
+  },
+  rectangle: {
+    column: 4,
+    row: 2,
+    height: -1,
+    width: -1,
+  },
+  value: "Scroll down",
+});
+
+new LabelComponent({
+  tui,
+  view: scrollView,
+  theme: { base: scrollView.style },
+  align: {
+    horizontal: "center",
+    vertical: "top",
+  },
+  rectangle: {
+    column: 4,
+    row: 12,
+    height: -1,
+    width: -1,
+  },
+  value: "Scroll right",
+});
+
+new ButtonComponent({
+  tui,
+  view: scrollView,
+  theme: baseTheme,
+  rectangle: {
+    column: 30,
+    row: 12,
+    height: 1,
+    width: 7,
+  },
+  label: "Hello!!",
+});
+
 // Generate frames and labels for every component
 queueMicrotask(() => {
   for (const component of tui.components) {
-    const { rectangle } = component;
+    const { rectangle, view } = component;
     if (!rectangle) continue;
 
     const name = component.constructor.name.replace("Component", "");
+    const theme = {
+      base: component.view instanceof ScrollableViewComponent ? component.view.style : tuiStyle,
+    };
 
     new LabelComponent({
       tui,
+      view,
+      theme,
       align: {
         horizontal: "left",
         vertical: "top",
@@ -262,14 +339,12 @@ queueMicrotask(() => {
         height: -1,
         width: -1,
       },
-      theme: {
-        base: tui.style,
-      },
       value: name,
     });
 
     new FrameComponent({
       tui,
+      view,
       component,
       framePieces: "rounded",
       theme: {
