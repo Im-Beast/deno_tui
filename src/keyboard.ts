@@ -1,7 +1,7 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Component } from "./component.ts";
-import { FakeTui } from "./components/view.ts";
+import { ViewComponent } from "./components/view.ts";
 import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
 import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
 import { Tui } from "./tui.ts";
@@ -44,6 +44,8 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
  */
 export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component;
+  let currentView: ViewComponent;
+
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
     const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
       ? [event.multiKeyPress, event.multiKeyPress.keys]
@@ -76,6 +78,22 @@ export function handleKeyboardControls(tui: Tui): void {
           lastSelectedComponent.interact("keyboard");
           return;
         default:
+          if (/f(\d+)/.test(key)) {
+            const views = tui.components.filter((component) => component instanceof ViewComponent) as ViewComponent[];
+            const index = +key.replace("f", "") - 1;
+            const newView = views[index];
+            if (newView) {
+              // TODO: Display currently selected view somewhere in the TUI
+              currentView = newView;
+              const newComponent = currentView.components?.[0];
+
+              if (newComponent) {
+                lastSelectedComponent.state = "base";
+                lastSelectedComponent = newComponent;
+                newComponent.state = "focused";
+              }
+            }
+          }
           return;
       }
     }
@@ -89,18 +107,17 @@ export function handleKeyboardControls(tui: Tui): void {
     const lastRectangle = lastSelectedComponent.rectangle;
 
     for (const component of tui.components) {
-      // TODO: Handle keyboard controls in views
-      // Proposed option: Ctrl+F-keys switch between views and then you can control them using normal controls?
-      // This should then display info somewhere (presumably right-top corner about current view)
       if (
-        component.interact === Component.prototype.interact ||
-        (component.tui as FakeTui).realTui
+        component === lastSelectedComponent || component.interact === Component.prototype.interact ||
+        component.view !== currentView
       ) {
         continue;
       }
 
       const { rectangle } = component;
-      if (!rectangle || component === lastSelectedComponent) continue;
+      if (!rectangle) {
+        continue;
+      }
 
       if (
         (
@@ -133,6 +150,16 @@ export function handleKeyboardControls(tui: Tui): void {
         closest = component;
         closestDistance = distance;
       }
+    }
+
+    // TODO: Make this a little bit smarter,
+    // Offset should be set that component could be clearly seen
+    // Preferably also centered but not just stuck to the corner
+    const { view } = closest;
+    if (view) {
+      const { row, column } = closest.rectangle!;
+      view.offset.x = column;
+      view.offset.y = row;
     }
 
     lastSelectedComponent.state = "base";
