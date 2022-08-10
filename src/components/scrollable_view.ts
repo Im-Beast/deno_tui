@@ -31,6 +31,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
   extends ViewComponent<EventMap> {
   declare rectangle: Rectangle;
   declare theme: ScrollableViewTheme;
+
   #scrollbars: {
     vertical?: SliderComponent;
     horizontal?: SliderComponent;
@@ -63,46 +64,50 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
       const { scroll, shift } = mousePress;
       if (!scroll || this.state === "base") return;
 
+      const { horizontal, vertical } = this.#scrollbars;
+
       if (shift) {
         this.offset.x = clamp(this.offset.x + scroll, 0, this.maxOffset.x);
+        if (horizontal) horizontal.value = this.offset.x;
       } else {
         this.offset.y = clamp(this.offset.y + scroll, 0, this.maxOffset.y);
+        if (vertical) vertical.value = this.offset.y;
       }
-
-      if (this.#scrollbars.horizontal) this.#scrollbars.horizontal.value = this.offset.x;
-      if (this.#scrollbars.vertical) this.#scrollbars.vertical.value = this.offset.y;
     });
 
     this.tui.addEventListener(["addComponent", "removeComponent"], () => {
-      if (this.#scrollbars.horizontal) this.#scrollbars.horizontal.max = this.maxOffset.x;
-      if (this.#scrollbars.vertical) this.#scrollbars.vertical.max = this.maxOffset.y;
+      const { horizontal, vertical } = this.#scrollbars;
+
+      if (horizontal) horizontal.max = this.maxOffset.x;
+      if (vertical) vertical.max = this.maxOffset.y;
     });
   }
 
   draw() {
     super.draw();
 
-    const { canvas } = this.tui.realTui;
+    const { tui, theme } = this;
+    const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
     if (this.maxOffset.x > 0 && !this.#scrollbars.horizontal) {
       this.#scrollbars.horizontal = new SliderComponent({
-        tui: this.tui.realTui,
+        tui,
         direction: "horizontal",
         min: 0,
         max: 0,
         value: 0,
         step: 1,
         rectangle: {
-          column: column,
+          column,
           row: row + height,
           height: 1,
-          width: width,
+          width,
         },
         theme: {
-          base: this.theme.scrollbar.vertical.track,
+          base: theme.scrollbar.vertical.track,
           thumb: {
-            base: this.theme.scrollbar.vertical.thumb,
+            base: theme.scrollbar.vertical.thumb,
           },
         },
       });
@@ -117,7 +122,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
 
     if (this.maxOffset.y > 0 && !this.#scrollbars.vertical) {
       this.#scrollbars.vertical = new SliderComponent({
-        tui: this.tui.realTui,
+        tui,
         direction: "vertical",
         min: 0,
         max: 0,
@@ -125,14 +130,14 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
         step: 1,
         rectangle: {
           column: column + width,
-          row: row,
-          height: height,
+          row,
+          height,
           width: 1,
         },
         theme: {
-          base: this.theme.scrollbar.vertical.track,
+          base: theme.scrollbar.vertical.track,
           thumb: {
-            base: this.theme.scrollbar.vertical.thumb,
+            base: theme.scrollbar.vertical.thumb,
           },
         },
       });
@@ -146,7 +151,7 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
     }
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {
-      const cornerStyle = this.theme.scrollbar.corner;
+      const cornerStyle = theme.scrollbar.corner;
       canvas.draw(column + width, row + height, cornerStyle(" "));
     }
   }
