@@ -47,7 +47,14 @@ export function handleMouseControls(tui: Tui): void {
         rectangle = viewedRectangle;
       }
 
-      if (!fitsInRectangle(x, y, rectangle)) {
+      const fitRectangle = {
+        column: rectangle.column,
+        row: rectangle.row,
+        height: rectangle.width - 1,
+        width: rectangle.height - 1,
+      };
+
+      if (!fitsInRectangle(x, y, fitRectangle)) {
         continue;
       }
 
@@ -56,7 +63,7 @@ export function handleMouseControls(tui: Tui): void {
       if (!possibleComponents.length || component.zIndex > candidate.zIndex) {
         possibleComponents.length = 0;
         possibleComponents.push(component);
-      } else if (component.zIndex === candidate.zIndex) {
+      } else if (component.zIndex === candidate.zIndex && component !== candidate) {
         possibleComponents.push(component);
       }
     }
