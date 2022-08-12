@@ -2,7 +2,7 @@
 
 import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
-import { Rectangle } from "../types.ts";
+import { Margin, Rectangle } from "../types.ts";
 import { Component, ComponentOptions } from "../component.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
@@ -19,6 +19,7 @@ export interface FakeTui extends Tui {
 
 export interface ViewComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
+  margin?: Margin;
 }
 
 export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
@@ -33,6 +34,7 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
     x: number;
     y: number;
   };
+  margin: Margin;
   components: SortedArray<Component>;
 
   constructor(options: ViewComponentOptions) {
@@ -40,6 +42,12 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
 
     this.offset = { x: 0, y: 0 };
     this.maxOffset = { x: 0, y: 0 };
+    this.margin = options.margin ?? {
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    };
 
     this.components = new SortedArray<Component>();
 
@@ -50,12 +58,18 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
       draw: (column: number, row: number, value: string) => {
         const { x, y } = this.offset;
         const { column: columnOffset, row: rowOffset, width, height } = this.rectangle;
-        fakeCanvas.canvas.draw(column + columnOffset - x, row + rowOffset - y, value, {
-          column: columnOffset,
-          row: rowOffset,
-          height: height - 1,
-          width: width - 1,
-        });
+
+        fakeCanvas.canvas.draw(
+          column + this.margin.left + columnOffset - x,
+          row + this.margin.top + rowOffset - y,
+          value,
+          {
+            column: columnOffset,
+            row: rowOffset,
+            height: height - this.margin.bottom - 1,
+            width: width - this.margin.right - 1,
+          },
+        );
       },
     });
 
