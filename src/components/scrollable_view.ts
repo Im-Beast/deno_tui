@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Component, ComponentOptions } from "../component.ts";
+import { ComponentOptions } from "../component.ts";
 import { emptyStyle, Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { clamp } from "../utils/numbers.ts";
