@@ -57,9 +57,12 @@ export class SliderComponent<EventMap extends EventRecord = Record<never, never>
     const lastMove = { x: -1, y: -1, time: 0 };
 
     this.tui.addEventListener("keyPress", ({ keyPress }) => {
+      const { key, ctrl, meta, shift } = keyPress;
+
+      if (ctrl || meta || shift) return;
       if (this.state !== "active" && this.state !== "focused") return;
 
-      switch (keyPress.key) {
+      switch (key) {
         case "up":
         case "right":
           this.value += this.step;
