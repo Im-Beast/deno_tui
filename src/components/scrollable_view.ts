@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { ComponentOptions } from "../component.ts";
+import { Component, ComponentOptions } from "../component.ts";
 import { emptyStyle, Style, Theme } from "../theme.ts";
 import { DeepPartial, Rectangle } from "../types.ts";
 import { clamp } from "../utils/numbers.ts";
@@ -39,6 +39,12 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
 
   constructor(options: ScrollableViewComponentOptions) {
     super(options);
+    this.margin = {
+      top: 0,
+      left: 0,
+      right: 1,
+      bottom: 1,
+    };
 
     const { theme } = options;
 
@@ -90,7 +96,6 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    // FIXME: view should have display margin on the bottom and right when scrollbars are present
     if (this.maxOffset.x > 0 && !this.#scrollbars.horizontal) {
       this.#scrollbars.horizontal = new SliderComponent({
         tui,
@@ -153,7 +158,6 @@ export class ScrollableViewComponent<EventMap extends EventRecord = Record<never
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {
       const cornerStyle = theme.scrollbar.corner;
-      // FIXME: corner can be overdrawn by components
       canvas.draw(column + width - 1, row + height - 1, cornerStyle(" "));
     }
   }
