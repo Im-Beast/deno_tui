@@ -1,6 +1,7 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Component } from "./component.ts";
+import { LabelComponent } from "./components/label.ts";
 import { ViewComponent } from "./components/view.ts";
 import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
 import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
@@ -39,12 +40,15 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
 /**
  * `handleKeypresses()` has to be called in order for this function to work.
  * CTRL+Arrows moves focus in appropriate direction.
+ * CTRL+F keys switches between views, to get back to default press the same CTRL+F key again.
  * Just Enter (Return) calls `interact("keyboard")` on focused component.
  * It's up to component how it handles it.
  */
 export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component;
-  let currentView: ViewComponent;
+
+  let currentView: ViewComponent | undefined = undefined;
+  const temporaryComponents: Component[] = [];
 
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
     const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
@@ -82,8 +86,27 @@ export function handleKeyboardControls(tui: Tui): void {
             const views = tui.components.filter((component) => component instanceof ViewComponent) as ViewComponent[];
             const index = +key.replace("f", "") - 1;
             const newView = views[index];
-            if (newView) {
-              // TODO: Display currently selected view somewhere in the TUI
+
+            for (const component of temporaryComponents) {
+              component.remove();
+            }
+
+            if (currentView === newView) currentView = undefined;
+            else if (newView) {
+              const viewText = `View ${index} col:${newView.rectangle.column}, row:${newView.rectangle.row} `;
+
+              temporaryComponents.push(
+                new LabelComponent({
+                  tui,
+                  theme: {
+                    base: tui.style,
+                  },
+                  align: { horizontal: "left", vertical: "top" },
+                  rectangle: { column: tui.canvas.size.columns - viewText.length, row: 0, height: -1, width: -1 },
+                  value: viewText,
+                }),
+              );
+
               currentView = newView;
               const newComponent = currentView.components?.[0];
 
@@ -103,12 +126,13 @@ export function handleKeyboardControls(tui: Tui): void {
     }
     if (!lastSelectedComponent.rectangle) return;
 
-    const possibleComponents: Component[] = [];
+    let possibleComponents: Component[] = [];
     const lastRectangle = lastSelectedComponent.rectangle;
 
     for (const component of tui.components) {
       if (
-        component === lastSelectedComponent || component.interact === Component.prototype.interact ||
+        component === lastSelectedComponent ||
+        component.interact === Component.prototype.interact ||
         component.view !== currentView
       ) {
         continue;
@@ -137,8 +161,10 @@ export function handleKeyboardControls(tui: Tui): void {
 
     if (!possibleComponents.length) return;
 
-    let closest!: Component;
+    possibleComponents.sort((a, b) => b.zIndex - a.zIndex);
+    possibleComponents = possibleComponents.filter((a) => a.zIndex === possibleComponents[0].zIndex);
 
+    let closest!: Component;
     let closestDistance!: number;
     for (const component of possibleComponents) {
       const distance = Math.sqrt(
