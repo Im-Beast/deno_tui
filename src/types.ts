@@ -8,6 +8,13 @@ export enum Timing {
   Post = "post",
 }
 
+export interface Margin {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
 export interface Rectangle {
   column: number;
   row: number;
