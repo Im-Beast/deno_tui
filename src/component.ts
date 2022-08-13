@@ -1,12 +1,13 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+import { Tui } from "./tui.ts";
 import { ComponentEvent } from "./events.ts";
 import { emptyStyle, Style, Theme } from "./theme.ts";
-import { Tui } from "./tui.ts";
+
 import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
 
-import type { ViewComponent } from "./components/view.ts";
 import type { Rectangle } from "./types.ts";
+import type { ViewComponent } from "./components/view.ts";
 
 export interface ComponentOptions {
   /** Parent tui, used for retrieving canvas and adding event listeners */

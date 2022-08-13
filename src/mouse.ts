@@ -5,7 +5,8 @@ import { Component } from "./component.ts";
 
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./utils/ansi_codes.ts";
 import { fitsInRectangle } from "./utils/numbers.ts";
-import { Rectangle } from "./types.ts";
+
+import type { Rectangle } from "./types.ts";
 
 const encoder = new TextEncoder();
 

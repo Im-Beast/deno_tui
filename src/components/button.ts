@@ -2,8 +2,10 @@
 
 import { BoxComponent } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
-import { Rectangle } from "../types.ts";
+
 import { EventRecord } from "../utils/typed_event_target.ts";
+
+import type { Rectangle } from "../types.ts";
 
 export interface ButtonComponentOptions extends ComponentOptions {
   rectangle: Rectangle;

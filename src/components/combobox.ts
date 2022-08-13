@@ -1,11 +1,14 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+import { ComponentEvent } from "../events.ts";
+
+import { Component, ComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
-import { Component, ComponentOptions } from "../component.ts";
-import { Rectangle } from "../types.ts";
-import { ComponentEvent } from "../events.ts";
+
 import { EventRecord } from "../utils/typed_event_target.ts";
+
+import type { Rectangle } from "../types.ts";
 
 export interface ComboboxComponentOptions<
   OptionType extends string[] = string[],

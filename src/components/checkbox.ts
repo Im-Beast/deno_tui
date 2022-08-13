@@ -2,6 +2,7 @@
 
 import { ButtonComponent } from "./button.ts";
 import { BoxComponentOptions } from "./box.ts";
+
 import { EventRecord } from "../utils/typed_event_target.ts";
 
 export enum Mark {

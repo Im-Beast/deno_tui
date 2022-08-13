@@ -1,11 +1,13 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+import { Tui } from "./tui.ts";
+
+import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
+import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
+
 import { Component } from "./component.ts";
 import { LabelComponent } from "./components/label.ts";
 import { ViewComponent } from "./components/view.ts";
-import { KeypressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
-import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
-import { Tui } from "./tui.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`

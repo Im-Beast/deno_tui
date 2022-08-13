@@ -4,8 +4,11 @@ import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
 import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import { emptyStyle, Style } from "./theme.ts";
-import type { Stdin, Stdout } from "./types.ts";
 
+import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
+import { sleep } from "./utils/async.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
+import { TypedEventTarget } from "./utils/typed_event_target.ts";
 import {
   CLEAR_SCREEN,
   HIDE_CURSOR,
@@ -13,11 +16,8 @@ import {
   USE_PRIMARY_BUFFER,
   USE_SECONDARY_BUFFER,
 } from "./utils/ansi_codes.ts";
-import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
-import { sleep } from "./utils/async.ts";
-import { SortedArray } from "./utils/sorted_array.ts";
-import { Timing } from "./types.ts";
-import { TypedEventTarget } from "./utils/typed_event_target.ts";
+
+import type { Stdin, Stdout, Timing } from "./types.ts";
 
 const textEncoder = new TextEncoder();
 

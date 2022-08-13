@@ -1,8 +1,9 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Component } from "./component.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
-import { ConsoleSize, Timing } from "./types.ts";
+
+import type { Component } from "./component.ts";
+import type { ConsoleSize, Timing } from "./types.ts";
 
 export class FrameEvent extends Event {
   readonly timing: Timing;

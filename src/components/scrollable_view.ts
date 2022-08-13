@@ -1,12 +1,15 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { ComponentOptions } from "../component.ts";
 import { emptyStyle, Style, Theme } from "../theme.ts";
-import { DeepPartial, Rectangle } from "../types.ts";
+
+import { ComponentOptions } from "../component.ts";
+import { ViewComponent } from "./view.ts";
+import { SliderComponent } from "./slider.ts";
+
 import { clamp } from "../utils/numbers.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
-import { SliderComponent } from "./slider.ts";
-import { ViewComponent } from "./view.ts";
+
+import type { DeepPartial, Rectangle } from "../types.ts";
 
 export interface ScrollableViewTheme extends Theme {
   scrollbar: {

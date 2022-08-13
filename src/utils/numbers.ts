@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Rectangle } from "../types.ts";
+import type { Rectangle } from "../types.ts";
 
 /** Clamp {number} between {min} and {max} */
 export function clamp(number: number, min: number, max: number): number {

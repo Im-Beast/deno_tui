@@ -1,9 +1,10 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Canvas } from "../canvas.ts";
 import { Tui } from "../tui.ts";
-import { Margin, Rectangle } from "../types.ts";
+import { Canvas } from "../canvas.ts";
 import { Component, ComponentOptions } from "../component.ts";
+import type { Margin, Offset, Rectangle } from "../types.ts";
+
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 
@@ -26,14 +27,8 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
   declare rectangle: Rectangle;
 
   fakeTui: FakeTui;
-  offset: {
-    x: number;
-    y: number;
-  };
-  maxOffset: {
-    x: number;
-    y: number;
-  };
+  offset: Offset;
+  maxOffset: Offset;
   margin: Margin;
   components: SortedArray<Component>;
 

@@ -1,12 +1,15 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { BoxComponent } from "./box.ts";
-import { ComponentOptions } from "../component.ts";
-import { DeepPartial, Rectangle } from "../types.ts";
 import { emptyStyle, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
+
+import { ComponentOptions } from "../component.ts";
+import { BoxComponent } from "./box.ts";
+
 import { clamp, normalize } from "../utils/numbers.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
+
+import type { DeepPartial, Rectangle } from "../types.ts";
 
 export interface SliderTheme extends Theme {
   thumb: Theme;
