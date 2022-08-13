@@ -1,18 +1,14 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: "[\U0001F4A1FEAT. REQ. ]"
-labels: ''
+about: There's something I'd like to be added to project
+title: "feat req:"
+labels: feature\ request
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.** A clear and concise description of what the problem
-is. Ex. I'm always frustrated when [...]
+**What this feature is meaning to achieve** Clear, concise description of what problems would it actually solve.
 
-**Describe the solution you'd like** A clear and concise description of what you want to happen.
+**Solution** Your take on how it could be implemented.
 
-**Describe alternatives you've considered** A clear and concise description of any alternative solutions or features
-you've considered.
-
-**Additional context** Add any other context or screenshots about the feature request here.
+**Describe alternatives you've considered** What you've already tried to fix problem you described above.

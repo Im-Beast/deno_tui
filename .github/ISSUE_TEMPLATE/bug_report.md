@@ -1,26 +1,21 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: "[\U0001F41B BUG]"
+about: Something doesn't work correctly
+title: "bug: "
 labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug** A clear and concise description of what the bug is.
+**Bug description** A clear and concise description of what the bug is.
 
-**To Reproduce** Steps to reproduce the behavior:
+**Expected behavior** What you expected to happen instead.
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Reproduction** Code to reproduce the behavior (optional).
 
-**Expected behavior** A clear and concise description of what you expected to happen.
+**Screenshots** Screenshots to help explain your problem (optional).
 
-**Screenshots** If applicable, add screenshots to help explain your problem.
+**Information (please complete)**
 
-**Desktop (please complete the following information):**
-
-- OS: [e.g. Windows, iOS, Arch]
-- Version [e.g. 1.0]
+- OS: Windows / macOS / Linux (`uname -a`)
+- Deno version: `deno --version` output
