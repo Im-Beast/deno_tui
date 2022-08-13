@@ -50,8 +50,8 @@ export function handleMouseControls(tui: Tui): void {
       const fitRectangle = {
         column: rectangle.column,
         row: rectangle.row,
-        height: rectangle.width - 1,
-        width: rectangle.height - 1,
+        height: rectangle.height - 1,
+        width: rectangle.width - 1,
       };
 
       if (!fitsInRectangle(x, y, fitRectangle)) {
