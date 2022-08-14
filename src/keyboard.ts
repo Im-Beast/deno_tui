@@ -97,17 +97,28 @@ export function handleKeyboardControls(tui: Tui): void {
             else if (newView) {
               const viewText = `View ${index} col:${newView.rectangle.column}, row:${newView.rectangle.row} `;
 
-              temporaryComponents.push(
-                new LabelComponent({
-                  tui,
-                  theme: {
-                    base: tui.style,
-                  },
-                  align: { horizontal: "left", vertical: "top" },
-                  rectangle: { column: tui.canvas.size.columns - viewText.length, row: 0, height: -1, width: -1 },
-                  value: viewText,
-                }),
-              );
+              const rectangle = () => ({
+                column: tui.canvas.size.columns - viewText.length,
+                row: 0,
+                height: -1,
+                width: -1,
+              });
+
+              const viewLabel = new LabelComponent({
+                tui,
+                theme: {
+                  base: tui.style,
+                },
+                align: { horizontal: "left", vertical: "top" },
+                rectangle: rectangle(),
+                value: viewText,
+              });
+
+              temporaryComponents.push(viewLabel);
+
+              tui.canvas.addEventListener("resize", () => {
+                viewLabel.rectangle = rectangle();
+              });
 
               currentView = newView;
               const newComponent = currentView.components?.[0];
