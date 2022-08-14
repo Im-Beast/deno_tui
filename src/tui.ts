@@ -21,7 +21,8 @@ import type { Stdin, Stdout, Timing } from "./types.ts";
 
 const textEncoder = new TextEncoder();
 
-export type TuiOptions = {
+/** Interface defining object that {Tui}'s constructor can interpret */
+export interface TuiOptions {
   /** Tui will use that canvas to draw on the terminal */
   canvas?: Canvas;
   /** Stdin from which tui can read keypresses in `handleKeypresses()`, defaults to `Deno.stdin` */
@@ -32,8 +33,9 @@ export type TuiOptions = {
   style?: Style;
   /** Distinct update rate at which component `draw()` function will be called, defaults to canvas `refreshRate`*/
   updateRate?: number;
-};
+}
 
+/** Interface defining what's accessible in {Tui} class */
 export interface TuiPrivate {
   canvas: Canvas;
   stdin: Stdin;
@@ -42,6 +44,7 @@ export interface TuiPrivate {
   updateRate: number;
 }
 
+/** Implementation for {Tui} class */
 export type TuiImplementation = TuiOptions & TuiPrivate;
 
 export type TuiEventMap = {
@@ -55,6 +58,7 @@ export type TuiEventMap = {
   removeComponent: ComponentEvent<"removeComponent">;
 };
 
+/** Main object of Tui that contains everything keeping it running */
 export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementation {
   canvas: Canvas;
   stdin: Stdin;
@@ -66,10 +70,23 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
   constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {
     super();
 
+    this.stdin = stdin ?? Deno.stdin;
+    this.stdout = stdout ?? Deno.stdout;
+    this.style = style ?? emptyStyle;
+    this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
+
+    this.canvas = canvas ?? new Canvas({
+      refreshRate: 16,
+      stdout: this.stdout,
+    });
+
+    this.updateRate = updateRate ?? this.canvas.refreshRate;
+
     const closeEventDispatcher = () => {
       this.dispatchEvent(new CustomEvent("close"));
     };
 
+    // Dispatch "close" event when Tui should be stopped
     addEventListener("unload", closeEventDispatcher);
     Deno.addSignalListener("SIGINT", closeEventDispatcher);
 
@@ -83,27 +100,18 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
       Deno.addSignalListener("SIGTERM", closeEventDispatcher);
     }
 
+    // Handle "close" event
     this.addEventListener("close", () => {
       Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
 
+      // Delay exiting from app so it's possible to attach anywhere else to "close" event
       queueMicrotask(() => {
         Deno.exit(0);
       });
     });
-
-    this.stdin = stdin ?? Deno.stdin;
-    this.stdout = stdout ?? Deno.stdout;
-    this.style = style ?? emptyStyle;
-    this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
-
-    this.canvas = canvas ?? new Canvas({
-      refreshRate: 16,
-      stdout: this.stdout,
-    });
-
-    this.updateRate = updateRate ?? this.canvas.refreshRate;
   }
 
+  /** Async generator that dispatches "update" event */
   async *update(): AsyncGenerator<{ type: "update" }> {
     while (true) {
       this.dispatchEvent(new CustomEvent("update"));
@@ -112,6 +120,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     }
   }
 
+  /** Async generator that dispatches "render" event */
   async *render(): AsyncGenerator<{ type: "render"; timing: Timing }> {
     for await (const timing of this.canvas.render()) {
       this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
@@ -119,6 +128,11 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     }
   }
 
+  /**
+   *  Async generator that handles "update" and "render" events
+   *   - on "update" event it renders background using `tui.style`.
+   *   Then it calls `draw()` on every component in `tui.components`
+   */
   async *run(): AsyncGenerator<{ type: "render"; timing: Timing } | { type: "update" }> {
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR + CLEAR_SCREEN));
 

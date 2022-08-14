@@ -4,6 +4,7 @@ import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();
 
+/** Type defining keys that `key_reader.ts` can distinguish */
 export type Key =
   | Alphabet
   | Chars
@@ -90,26 +91,53 @@ type Chars =
   | "\\"
   | "|";
 
+/** Interface defining key press issued to stdin */
 export interface KeyPress {
+  /** Raw data which was sent to stdin */
   buffer: Uint8Array | number;
+  /** Key id */
   key: Key;
+  /** Whether meta button (most often alt) was pressed/held when key was pressed */
   meta: boolean;
+  /** Whether shift button was pressed/held when key was pressed */
   shift: boolean;
+  /** Whether ctrl button was pressed/held when key was pressed */
   ctrl: boolean;
 }
 
+/** Interface defining key press issued to stdin using a mouse */
 export interface MousePress extends Omit<KeyPress, "key"> {
+  /** Mouse key id */
   key: "mouse";
+  /** Column on which mouse was when action was taken */
   x: number;
+  /** Row on which mouse was when action was taken */
   y: number;
+  /**
+   *  Mouse button that has been used
+   *  - 0 - Left
+   *  - 1 - Middle
+   *  - 2 - Right
+   */
   button: 0 | 1 | 2 | undefined;
+  /** Whether mouse button has been released */
   release: boolean;
+  /** Whether mouse cursor is dragged */
   drag: boolean;
+  /**
+   * Whether user scroll
+   *  - 1 - Scrolls downwards
+   *  - 0 - Doesn't scroll
+   *  - -1 - Scrolls upwards)
+   */
   scroll: 1 | 0 | -1;
 }
 
+/** Interface defining multiple key presses (both {KeyPress} and {MousePress}) that have been issued to stdin at once */
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
+  /** Raw data which was sent to stdin about every key */
   buffer: KeyPress["buffer"][];
+  /** Array storing KeyPress information about keys */
   keys: (KeyPress["key"] | MousePress["key"])[];
 }
 
@@ -155,6 +183,7 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
   }
 }
 
+/** Decode windows character from buffer that was sent to stdin from command line */
 export function* decodeWindowsChar(
   buffer: number,
   specialCharCode?: number,
@@ -512,7 +541,10 @@ export function* decodeWindowsChar(
   yield keyPress;
 }
 
-// Reference: https://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
+/**
+ * Decode character(s) from buffer that was sent to stdin from terminal on mostly
+ * @see https://invisible-island.net/xterm/ctlseqs/ctlseqs.txt for reference used to create this function
+ */
 export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePress, void, void> {
   const decodedBuffer = decoder.decode(buffer);
 

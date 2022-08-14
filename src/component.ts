@@ -9,6 +9,7 @@ import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
 import type { Rectangle } from "./types.ts";
 import type { ViewComponent } from "./components/view.ts";
 
+/** Interface defining object that {Component}'s constructor can interpret */
 export interface ComponentOptions {
   /** Parent tui, used for retrieving canvas and adding event listeners */
   tui: Tui;
@@ -22,6 +23,7 @@ export interface ComponentOptions {
   zIndex?: number;
 }
 
+/** Interface defining what's accessible in {Canvas} class */
 export interface ComponentPrivate {
   theme: Theme;
   draw(): void;
@@ -30,20 +32,24 @@ export interface ComponentPrivate {
   zIndex: number;
 }
 
-export type ComponentEventMap = {
-  stateChange: ComponentEvent<"stateChange">;
-};
-
+/** Implementation for {Canvas} class */
 export type ComponentImplementation =
   & ComponentOptions
   & ComponentPrivate
   & TypedEventTarget<ComponentEventMap>;
 
+/** Default EventMap that every component should use */
+export type ComponentEventMap = {
+  stateChange: ComponentEvent<"stateChange">;
+};
+
+/** Interactivity states that components should use */
 export type ComponentState =
   | "focused"
   | "active"
   | "base";
 
+/** Base Component that should be used as base for creating other components */
 export class Component<
   EventMap extends EventRecord = Record<never, never>,
 > extends TypedEventTarget<EventMap & ComponentEventMap> implements ComponentImplementation {
@@ -77,17 +83,17 @@ export class Component<
     });
   }
 
+  /** Returns component's rectangle */
   get rectangle() {
     return this.#rectangle;
   }
 
+  /** Sets component's rectangle */
   set rectangle(rectangle) {
     this.#rectangle = rectangle;
   }
 
-  /**
-   * Returns current component style
-   */
+  /** Returns current component style */
   get style(): Style {
     return this.theme[this.state];
   }
@@ -115,19 +121,19 @@ export class Component<
    */
   interact(_method?: "keyboard" | "mouse") {}
 
-  /**
-   * Remove component from `tui` and dispatch `removeComponent` event
-   */
+  /** Remove component from `tui` and dispatch `removeComponent` event   */
   remove() {
     this.tui.components.remove(this);
     this.tui.dispatchEvent(new ComponentEvent("removeComponent", this));
   }
 }
 
+/** Interface defining object that {Component}'s constructor can interpret */
 export interface PlaceComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
 }
 
+/** Component that definitely has it's rectangle set */
 export class PlaceComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> {

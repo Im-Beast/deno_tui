@@ -5,6 +5,7 @@ import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 import type { Component } from "./component.ts";
 import type { ConsoleSize, Timing } from "./types.ts";
 
+/** Event that's dispatched when new canvas frame was prepared */
 export class FrameEvent extends Event {
   readonly timing: Timing;
 
@@ -14,6 +15,7 @@ export class FrameEvent extends Event {
   }
 }
 
+/** Event that's dispatched when new canvas frame was rendered */
 export class RenderEvent extends Event {
   readonly timing: Timing;
 
@@ -23,6 +25,7 @@ export class RenderEvent extends Event {
   }
 }
 
+/** Event that's dispatched when new canvas got resized */
 export class CanvasResizeEvent extends Event {
   readonly size: ConsoleSize;
 
@@ -32,6 +35,7 @@ export class CanvasResizeEvent extends Event {
   }
 }
 
+/** Event that's dispatched when key has been pressed */
 export class KeypressEvent extends Event {
   readonly keyPress: KeyPress;
 
@@ -41,6 +45,7 @@ export class KeypressEvent extends Event {
   }
 }
 
+/** Event that's dispatched when multiple keys have been pressed */
 export class MultiKeyPressEvent extends Event {
   readonly multiKeyPress: MultiKeyPress;
 
@@ -50,6 +55,7 @@ export class MultiKeyPressEvent extends Event {
   }
 }
 
+/** Event that's dispatched when mouse key has been pressed */
 export class MousePressEvent extends Event {
   readonly mousePress: MousePress;
 

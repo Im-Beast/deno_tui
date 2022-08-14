@@ -8,6 +8,7 @@ export class CombinedAsyncIterator<T = unknown> {
     this.#asyncIterators.push(...iterables);
   }
 
+  /** Iterate over async iterators that have been given to constructor */
   async *iterate(): AsyncIterableIterator<T> {
     const yields: T[] = [];
     let promise!: Promise<void>;

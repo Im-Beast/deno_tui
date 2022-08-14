@@ -4,16 +4,23 @@ export type Stdout = typeof Deno.stdout;
 export type Stdin = typeof Deno.stdin;
 export type ConsoleSize = ReturnType<typeof Deno.consoleSize>;
 
+/**
+ * Type describing time of something happening
+ *  - Pre - before it happened
+ *  - Post - after it happened
+ */
 export enum Timing {
   Pre = "pre",
   Post = "post",
 }
 
+/** Type that describes offset */
 export interface Offset {
   x: number;
   y: number;
 }
 
+/** Type that describes empty edge around Rectangle */
 export interface Margin {
   top: number;
   left: number;

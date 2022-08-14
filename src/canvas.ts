@@ -14,6 +14,7 @@ import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 
 const textEncoder = new TextEncoder();
 
+/** Interface defining object that {Canvas}'s constructor can interpret */
 export interface CanvasOptions {
   /** How often canvas tries to find differences in its frameBuffer and render */
   refreshRate: number;
@@ -21,12 +22,14 @@ export interface CanvasOptions {
   stdout: Stdout;
 }
 
+/** Map that contains events that {Canvas} can dispatch */
 export type CanvasEventMap = {
   "render": RenderEvent;
   "frame": FrameEvent;
   "resize": CanvasResizeEvent;
 };
 
+/** Canvas implementation that can be drawn onto and then rendered on terminal screen */
 export class Canvas extends TypedEventTarget<CanvasEventMap> {
   size: ConsoleSize;
   refreshRate: number;
