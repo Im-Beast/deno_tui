@@ -38,10 +38,10 @@ export type FrameComponentOptions =
   );
 
 export class FrameComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
-  component?: Component;
   framePieces: "sharp" | "rounded" | FramePieceType;
 
-  #initialRectangle?: Rectangle;
+  #component?: Component;
+  #rectangle?: Rectangle;
 
   constructor({ tui, view, component, rectangle, theme, framePieces, zIndex }: FrameComponentOptions) {
     super({
@@ -51,28 +51,57 @@ export class FrameComponent<EventMap extends EventRecord = Record<never, never>>
       theme: theme ?? component?.theme,
       zIndex: zIndex ?? component?.zIndex,
     });
+
     this.component = component;
+    if (!this.#component) {
+      this.rectangle = rectangle!;
+    }
+
     this.framePieces = framePieces ?? "sharp";
 
-    this.#initialRectangle = this.rectangle;
-    this.rectangle = (this.rectangle ?? this.component?.rectangle)!;
-    this.rectangle = {
-      column: this.rectangle.column - 1,
-      row: this.rectangle.row - 1,
-      width: this.rectangle.width + 2,
-      height: this.rectangle.height + 2,
-    };
-
-    if (!this.rectangle && !this.component?.rectangle) {
-      throw new Error("You need to pass either rectangle or component that has rectangle to FrameComponent");
+    if (!this.#rectangle) {
+      throw new Error("You need to pass either rectangle or component that has its rectangle set to FrameComponent");
     }
   }
 
-  set state(_value) {}
+  get rectangle(): Rectangle {
+    if (this.#component) {
+      const { column, row, width, height } = this.#component!.rectangle!;
+
+      return {
+        column: column - 1,
+        row: row - 1,
+        width: width + 2,
+        height: height + 2,
+      };
+    }
+
+    return this.#rectangle!;
+  }
+
+  set rectangle(rectangle: Rectangle) {
+    this.#rectangle = rectangle;
+  }
+
+  get component(): Component | undefined {
+    return this.#component;
+  }
+
+  set component(component: Component | undefined) {
+    this.#component = component;
+
+    if (!this.#component) return;
+    if (!this.#component.rectangle) {
+      throw new Error("You need component that has its rectangle set");
+    }
+    this.rectangle = this.#component.rectangle;
+  }
 
   get state() {
     return this.component?.state ?? "base";
   }
+
+  set state(_value) {}
 
   draw() {
     super.draw();
@@ -80,14 +109,7 @@ export class FrameComponent<EventMap extends EventRecord = Record<never, never>>
     const { style, framePieces } = this;
     const { canvas } = this.component?.tui ?? this.tui;
 
-    this.rectangle = this.#initialRectangle;
-    this.rectangle = (this.rectangle ?? this.component?.rectangle)!;
-    let { column, row, width, height } = this.rectangle;
-    column -= 1;
-    row -= 1;
-    width += 2;
-    height += 2;
-    this.rectangle = { column, row, width, height };
+    const { column, row, width, height } = this.rectangle;
 
     const pieces = framePieces === "sharp"
       ? sharpFramePieces
