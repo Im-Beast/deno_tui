@@ -27,7 +27,7 @@ export class CanvasResizeEvent extends Event {
   readonly size: ConsoleSize;
 
   constructor(size: ConsoleSize) {
-    super("render");
+    super("resize");
     this.size = size;
   }
 }
