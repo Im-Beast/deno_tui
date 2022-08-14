@@ -83,30 +83,28 @@ export class ViewComponent<EventMap extends EventRecord = Record<never, never>> 
       const { column, row, width, height } = rectangle;
 
       this.maxOffset = {
-        x: Math.max(this.maxOffset.x, column + width - this.rectangle.width),
-        y: Math.max(this.maxOffset.y, row + height - this.rectangle.height),
+        x: Math.max(this.maxOffset.x, column + width + this.margin.right + this.margin.left - this.rectangle.width),
+        y: Math.max(this.maxOffset.y, row + height + this.margin.bottom + this.margin.top - this.rectangle.height),
       };
     });
 
     fakeTui.addEventListener("removeComponent", ({ component }) => {
       if (component.view !== this) return;
 
-      let x = 0;
-      let y = 0;
-
       component.tui = fakeTui.realTui;
       component.view = undefined;
       this.components.remove(component);
 
+      this.maxOffset = { x: 0, y: 0 };
+
       for (const component of this.components) {
-        const { rectangle } = component;
-        if (!rectangle) continue;
+        const { column, row, width, height } = component.rectangle!;
 
-        x = Math.max(x, rectangle.column + rectangle.width);
-        y = Math.max(y, rectangle.row + rectangle.height);
+        this.maxOffset = {
+          x: Math.max(this.maxOffset.x, column + width + this.margin.right + this.margin.left - this.rectangle.width),
+          y: Math.max(this.maxOffset.y, row + height + this.margin.bottom + this.margin.top - this.rectangle.height),
+        };
       }
-
-      this.maxOffset = { x, y };
     });
 
     this.fakeTui = fakeTui;
