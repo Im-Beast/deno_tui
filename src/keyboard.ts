@@ -50,7 +50,7 @@ export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component;
 
   let currentView: ViewComponent | undefined = undefined;
-  const temporaryComponents: Component[] = [];
+  let viewLabel: LabelComponent | undefined = undefined;
 
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
     const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
@@ -89,9 +89,7 @@ export function handleKeyboardControls(tui: Tui): void {
             const index = +key.replace("f", "") - 1;
             const newView = views[index];
 
-            for (const component of temporaryComponents) {
-              component.remove();
-            }
+            viewLabel?.remove();
 
             if (currentView === newView) currentView = undefined;
             else if (newView) {
@@ -104,7 +102,7 @@ export function handleKeyboardControls(tui: Tui): void {
                 width: -1,
               });
 
-              const viewLabel = new LabelComponent({
+              viewLabel = new LabelComponent({
                 tui,
                 theme: {
                   base: tui.style,
@@ -114,9 +112,8 @@ export function handleKeyboardControls(tui: Tui): void {
                 value: viewText,
               });
 
-              temporaryComponents.push(viewLabel);
-
               tui.canvas.addEventListener("resize", () => {
+                if (!viewLabel) return;
                 viewLabel.rectangle = rectangle();
               });
 
