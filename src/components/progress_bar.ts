@@ -3,13 +3,13 @@
 import { emptyStyle, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
 
-import { ComponentOptions } from "../component.ts";
+import { PlaceComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { clamp, normalize } from "../utils/numbers.ts";
 
-import type { DeepPartial, Rectangle } from "../types.ts";
+import type { DeepPartial } from "../types.ts";
 
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
@@ -18,11 +18,10 @@ export interface ProgressBarTheme extends Theme {
   progress: Theme;
 }
 
-export interface ProgressBarComponentOptions extends ComponentOptions {
+export interface ProgressBarComponentOptions extends PlaceComponentOptions {
   value: number;
   min: number;
   max: number;
-  rectangle: Rectangle;
   direction: "horizontal" | "vertical";
   theme?: DeepPartial<ProgressBarTheme>;
   smooth?: boolean;

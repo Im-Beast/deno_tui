@@ -1,14 +1,11 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { BoxComponent } from "./box.ts";
-import { ComponentOptions } from "../component.ts";
+import { PlaceComponentOptions } from "../component.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
 
-import type { Rectangle } from "../types.ts";
-
-export interface ButtonComponentOptions extends ComponentOptions {
-  rectangle: Rectangle;
+export interface ButtonComponentOptions extends PlaceComponentOptions {
   label?: string;
 }
 

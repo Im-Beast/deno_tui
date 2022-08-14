@@ -2,7 +2,7 @@
 
 import { Tui } from "../tui.ts";
 import { Canvas } from "../canvas.ts";
-import { Component, ComponentOptions } from "../component.ts";
+import { Component, PlaceComponent, PlaceComponentOptions } from "../component.ts";
 import type { Margin, Offset, Rectangle } from "../types.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
@@ -18,14 +18,12 @@ export interface FakeTui extends Tui {
   canvas: FakeCanvas;
 }
 
-export interface ViewComponentOptions extends ComponentOptions {
+export interface ViewComponentOptions extends PlaceComponentOptions {
   rectangle: Rectangle;
   margin?: Margin;
 }
 
-export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
-  declare rectangle: Rectangle;
-
+export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
   fakeTui: FakeTui;
   offset: Offset;
   maxOffset: Offset;

@@ -1,9 +1,8 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Rectangle } from "../types.ts";
 import { ComponentEvent } from "../events.ts";
 
-import { ComponentOptions } from "../component.ts";
+import { PlaceComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
 import { ComboboxComponent } from "./combobox.ts";
 
@@ -11,8 +10,7 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 import { insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
-export interface TextboxComponentOptions extends ComponentOptions {
-  rectangle: Rectangle;
+export interface TextboxComponentOptions extends PlaceComponentOptions {
   multiline?: boolean;
   hidden?: boolean;
   value?: string;

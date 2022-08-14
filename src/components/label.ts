@@ -19,48 +19,44 @@ export interface LabelComponentOptions extends ComponentOptions {
 }
 
 export class LabelComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
-  #dynamicWidth: boolean;
-  #dynamicHeight: boolean;
-
-  declare rectangle: Rectangle;
+  #rectangle: Rectangle;
   value: string;
   align: LabelTextAlign;
 
   constructor(options: LabelComponentOptions) {
     super(options);
+
     this.value = options.value;
     this.align = options.align;
+    this.#rectangle = options.rectangle;
+    this.rectangle = options.rectangle;
+  }
 
-    this.#dynamicWidth = this.rectangle.width === -1;
-    this.#dynamicHeight = this.rectangle.height === -1;
+  get rectangle(): Rectangle {
+    return this.#rectangle;
+  }
 
-    if (this.#dynamicWidth || this.#dynamicHeight) {
-      for (const [i, line] of this.value.split("\n").entries()) {
-        if (this.#dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
-        if (this.#dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
-      }
+  set rectangle(rectangle: Rectangle) {
+    this.#rectangle = rectangle;
+
+    const lines = this.value.split("\n");
+
+    const dynamicWidth = this.#rectangle.width === -1;
+    const dynamicHeight = this.#rectangle.width === -1;
+
+    for (const [i, line] of lines.entries()) {
+      if (dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
+      if (dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
     }
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { style, align, value } = this;
     const { canvas } = this.tui;
 
     const lines = value.split("\n");
-
-    const dynamicWidth = this.#dynamicWidth;
-    const dynamicHeight = this.#dynamicHeight;
-
-    if (dynamicWidth) this.rectangle.width = -1;
-    if (dynamicHeight) this.rectangle.height = -1;
-    if (dynamicWidth || dynamicHeight) {
-      for (const [i, line] of lines.entries()) {
-        if (dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
-        if (dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
-      }
-    }
 
     const { column, row, width, height } = this.rectangle;
 

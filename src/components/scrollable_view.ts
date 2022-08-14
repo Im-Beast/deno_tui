@@ -2,14 +2,14 @@
 
 import { emptyStyle, Style, Theme } from "../theme.ts";
 
-import { ComponentOptions } from "../component.ts";
+import { PlaceComponentOptions } from "../component.ts";
 import { ViewComponent } from "./view.ts";
 import { SliderComponent } from "./slider.ts";
 
 import { clamp } from "../utils/numbers.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 
-import type { DeepPartial, Rectangle } from "../types.ts";
+import type { DeepPartial } from "../types.ts";
 
 export interface ScrollableViewTheme extends Theme {
   scrollbar: {
@@ -25,14 +25,12 @@ export interface ScrollableViewTheme extends Theme {
   };
 }
 
-export interface ScrollableViewComponentOptions extends ComponentOptions {
-  rectangle: Rectangle;
+export interface ScrollableViewComponentOptions extends PlaceComponentOptions {
   theme?: DeepPartial<ScrollableViewTheme>;
 }
 
 export class ScrollableViewComponent<EventMap extends EventRecord = Record<never, never>>
   extends ViewComponent<EventMap> {
-  declare rectangle: Rectangle;
   declare theme: ScrollableViewTheme;
 
   #scrollbars: {

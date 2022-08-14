@@ -1,7 +1,7 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { ButtonComponent } from "./button.ts";
-import { BoxComponentOptions } from "./box.ts";
+import { PlaceComponentOptions } from "../component.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
 
@@ -10,7 +10,7 @@ export enum Mark {
   Cross = "✗",
 }
 
-export interface CheckboxComponentOptions extends BoxComponentOptions {
+export interface CheckboxComponentOptions extends PlaceComponentOptions {
   value?: boolean;
 }
 

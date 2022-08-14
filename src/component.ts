@@ -53,12 +53,12 @@ export class Component<
   zIndex: number;
 
   view?: ViewComponent;
-  rectangle?: Rectangle;
+  #rectangle?: Rectangle;
 
   constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
     super();
 
-    this.rectangle = rectangle;
+    this.#rectangle = rectangle;
     this.theme = {
       base: theme?.base ?? emptyStyle,
       focused: theme?.focused ?? theme?.base ?? emptyStyle,
@@ -75,6 +75,14 @@ export class Component<
       this.tui.components.push(this);
       this.tui.dispatchEvent(new ComponentEvent("addComponent", this));
     });
+  }
+
+  get rectangle() {
+    return this.#rectangle;
+  }
+
+  set rectangle(rectangle) {
+    this.#rectangle = rectangle;
   }
 
   /**
@@ -113,5 +121,28 @@ export class Component<
   remove() {
     this.tui.components.remove(this);
     this.tui.dispatchEvent(new ComponentEvent("removeComponent", this));
+  }
+}
+
+export interface PlaceComponentOptions extends ComponentOptions {
+  rectangle: Rectangle;
+}
+
+export class PlaceComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends Component<EventMap> {
+  #rectangle: Rectangle;
+
+  constructor(options: PlaceComponentOptions) {
+    super(options);
+    this.#rectangle = options.rectangle;
+  }
+
+  get rectangle() {
+    return this.#rectangle;
+  }
+
+  set rectangle(rectangle) {
+    this.#rectangle = rectangle;
   }
 }
