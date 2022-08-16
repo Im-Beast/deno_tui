@@ -10,18 +10,40 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 import { insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
+/** Interface defining object that {TextboxComponent}'s constructor can interpret */
 export interface TextboxComponentOptions extends PlaceComponentOptions {
   multiline?: boolean;
   hidden?: boolean;
   value?: string;
 }
 
+/** Complementary interface defining what's accessible in {TextboxComponent} class in addition to {TextboxComponentOptions} */
+export interface TextboxComponentPrivate {
+  multiline: boolean;
+  hidden: boolean;
+  value: string;
+}
+
+/** Implementation for {TextboxComponent} class */
+export type TextboxComponentImplementation = TextboxComponentOptions & TextboxComponentPrivate;
+
+/** EventMap that {TextboxComponent} uses */
 export type TextboxComponentEventMap = {
   value: ComponentEvent<"valueChange", ComboboxComponent>;
 };
 
-export class TextboxComponent<EventMap extends EventRecord = Record<never, never>>
-  extends BoxComponent<EventMap & TextboxComponentEventMap> {
+/**
+ * Component that allows user to input text.
+ * It implements most important ways to manipulate inputting text e.g.:
+ *  - Arrows - Move cursor in specified direction
+ *  - Return – Create new line
+ *  - Home/End - Go to the start/end of the line
+ *  - PgUp/PgDown - Go to the start/end of the text input
+ *  - Delete/Backspace - Delete preceding/subsequent character
+ */
+export class TextboxComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & TextboxComponentEventMap> implements TextboxComponentImplementation {
   #value: string[] = [];
 
   cursorPosition: {

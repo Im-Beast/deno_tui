@@ -1,5 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+/** Record type which {TypedEventTarget}'s EventMap is built upon */
 export type EventRecord = Record<string, Event>;
 
 /** Typed version of EventTarget */

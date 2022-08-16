@@ -11,6 +11,7 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { DeepPartial } from "../types.ts";
 
+/** Theme used by {ScrollableView} to style itself */
 export interface ScrollableViewTheme extends Theme {
   scrollbar: {
     horizontal: {
@@ -25,12 +26,27 @@ export interface ScrollableViewTheme extends Theme {
   };
 }
 
+/** Interface defining object that {ScrollableView}'s constructor can interpret */
 export interface ScrollableViewComponentOptions extends PlaceComponentOptions {
   theme?: DeepPartial<ScrollableViewTheme>;
 }
 
-export class ScrollableViewComponent<EventMap extends EventRecord = Record<never, never>>
-  extends ViewComponent<EventMap> {
+/** Complementary interface defining what's accessible in {SliderComponent} class in addition to {SliderComponentOptions} */
+export interface ScrollableViewComponentPrivate {
+  theme: ScrollableViewTheme;
+}
+
+/** Implementation for {ScrollableViewComponent} class */
+export type ScrollableViewComponentImplementation = ScrollableViewComponentOptions;
+
+/**
+ * Component that can be assigned to other component's `view` property.
+ * This allows components to be drawn independently from other components.
+ * Components drawn over bounds of this component automatically adjust its offset, and when needed scrollbars are added.
+ */
+export class ScrollableViewComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends ViewComponent<EventMap> implements ScrollableViewComponentImplementation {
   declare theme: ScrollableViewTheme;
 
   #scrollbars: {

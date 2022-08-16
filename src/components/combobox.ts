@@ -10,22 +10,34 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { Rectangle } from "../types.ts";
 
-export interface ComboboxComponentOptions<
-  OptionType extends string[] = string[],
-> extends ComponentOptions {
+/** Interface defining object that {ComboboxComponent}'s constructor can interpret */
+export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
   rectangle: Rectangle;
   label?: string;
   options: OptionType;
 }
 
+/** Complementary interface defining what's accessible in {ComboboxComponent} class in addition to {ComboboxComponentOptions} */
+export interface ComboboxComponentPrivate {
+  label: string;
+}
+
+/** Implementation for {ComboboxComponent} class */
+export type ComboboxComponentImplementation = ComboboxComponentOptions & ComboboxComponentPrivate;
+
+/** EventMap that {ComboboxComponent} uses */
 export type ComboboxComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", ComboboxComponent>;
 };
 
+/**
+ * Component that allows user to input value by selecting one from available options.
+ * If `label` isn't provided then first value from `options` will be used.
+ */
 export class ComboboxComponent<
   OptionType extends string[] = string[],
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & ComboboxComponentEventMap> {
+> extends BoxComponent<EventMap & ComboboxComponentEventMap> implements ComboboxComponentImplementation {
   #lastInteraction = 0;
   #temporaryComponents: Component[] = [];
   label: string;

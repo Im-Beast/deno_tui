@@ -5,16 +5,28 @@ import { PlaceComponentOptions } from "../component.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
 
-export enum Mark {
+enum Mark {
   Check = "✓",
   Cross = "✗",
 }
 
+/** Interface defining object that {CheckboxComponent}'s constructor can interpret */
 export interface CheckboxComponentOptions extends PlaceComponentOptions {
   value?: boolean;
 }
 
-export class CheckboxComponent<EventMap extends EventRecord = Record<never, never>> extends ButtonComponent<EventMap> {
+/** Complementary interface defining what's accessible in {CheckboxComponent} class in addition to {CheckboxComponentOptions} */
+export interface CheckboxComponentPrivate {
+  value: boolean;
+}
+
+/** Implementation for {CheckboxComponent} class */
+export type CheckboxComponentImplementation = CheckboxComponentPrivate;
+
+/** Component that allows user to toggle input */
+export class CheckboxComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends ButtonComponent<EventMap> implements CheckboxComponentImplementation {
   #lastInteraction = 0;
   #value: boolean;
   label: string;

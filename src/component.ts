@@ -23,7 +23,7 @@ export interface ComponentOptions {
   zIndex?: number;
 }
 
-/** Interface defining what's accessible in {Canvas} class */
+/** Interface defining what's accessible in {Component} class */
 export interface ComponentPrivate {
   theme: Theme;
   draw(): void;
@@ -32,9 +32,8 @@ export interface ComponentPrivate {
   zIndex: number;
 }
 
-/** Implementation for {Canvas} class */
+/** Implementation for {Component} class */
 export type ComponentImplementation =
-  & ComponentOptions
   & ComponentPrivate
   & TypedEventTarget<ComponentEventMap>;
 

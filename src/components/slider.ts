@@ -11,10 +11,12 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { DeepPartial } from "../types.ts";
 
+/** Theme used by {SliderComponent} to style itself */
 export interface SliderTheme extends Theme {
   thumb: Theme;
 }
 
+/** Interface defining object that {SliderComponent}'s constructor can interpret */
 export interface SliderComponentOptions extends PlaceComponentOptions {
   value: number;
   min: number;
@@ -25,12 +27,24 @@ export interface SliderComponentOptions extends PlaceComponentOptions {
   theme?: DeepPartial<SliderTheme>;
 }
 
+/** Complementary interface defining what's accessible in {ScrollableViewComponent} class in addition to {SliderComponentOptions} */
+export interface SliderComponentPrivate {
+  adjustThumbSize: boolean;
+  theme: SliderTheme;
+}
+
+/** Implementation for {SliderComponent} class */
+export type SliderComponentImplementation = SliderComponentOptions & SliderComponentPrivate;
+
+/** EventMap that {SliderComponent} uses */
 export type SliderComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", SliderComponent>;
 };
 
-export class SliderComponent<EventMap extends EventRecord = Record<never, never>>
-  extends BoxComponent<EventMap & SliderComponentEventMap> {
+/** Component that allows user to input number by sliding a handle */
+export class SliderComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & SliderComponentEventMap> implements SliderComponentImplementation {
   declare theme: SliderTheme;
   direction: "horizontal" | "vertical";
   min: number;

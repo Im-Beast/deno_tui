@@ -14,10 +14,12 @@ import type { DeepPartial } from "../types.ts";
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
 
+/** Theme used by {ProgressBarComponent} to style itself */
 export interface ProgressBarTheme extends Theme {
   progress: Theme;
 }
 
+/** Interface defining object that {ProgressBarComponent}'s constructor can interpret */
 export interface ProgressBarComponentOptions extends PlaceComponentOptions {
   value: number;
   min: number;
@@ -27,12 +29,24 @@ export interface ProgressBarComponentOptions extends PlaceComponentOptions {
   smooth?: boolean;
 }
 
+/** Complementary interface defining what's accessible in {ProgressBarComponent} class in addition to {ProgressBarComponentOptions} */
+export interface ProgressBarComponentPrivate {
+  theme: ProgressBarTheme;
+  smooth: boolean;
+}
+
+/** Implementation for {ProgressBarComponent} class */
+export type ProgressBarComponentImplementation = ProgressBarComponentOptions & ProgressBarComponentPrivate;
+
+/** EventMap that {ProgressBarComponent} uses */
 export type ProgressBarComponentEventMap = {
   valueChange: ComponentEvent<"valueChange", ProgressBarComponent>;
 };
 
-export class ProgressBarComponent<EventMap extends EventRecord = Record<never, never>>
-  extends BoxComponent<EventMap & ProgressBarComponentEventMap> {
+/** Component that indicates progress */
+export class ProgressBarComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends BoxComponent<EventMap & ProgressBarComponentEventMap> implements ProgressBarComponentImplementation {
   #value: number;
 
   declare theme: ProgressBarTheme;

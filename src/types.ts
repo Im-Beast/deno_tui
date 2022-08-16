@@ -1,7 +1,12 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+/** Type for Standard Output – where data gets written */
 export type Stdout = typeof Deno.stdout;
+
+/** Type for Standard Input - from where data is read */
 export type Stdin = typeof Deno.stdin;
+
+/** Type defining terminal's (console) available size measured in columns and rows */
 export type ConsoleSize = ReturnType<typeof Deno.consoleSize>;
 
 /**

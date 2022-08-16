@@ -7,18 +7,29 @@ import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { Rectangle } from "../types.ts";
 
+/** Interface describing positioning of label when given boundaries using `rectangle` */
 export interface LabelTextAlign {
   horizontal: "left" | "center" | "right";
   vertical: "top" | "center" | "bottom";
 }
 
+/** Interface defining object that {LabelComponent}'s constructor can interpret */
 export interface LabelComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
   value: string;
   align: LabelTextAlign;
 }
 
-export class LabelComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
+/** Implementation for {LabelComponent} class */
+export type LabelComponentImplementation = LabelComponentOptions;
+
+/**
+ * Component that displays text in given `rectangle`
+ * When `rectangle`'s `width` and/or `height` properties are set to `-1` then `width` and/or `height` are set dynamically depending on the text size.
+ */
+export class LabelComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends Component<EventMap> implements LabelComponentImplementation {
   #rectangle: Rectangle;
   value: string;
   align: LabelTextAlign;

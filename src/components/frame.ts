@@ -24,10 +24,12 @@ export const roundedFramePieces = {
   vertical: "│",
 } as const;
 
+/** Type that specifies structore of object that defines how frame looks like  */
 export type FramePieceType = {
   [key in keyof typeof sharpFramePieces]: string;
 };
 
+/** Interface defining object that {FrameComponent}'s constructor can interpret */
 export type FrameComponentOptions =
   & ComponentOptions
   & {
@@ -37,7 +39,20 @@ export type FrameComponentOptions =
     { rectangle?: never; component: Component } | { component?: never; rectangle: Rectangle }
   );
 
-export class FrameComponent<EventMap extends EventRecord = Record<never, never>> extends Component<EventMap> {
+/** Complementary interface defining what's accessible in {FrameComponent} class in addition to {FrameComponentOptions} */
+export interface FrameComponentPrivate {
+  framePieces: "sharp" | "rounded" | FramePieceType;
+  rectangle: Rectangle;
+  component?: Component;
+}
+
+/** Implementation for {FrameComponent} class */
+export type FrameComponentImplementation = FrameComponentPrivate;
+
+/** Component that creates frame border either around a `component` or within `rectangle` depending on what's specified */
+export class FrameComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends Component<EventMap> implements FrameComponentImplementation {
   framePieces: "sharp" | "rounded" | FramePieceType;
 
   #component?: Component;

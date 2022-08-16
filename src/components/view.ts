@@ -8,22 +8,39 @@ import type { Margin, Offset, Rectangle } from "../types.ts";
 import { EventRecord } from "../utils/typed_event_target.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 
+/** Interface describing object that disguises itself as {Canvas} and intercepts `draw` function and `rectangle` boundaries */
 export interface FakeCanvas extends Canvas {
   canvas: Canvas;
   rectangle: Rectangle;
 }
 
+/** Interface describing object that disguises itself as {Tui} and replaces `canvas` with {FakeCanvas} */
 export interface FakeTui extends Tui {
   realTui: Tui;
   canvas: FakeCanvas;
 }
 
+/** Interface defining object that {ViewComponent}'s constructor can interpret */
 export interface ViewComponentOptions extends PlaceComponentOptions {
   rectangle: Rectangle;
   margin?: Margin;
 }
 
-export class ViewComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
+/** Complementary interface defining what's accessible in {ViewComponent} class in addition to {ViewComponentOptions} */
+export interface ViewComponentPrivate {
+  margin: Margin;
+}
+
+/** Implementation for {ViewComponent} class */
+export type ViewComponentImplementation = ViewComponentOptions & ViewComponentPrivate;
+
+/**
+ * Component that can be assigned to other component's `view` property.
+ * This allows components to be drawn independently from other components.
+ */
+export class ViewComponent<
+  EventMap extends EventRecord = Record<never, never>,
+> extends PlaceComponent<EventMap> implements ViewComponentImplementation {
   fakeTui: FakeTui;
   offset: Offset;
   maxOffset: Offset;
