@@ -22,8 +22,8 @@ export interface ComboboxComponentOptions<OptionType extends string[] = string[]
 /** Complementary interface defining what's accessible in {ComboboxComponent} class in addition to {ComboboxComponentOptions} */
 export interface ComboboxComponentPrivate<OptionType extends string[] = string[]> {
   label: string;
-  /** Current value of the combobox */
-  option?: OptionType[number];
+  /** Currently selected option */
+  value?: OptionType[number];
 }
 
 /** Implementation for {ComboboxComponent} class */
