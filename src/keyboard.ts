@@ -59,7 +59,7 @@ export function handleKeyboardControls(tui: Tui): void {
 
     if (!keyPress.ctrl && !pressedKeys.includes("return")) return;
 
-    lastSelectedComponent ??= tui.components[0];
+    lastSelectedComponent ??= tui.components.find((component) => component.state === "focused") ?? tui.components[0];
 
     const moveVector = {
       x: 0,
@@ -118,7 +118,8 @@ export function handleKeyboardControls(tui: Tui): void {
               });
 
               currentView = newView;
-              const newComponent = currentView.components?.[0];
+              const newComponent = currentView.components.find((component) => component.state === "focused") ??
+                currentView.components[0];
 
               if (newComponent) {
                 lastSelectedComponent.state = "base";
@@ -132,7 +133,7 @@ export function handleKeyboardControls(tui: Tui): void {
     }
 
     if (!lastSelectedComponent) {
-      lastSelectedComponent = tui.components.find((x) => x.rectangle !== undefined)!;
+      lastSelectedComponent = tui.components.find((component) => component.rectangle !== undefined)!;
     }
     if (!lastSelectedComponent.rectangle) return;
 
