@@ -47,6 +47,7 @@ export interface TuiPrivate {
 /** Implementation for {Tui} class */
 export type TuiImplementation = TuiOptions & TuiPrivate;
 
+/** EventMap that {Tui} uses */
 export type TuiEventMap = {
   render: RenderEvent;
   update: Event;

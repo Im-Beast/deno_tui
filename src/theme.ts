@@ -1,5 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+/** Function that's supposed to return styled text given string as parameter */
 export type Style = (text: string) => string;
 
 /** Used as placeholder style when one is not supplied, returns the input */
