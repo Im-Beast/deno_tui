@@ -12,8 +12,11 @@ import { clamp } from "../utils/numbers.ts";
 
 /** Interface defining object that {TextboxComponent}'s constructor can interpret */
 export interface TextboxComponentOptions extends PlaceComponentOptions {
+  /** Whether texbox should allow new lines */
   multiline?: boolean;
+  /** Whether textbox value should be starred ("*") */
   hidden?: boolean;
+  /** Current value of textbox */
   value?: string;
 }
 

@@ -12,6 +12,7 @@ enum Mark {
 
 /** Interface defining object that {CheckboxComponent}'s constructor can interpret */
 export interface CheckboxComponentOptions extends PlaceComponentOptions {
+  /** Whether checkbox is checked or not */
   value?: boolean;
 }
 
@@ -37,6 +38,7 @@ export class CheckboxComponent<
     this.label = this.value ? Mark.Check : Mark.Cross;
   }
 
+  /** Whether checkbox is checked or not */
   get value() {
     return this.#value;
   }

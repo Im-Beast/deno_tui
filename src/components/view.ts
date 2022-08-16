@@ -23,6 +23,7 @@ export interface FakeTui extends Tui {
 /** Interface defining object that {ViewComponent}'s constructor can interpret */
 export interface ViewComponentOptions extends PlaceComponentOptions {
   rectangle: Rectangle;
+  /** Empty edge around `rectangle` */
   margin?: Margin;
 }
 

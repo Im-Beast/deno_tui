@@ -33,10 +33,18 @@ export type FramePieceType = {
 export type FrameComponentOptions =
   & ComponentOptions
   & {
+    /** Option that changes from what characters {FrameComponent} is built */
     framePieces?: "sharp" | "rounded" | FramePieceType;
   }
   & (
-    { rectangle?: never; component: Component } | { component?: never; rectangle: Rectangle }
+    {
+      rectangle?: never;
+      /** Component that {FrameComponent} will surround */
+      component: Component;
+    } | {
+      component?: never;
+      rectangle: Rectangle;
+    }
   );
 
 /** Complementary interface defining what's accessible in {FrameComponent} class in addition to {FrameComponentOptions} */

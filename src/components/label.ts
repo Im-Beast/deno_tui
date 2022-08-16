@@ -16,8 +16,10 @@ export interface LabelTextAlign {
 /** Interface defining object that {LabelComponent}'s constructor can interpret */
 export interface LabelComponentOptions extends ComponentOptions {
   rectangle: Rectangle;
-  value: string;
+  /** Position of label when given boundaries using `rectangle` */
   align: LabelTextAlign;
+  /** Text displayed on label */
+  value: string;
 }
 
 /** Implementation for {LabelComponent} class */

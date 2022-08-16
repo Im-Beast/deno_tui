@@ -21,11 +21,19 @@ export interface ProgressBarTheme extends Theme {
 
 /** Interface defining object that {ProgressBarComponent}'s constructor can interpret */
 export interface ProgressBarComponentOptions extends PlaceComponentOptions {
+  /** Current value */
   value: number;
+  /** Minimal value of {ProgressBarComponent} */
   min: number;
+  /** Maximal value of {ProgressBarComponent} */
   max: number;
+  /** Whether {ProgressBarComponent} is vertical or horizontal */
   direction: "horizontal" | "vertical";
   theme?: DeepPartial<ProgressBarTheme>;
+  /**
+   * Whether {ProgressBarComponent} should use UNICODE characters to create effect of more gradual, smooth looking progress
+   * Keep in mind that not every terminal might support used characters
+   */
   smooth?: boolean;
 }
 

@@ -13,13 +13,17 @@ import type { Rectangle } from "../types.ts";
 /** Interface defining object that {ComboboxComponent}'s constructor can interpret */
 export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
   rectangle: Rectangle;
+  /** Text displayed on combobox by default */
   label?: string;
+  /** Possible values of combobox */
   options: OptionType;
 }
 
 /** Complementary interface defining what's accessible in {ComboboxComponent} class in addition to {ComboboxComponentOptions} */
-export interface ComboboxComponentPrivate {
+export interface ComboboxComponentPrivate<OptionType extends string[] = string[]> {
   label: string;
+  /** Current value of the combobox */
+  option?: OptionType[number];
 }
 
 /** Implementation for {ComboboxComponent} class */
@@ -42,7 +46,7 @@ export class ComboboxComponent<
   #temporaryComponents: Component[] = [];
   label: string;
   options: string[];
-  option: OptionType[number] | undefined;
+  option?: OptionType[number];
 
   constructor(options: ComboboxComponentOptions<OptionType>) {
     super(options);
