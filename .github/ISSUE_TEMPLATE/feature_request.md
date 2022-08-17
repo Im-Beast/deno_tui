@@ -2,7 +2,7 @@
 name: Feature request
 about: There's something I'd like to be added to project
 title: "feat req:"
-labels: feature\ request
+labels: "feature request"
 assignees: ''
 
 ---
