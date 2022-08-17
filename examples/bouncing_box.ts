@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 /** Simple example showing box bouncing similiar to famous DVD Screensaver */
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
