@@ -1,5 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
-/** Example of creating your own component by extending provided ones */
+// Example of creating your own component by extending provided ones
 
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 

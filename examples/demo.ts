@@ -1,4 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Demo showcasing every component
+
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
 import { handleKeyboardControls, handleKeypresses } from "../src/keyboard.ts";
