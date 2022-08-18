@@ -1,14 +1,12 @@
 # ⌨️ Tui
 
-<img src="docs/logo-transparent.png" align="right" width="250" height="250" alt="Deno mascot made as ASCII art" />
+<img src="https://raw.githubusercontent.com/Im-Beast/deno_tui/main/docs/logo-transparent.png" align="right" width="250" height="250" alt="Deno mascot made as ASCII art" />
 
 [![Deno](https://github.com/Im-Beast/deno_tui/actions/workflows/deno.yml/badge.svg)](https://github.com/Im-Beast/deno_tui/actions/workflows/deno.yml)
 [![Deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/tui/mod.ts)
 
 Simple [Deno](https://github.com/denoland/deno/) module that allows easy creation of
 [Terminal User Interfaces](https://en.wikipedia.org/wiki/Text-based_user_interface).
-
-**Current status:** [**Release candidate**](https://github.com/Im-Beast/deno_tui/projects/1)
 
 ### 🔩 Features
 
