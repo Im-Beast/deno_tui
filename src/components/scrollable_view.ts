@@ -56,7 +56,7 @@ export class ScrollableViewComponent<
 
   constructor(options: ScrollableViewComponentOptions) {
     super(options);
-    this.margin = { top: 0, left: 0, right: 1, bottom: 1 };
+    this.margin = { top: 0, left: 0, right: 0, bottom: 0 };
 
     const { theme } = options;
 
@@ -133,9 +133,14 @@ export class ScrollableViewComponent<
       this.#scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
         this.offset.x = component.value;
       });
+
+      this.margin.right = 1;
+      this.updateOffsets();
     } else if (this.maxOffset.x === 0 && this.#scrollbars.horizontal) {
       this.#scrollbars.horizontal.remove();
       delete this.#scrollbars.horizontal;
+      this.margin.right = 0;
+      this.updateOffsets();
     }
 
     if (this.maxOffset.y > 0 && !this.#scrollbars.vertical) {
@@ -163,9 +168,14 @@ export class ScrollableViewComponent<
       this.#scrollbars.vertical!.addEventListener("valueChange", ({ component }) => {
         this.offset.y = component.value;
       });
+
+      this.margin.bottom = 1;
+      this.updateOffsets();
     } else if (this.maxOffset.y === 0 && this.#scrollbars.vertical) {
       this.#scrollbars.vertical.remove();
       delete this.#scrollbars.vertical;
+      this.margin.bottom = 0;
+      this.updateOffsets();
     }
 
     if (this.maxOffset.x > 0 && this.maxOffset.y > 0) {
