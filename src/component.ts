@@ -2,7 +2,7 @@
 
 import { Tui } from "./tui.ts";
 import { ComponentEvent } from "./events.ts";
-import { emptyStyle, Style, Theme } from "./theme.ts";
+import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 
 import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
 
@@ -64,11 +64,7 @@ export class Component<
     super();
 
     this.#rectangle = rectangle;
-    this.theme = {
-      base: theme?.base ?? emptyStyle,
-      focused: theme?.focused ?? theme?.base ?? emptyStyle,
-      active: theme?.active ?? theme?.focused ?? theme?.base ?? emptyStyle,
-    };
+    this.theme = hierarchizeTheme(theme ?? {});
     this.zIndex = zIndex ?? 0;
     this.#state = "base";
     this.tui = tui;

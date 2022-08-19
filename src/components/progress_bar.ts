@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { emptyStyle, Theme } from "../theme.ts";
+import { hierarchizeTheme, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
 
 import { PlaceComponentOptions } from "../component.ts";
@@ -70,13 +70,7 @@ export class ProgressBarComponent<
     this.max = options.max;
     this.#value = options.value;
     this.smooth = options.smooth ?? false;
-
-    const progress = options.theme?.progress;
-    this.theme.progress = {
-      active: progress?.active ?? progress?.focused ?? progress?.base ?? emptyStyle,
-      focused: progress?.focused ?? progress?.base ?? emptyStyle,
-      base: progress?.base ?? emptyStyle,
-    };
+    this.theme.progress = hierarchizeTheme(options.theme?.progress ?? {});
   }
 
   get value() {

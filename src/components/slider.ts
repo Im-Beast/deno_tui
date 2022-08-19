@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { emptyStyle, Theme } from "../theme.ts";
+import { hierarchizeTheme, Theme } from "../theme.ts";
 import { ComponentEvent } from "../events.ts";
 
 import { PlaceComponentOptions } from "../component.ts";
@@ -60,18 +60,10 @@ export class SliderComponent<
     this.max = options.max;
     this.#value = options.value;
     this.step = options.step;
-
+    this.theme.thumb = hierarchizeTheme(options.theme?.thumb ?? {});
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
-    const thumb = options.theme?.thumb;
-    this.theme.thumb = {
-      active: thumb?.active ?? thumb?.focused ?? thumb?.base ?? emptyStyle,
-      focused: thumb?.focused ?? thumb?.base ?? emptyStyle,
-      base: thumb?.base ?? emptyStyle,
-    };
-
     const lastMove = { x: -1, y: -1, time: 0 };
-
     this.tui.addEventListener("keyPress", ({ keyPress }) => {
       const { key, ctrl, meta, shift } = keyPress;
 

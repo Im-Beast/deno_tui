@@ -56,18 +56,13 @@ export class ScrollableViewComponent<
 
   constructor(options: ScrollableViewComponentOptions) {
     super(options);
-    this.margin = {
-      top: 0,
-      left: 0,
-      right: 1,
-      bottom: 1,
-    };
+    this.margin = { top: 0, left: 0, right: 1, bottom: 1 };
 
     const { theme } = options;
 
     const horizontal = theme?.scrollbar?.horizontal;
-
     const vertical = theme?.scrollbar?.vertical;
+
     const corner = theme?.scrollbar?.corner;
     this.theme.scrollbar = {
       horizontal: {
