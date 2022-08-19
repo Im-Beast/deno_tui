@@ -57,7 +57,7 @@ export class Component<
   #state: ComponentState;
   zIndex: number;
 
-  view?: ViewComponent;
+  #view?: ViewComponent;
   #rectangle?: Rectangle;
 
   constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
@@ -72,7 +72,7 @@ export class Component<
     this.zIndex = zIndex ?? 0;
     this.#state = "base";
     this.tui = tui;
-    this.view = view;
+    this.#view = view;
 
     // This should run after everything else is setup
     // That's why it's added after everything on even loop is ready
@@ -80,6 +80,28 @@ export class Component<
       this.tui.components.push(this);
       this.tui.dispatchEvent(new ComponentEvent("addComponent", this));
     });
+  }
+
+  /** Returns view that's currently associated with component */
+  get view() {
+    return this.#view;
+  }
+
+  /** Sets view that will be associated with component and updates view offsets */
+  set view(view) {
+    if (view) {
+      this.tui = view.fakeTui;
+
+      view.components.push(this);
+      view.updateOffsets(this);
+    } else if (this.view) {
+      this.tui = this.view.fakeTui.realTui;
+
+      this.view.components.remove(this);
+      this.view.updateOffsets();
+    }
+
+    this.#view = view;
   }
 
   /** Returns component's rectangle */
