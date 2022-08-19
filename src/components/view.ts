@@ -53,12 +53,7 @@ export class ViewComponent<
 
     this.offset = { x: 0, y: 0 };
     this.maxOffset = { x: 0, y: 0 };
-    this.margin = options.margin ?? {
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    };
+    this.margin = options.margin ?? { top: 0, left: 0, right: 0, bottom: 0 };
 
     this.components = new SortedArray<Component>();
 
@@ -66,44 +61,32 @@ export class ViewComponent<
     const fakeCanvas = { canvas } as unknown as FakeCanvas;
     Object.setPrototypeOf(fakeCanvas, canvas);
     Object.setPrototypeOf(fakeCanvas, {
-      draw: (column: number, row: number, value: string) => {
+      draw: (drawColumn: number, drawRow: number, value: string) => {
         const { x, y } = this.offset;
-        const { column: columnOffset, row: rowOffset, width, height } = this.rectangle;
+        const { top, bottom, left, right } = this.margin;
+        const { column, row, width, height } = this.rectangle;
 
-        fakeCanvas.canvas.draw(
-          column + this.margin.left + columnOffset - x,
-          row + this.margin.top + rowOffset - y,
-          value,
-          {
-            column: columnOffset,
-            row: rowOffset,
-            height: height - this.margin.bottom - 1,
-            width: width - this.margin.right - 1,
-          },
-        );
+        fakeCanvas.canvas.draw(drawColumn + column + left - x, drawRow + row + top - y, value, {
+          column,
+          row,
+          height: height - bottom - 1,
+          width: width - right - 1,
+        });
       },
     });
 
     const { tui } = this;
-    const fakeTui = { realTui: tui, canvas: fakeCanvas } as unknown as FakeTui;
-    Object.setPrototypeOf(fakeTui, tui);
+    const fakeTui = { realTui: tui, canvas: fakeCanvas } as FakeTui;
+    this.fakeTui = Object.setPrototypeOf(fakeTui, tui);
 
     fakeTui.addEventListener("addComponent", ({ component }) => {
-      if (component.view !== this) return;
-
-      const { rectangle } = component;
-      if (!rectangle) return;
+      if (component.view !== this || !component.rectangle) return;
 
       component.tui = fakeTui;
       component.view = this;
+
       this.components.push(component);
-
-      const { column, row, width, height } = rectangle;
-
-      this.maxOffset = {
-        x: Math.max(this.maxOffset.x, column + width + this.margin.right + this.margin.left - this.rectangle.width),
-        y: Math.max(this.maxOffset.y, row + height + this.margin.bottom + this.margin.top - this.rectangle.height),
-      };
+      this.updateOffsets(component);
     });
 
     fakeTui.addEventListener("removeComponent", ({ component }) => {
@@ -111,21 +94,39 @@ export class ViewComponent<
 
       component.tui = fakeTui.realTui;
       component.view = undefined;
-      this.components.remove(component);
 
+      this.components.remove(component);
+      this.updateOffsets();
+    });
+  }
+
+  /** @param component if specified then checks and updates offsets when given component overflows current offsets otherwise it loops over components to recalculate offsets */
+  updateOffsets(component?: Component): void {
+    const { top, bottom, left, right } = this.margin;
+
+    if (!component) {
       this.maxOffset = { x: 0, y: 0 };
 
       for (const component of this.components) {
         const { column, row, width, height } = component.rectangle!;
 
         this.maxOffset = {
-          x: Math.max(this.maxOffset.x, column + width + this.margin.right + this.margin.left - this.rectangle.width),
-          y: Math.max(this.maxOffset.y, row + height + this.margin.bottom + this.margin.top - this.rectangle.height),
+          x: Math.max(this.maxOffset.x, column + width + right + left - this.rectangle.width),
+          y: Math.max(this.maxOffset.y, row + height + bottom + top - this.rectangle.height),
         };
       }
-    });
 
-    this.fakeTui = fakeTui;
+      return;
+    }
+
+    if (!component.rectangle) return;
+
+    const { column, row, width, height } = component.rectangle;
+
+    this.maxOffset = {
+      x: Math.max(this.maxOffset.x, column + width + right + left - this.rectangle.width),
+      y: Math.max(this.maxOffset.y, row + height + bottom + top - this.rectangle.height),
+    };
   }
 
   draw() {
