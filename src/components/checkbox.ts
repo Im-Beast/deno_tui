@@ -53,16 +53,9 @@ export class CheckboxComponent<
     super.draw();
   }
 
-  interact(method?: "mouse" | "keyboard") {
-    const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
+  interact(_method?: "mouse" | "keyboard") {
+    this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
 
-    if (method === "keyboard" || interactionDelay < 500) {
-      this.value = !this.value;
-    } else {
-      this.state = "focused";
-    }
-
-    this.#lastInteraction = now;
+    if (this.state === "active") this.value = !this.value;
   }
 }
