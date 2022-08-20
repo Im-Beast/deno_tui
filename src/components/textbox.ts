@@ -102,9 +102,11 @@ export class TextboxComponent<
             x = Math.min(x + 1, this.#value[y].length);
             break;
           case "backspace":
-            this.#value[y] = this.#value[y].slice(0, x - 1) +
-              this.#value[y].slice(x);
-            --x;
+            if (x > 0) {
+              this.#value[y] = this.#value[y].slice(0, x - 1) +
+                this.#value[y].slice(x);
+              --x;
+            }
             break;
           case "delete":
             this.#value[y] = this.#value[y].slice(0, x) +
@@ -116,12 +118,7 @@ export class TextboxComponent<
             if (x === this.#value[y].length) {
               ++y;
             } else {
-              this.#value.splice(
-                y,
-                1,
-                this.#value[y].slice(0, x),
-                this.#value[y].slice(x),
-              );
+              this.#value.splice(y, 1, this.#value[y].slice(0, x), this.#value[y].slice(x));
               ++y;
               x = 0;
             }
