@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "../tui.ts";
 import { Component } from "../component.ts";
 
