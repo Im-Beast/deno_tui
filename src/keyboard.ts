@@ -8,6 +8,7 @@ import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
 import { Component } from "./component.ts";
 import { LabelComponent } from "./components/label.ts";
 import { ViewComponent } from "./components/view.ts";
+import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
@@ -50,21 +51,40 @@ export function handleKeyboardControls(tui: Tui): void {
   let lastSelectedComponent: Component;
 
   let currentView: ViewComponent | undefined = undefined;
-  let viewLabel: LabelComponent | undefined = undefined;
+  const viewLabel = new LabelComponent({
+    tui,
+    theme: {
+      base: tui.style,
+    },
+    align: { vertical: "top", horizontal: "left" },
+    rectangle: { column: 10, row: 0, width: -1, height: -1 },
+    value: "",
+  });
+
+  Object.defineProperty(viewLabel, "rectangle", {
+    get(this: LabelComponent) {
+      const textLength = this.value.length;
+      return {
+        column: tui.canvas.size.columns - textLength,
+        row: 0,
+        width: textLength,
+        height: -1,
+      };
+    },
+  });
 
   tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
     const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
       ? [event.multiKeyPress, event.multiKeyPress.keys]
       : [event.keyPress, [event.keyPress.key]];
 
-    if (!keyPress.ctrl && !pressedKeys.includes("return")) return;
+    if (!(keyPress.ctrl || (pressedKeys.length === 1 && pressedKeys[0] === "return"))) return;
 
-    lastSelectedComponent ??= tui.components.find((component) => component.state === "focused") ?? tui.components[0];
+    lastSelectedComponent ??= tui.components.find(
+      ({ state }) => state === "focused",
+    ) ?? getComponentClosestToTopLeftCorner(tui, true);
 
-    const moveVector = {
-      x: 0,
-      y: 0,
-    };
+    const moveVector = { x: 0, y: 0 };
 
     for (const key of pressedKeys) {
       switch (key) {
@@ -83,124 +103,79 @@ export function handleKeyboardControls(tui: Tui): void {
         case "return":
           lastSelectedComponent.interact("keyboard");
           return;
-        default:
-          if (/f(\d+)/.test(key)) {
-            const views = tui.components.filter((component) => component instanceof ViewComponent) as ViewComponent[];
-            const index = +key.replace("f", "") - 1;
-            const newView = views[index];
+        default: {
+          if (!/f(\d+)/.test(key)) return;
+          const viewIndex = +key.replace("f", "") - 1;
+          const views = tui.components.filter((component) => component instanceof ViewComponent) as ViewComponent[];
+          const previousView = currentView;
 
-            viewLabel?.remove();
-
-            if (currentView === newView) currentView = undefined;
-            else if (newView) {
-              const viewText = `View ${index} col:${newView.rectangle.column}, row:${newView.rectangle.row} `;
-
-              const rectangle = () => ({
-                column: tui.canvas.size.columns - viewText.length,
-                row: 0,
-                height: -1,
-                width: -1,
-              });
-
-              viewLabel = new LabelComponent({
-                tui,
-                theme: {
-                  base: tui.style,
-                },
-                align: { horizontal: "left", vertical: "top" },
-                rectangle: rectangle(),
-                value: viewText,
-              });
-
-              tui.canvas.addEventListener("resize", () => {
-                if (!viewLabel) return;
-                viewLabel.rectangle = rectangle();
-              });
-
-              currentView = newView;
-              const newComponent = currentView.components.find((component) => component.state === "focused") ??
-                currentView.components[0];
-
-              if (newComponent) {
-                lastSelectedComponent.state = "base";
-                lastSelectedComponent = newComponent;
-                newComponent.state = "focused";
-              }
-            }
+          currentView = views[viewIndex];
+          if (viewIndex >= views.length || currentView === previousView) {
+            if (currentView) currentView.state = "base";
+            currentView = undefined;
+            viewLabel.value = "";
+            return;
           }
+
+          currentView.interact();
+          viewLabel.value = `View ${viewIndex}`;
           return;
+        }
       }
     }
 
-    if (!lastSelectedComponent) {
-      lastSelectedComponent = tui.components.find((component) => component.rectangle !== undefined)!;
-    }
-    if (!lastSelectedComponent.rectangle) return;
+    const lastRectangle = lastSelectedComponent.rectangle!;
 
-    let possibleComponents: Component[] = [];
-    const lastRectangle = lastSelectedComponent.rectangle;
-
+    let closest!: [number, Component];
     for (const component of tui.components) {
+      const { rectangle, view, interact } = component;
+
       if (
+        interact === Component.prototype.interact ||
         component === lastSelectedComponent ||
-        component.interact === Component.prototype.interact ||
-        component.view !== currentView
+        view !== currentView ||
+        !rectangle
       ) {
         continue;
       }
 
-      const { rectangle } = component;
-      if (!rectangle) {
-        continue;
-      }
+      const distance = (
+        (lastRectangle.column - rectangle.column) ** 2 +
+        (lastRectangle.row - rectangle.row) ** 2
+      ) ** 0.5;
 
       if (
+        (!closest || distance < closest[0] || (distance === closest[0] && component.zIndex > closest[1].zIndex)) &&
         (
-          moveVector.y === 0 ||
-          (moveVector.y > 0 && rectangle.row > lastRectangle.row) ||
-          (moveVector.y < 0 && rectangle.row < lastRectangle.row)
-        ) &&
-        (
-          moveVector.x === 0 ||
-          (moveVector.x > 0 && rectangle.column > lastRectangle.column) ||
-          (moveVector.x < 0 && rectangle.column < lastRectangle.column)
+          (moveVector.x === 1 && rectangle.column > lastRectangle.column) ||
+          (moveVector.x === -1 && rectangle.column < lastRectangle.column) ||
+          moveVector.x === 0
+        ) && (
+          (moveVector.y === 1 && rectangle.row > lastRectangle.row) ||
+          (moveVector.y === -1 && rectangle.row < lastRectangle.row) ||
+          moveVector.y === 0
         )
       ) {
-        possibleComponents.push(component);
+        closest = [distance, component];
       }
     }
 
-    if (!possibleComponents.length) return;
+    if (!closest) return;
 
-    possibleComponents.sort((a, b) => b.zIndex - a.zIndex);
-    possibleComponents = possibleComponents.filter((a) => a.zIndex === possibleComponents[0].zIndex);
-
-    let closest!: Component;
-    let closestDistance!: number;
-    for (const component of possibleComponents) {
-      const distance = Math.sqrt(
-        Math.pow(lastSelectedComponent.rectangle!.column - component.rectangle!.column, 2) +
-          Math.pow(lastSelectedComponent.rectangle!.row - component.rectangle!.row, 2),
-      );
-
-      if (!closest || distance < closestDistance) {
-        closest = component;
-        closestDistance = distance;
-      }
-    }
+    const closestComponent = closest[1];
 
     // TODO: Make this a little bit smarter,
     // Offset should be set that component could be clearly seen
     // Preferably also centered but not just stuck to the corner
-    const { view } = closest;
+    const { view } = closestComponent;
     if (view) {
-      const { row, column } = closest.rectangle!;
+      const { row, column } = closestComponent.rectangle!;
       view.offset.x = column;
       view.offset.y = row;
     }
 
     lastSelectedComponent.state = "base";
-    closest.state = "focused";
-    lastSelectedComponent = closest;
+    closestComponent.interact("keyboard");
+    lastSelectedComponent = closestComponent;
   });
 }
