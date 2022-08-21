@@ -4,6 +4,8 @@ import type { Range, Stdin } from "./types.ts";
 
 const decoder = new TextDecoder();
 
+//#region Long key types
+
 /** Type defining keys that `key_reader.ts` can distinguish */
 export type Key =
   | Alphabet
@@ -90,6 +92,8 @@ type Chars =
   | "?"
   | "\\"
   | "|";
+
+//#endregion
 
 /** Interface defining key press issued to stdin */
 export interface KeyPress {

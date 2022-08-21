@@ -129,7 +129,7 @@ export class ViewComponent<
     };
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { style } = this;

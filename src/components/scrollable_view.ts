@@ -101,7 +101,7 @@ export class ScrollableViewComponent<
     });
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { tui, theme } = this;
@@ -184,7 +184,8 @@ export class ScrollableViewComponent<
     }
   }
 
-  interact() {
+  interact(method?: "keyboard" | "mouse") {
+    if (method === "keyboard") return;
     this.state = "focused";
   }
 }

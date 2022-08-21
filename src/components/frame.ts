@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Component, ComponentOptions } from "../component.ts";
+import { Component, ComponentOptions, ComponentState } from "../component.ts";
 
 import { EventRecord } from "../utils/typed_event_target.ts";
 
@@ -120,13 +120,13 @@ export class FrameComponent<
     this.rectangle = this.#component.rectangle;
   }
 
-  get state() {
+  get state(): ComponentState {
     return this.component?.state ?? "base";
   }
 
   set state(_value) {}
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { style, framePieces } = this;

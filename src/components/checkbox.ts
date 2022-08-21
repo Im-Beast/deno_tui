@@ -28,7 +28,6 @@ export type CheckboxComponentImplementation = CheckboxComponentPrivate;
 export class CheckboxComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends ButtonComponent<EventMap> implements CheckboxComponentImplementation {
-  #lastInteraction = 0;
   #value: boolean;
   label: string;
 
@@ -39,7 +38,7 @@ export class CheckboxComponent<
   }
 
   /** Whether checkbox is checked or not */
-  get value() {
+  get value(): boolean {
     return this.#value;
   }
 
@@ -49,13 +48,12 @@ export class CheckboxComponent<
     this.#value = value;
   }
 
-  draw() {
+  draw(): void {
     super.draw();
   }
 
-  interact(_method?: "mouse" | "keyboard") {
+  interact(_method?: "mouse" | "keyboard"): void {
     this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
-
     if (this.state === "active") this.value = !this.value;
   }
 }

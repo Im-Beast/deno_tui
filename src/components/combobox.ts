@@ -55,7 +55,7 @@ export class ComboboxComponent<
     this.option = options.label ? undefined : this.options[0];
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     if (this.label) {
@@ -71,11 +71,11 @@ export class ComboboxComponent<
     }
   }
 
-  interact(method?: "keyboard" | "mouse") {
+  interact(): void {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
+    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
     if (this.state === "active") {
       const { column, row, width, height } = this.rectangle;

@@ -144,7 +144,7 @@ export class TextboxComponent<
     this.#value = this.multiline ? split : [split.join("")];
   }
 
-  draw() {
+  draw(): void {
     const { value } = this;
 
     super.draw();
@@ -181,7 +181,7 @@ export class TextboxComponent<
     );
   }
 
-  interact() {
+  interact(): void {
     this.state = "focused";
   }
 }

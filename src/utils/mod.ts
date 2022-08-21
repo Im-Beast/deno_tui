@@ -6,3 +6,4 @@ export * from "./numbers.ts";
 export * from "./sorted_array.ts";
 export * from "./strings.ts";
 export * from "./typed_event_target.ts";
+export * from "./component.ts";

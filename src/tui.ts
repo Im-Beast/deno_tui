@@ -113,7 +113,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
   }
 
   /** Async generator that dispatches "update" event */
-  async *update(): AsyncGenerator<{ type: "update" }> {
+  async *update(): AsyncGenerator<{ type: "update" }, void, void> {
     while (true) {
       this.dispatchEvent(new CustomEvent("update"));
       yield { type: "update" };
@@ -122,7 +122,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
   }
 
   /** Async generator that dispatches "render" event */
-  async *render(): AsyncGenerator<{ type: "render"; timing: Timing }> {
+  async *render(): AsyncGenerator<{ type: "render"; timing: Timing }, void, void> {
     for await (const timing of this.canvas.render()) {
       this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
       yield { type: "render", timing };
@@ -134,7 +134,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
    *   - on "update" event it renders background using `tui.style`.
    *   Then it calls `draw()` on every component in `tui.components`
    */
-  async *run(): AsyncGenerator<{ type: "render"; timing: Timing } | { type: "update" }> {
+  async *run(): AsyncGenerator<{ type: "render"; timing: Timing } | { type: "update" }, void, void> {
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR + CLEAR_SCREEN));
 
     const iterator = new CombinedAsyncIterator<

@@ -9,7 +9,7 @@ export class BoxComponent<EventMap extends EventRecord = Record<never, never>> e
     super(options);
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { style } = this;

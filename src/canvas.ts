@@ -203,7 +203,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
    * If so, run `renderFrame()` with current frame buffer and in the way yield and emit proper events.
    * On each iteration it sleeps for adjusted `refreshRate` time.
    */
-  async *render() {
+  async *render(): AsyncGenerator<Timing, void, void> {
     while (true) {
       let deltaTime = performance.now();
       this.fps = 1000 / (performance.now() - this.lastRender);

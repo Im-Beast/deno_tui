@@ -69,10 +69,9 @@ export class LabelComponent<
     const { style, align, value } = this;
     const { canvas } = this.tui;
 
-    const lines = value.split("\n");
-
     const { column, row, width, height } = this.rectangle;
 
+    const lines = value.split("\n");
     for (const [i, line] of lines.entries()) {
       let r = row + i;
       let c = column;

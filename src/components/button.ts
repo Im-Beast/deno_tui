@@ -26,7 +26,7 @@ export class ButtonComponent<
     this.label = options.label;
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     if (this.label) {
@@ -42,7 +42,7 @@ export class ButtonComponent<
     }
   }
 
-  interact(method?: "mouse" | "keyboard") {
+  interact(method?: "mouse" | "keyboard"): void {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 

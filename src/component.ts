@@ -79,7 +79,7 @@ export class Component<
   }
 
   /** Returns view that's currently associated with component */
-  get view() {
+  get view(): ViewComponent | undefined {
     return this.#view;
   }
 
@@ -101,7 +101,7 @@ export class Component<
   }
 
   /** Returns component's rectangle */
-  get rectangle() {
+  get rectangle(): Rectangle | undefined {
     return this.#rectangle;
   }
 
@@ -122,7 +122,7 @@ export class Component<
   }
 
   /** Returns current component state */
-  get state() {
+  get state(): ComponentState {
     return this.#state;
   }
 
@@ -130,16 +130,16 @@ export class Component<
    * Function that's used for rendering component
    * It's called on `tui` update event
    */
-  draw() {}
+  draw(): void {}
 
   /**
    * Function that's used for interacting with a component
    * It's called by keyboard and mouse control handlers
    */
-  interact(_method?: "keyboard" | "mouse") {}
+  interact(_method?: "keyboard" | "mouse"): void {}
 
   /** Remove component from `tui` and dispatch `removeComponent` event   */
-  remove() {
+  remove(): void {
     this.tui.components.remove(this);
     this.tui.dispatchEvent(new ComponentEvent("removeComponent", this));
   }
@@ -161,7 +161,7 @@ export class PlaceComponent<
     this.#rectangle = options.rectangle;
   }
 
-  get rectangle() {
+  get rectangle(): Rectangle {
     return this.#rectangle;
   }
 

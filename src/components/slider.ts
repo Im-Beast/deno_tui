@@ -109,7 +109,7 @@ export class SliderComponent<
     });
   }
 
-  get value() {
+  get value(): number {
     return this.#value;
   }
 
@@ -122,7 +122,7 @@ export class SliderComponent<
     }
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { theme, state, value, min, max, direction } = this;
@@ -159,7 +159,7 @@ export class SliderComponent<
     }
   }
 
-  interact() {
+  interact(): void {
     this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
   }
 }

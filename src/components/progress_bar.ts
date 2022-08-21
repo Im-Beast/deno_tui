@@ -86,7 +86,7 @@ export class ProgressBarComponent<
     }
   }
 
-  draw() {
+  draw(): void {
     super.draw();
 
     const { theme, state, value, min, max, direction } = this;
@@ -145,7 +145,7 @@ export class ProgressBarComponent<
     }
   }
 
-  interact() {
+  interact(): void {
     this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
   }
 }
