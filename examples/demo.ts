@@ -324,7 +324,7 @@ queueMicrotask(() => {
 
     const name = component.constructor.name.replace("Component", "");
     const theme = {
-      base: component.view instanceof ScrollableViewComponent ? component.view.style : tuiStyle,
+      base: component.view?.style ?? tuiStyle,
     };
 
     new LabelComponent({
