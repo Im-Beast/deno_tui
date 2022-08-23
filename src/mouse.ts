@@ -39,10 +39,10 @@ export function handleMouseControls(tui: Tui): void {
         const viewOffset = view.offset;
 
         const viewedRectangle: Rectangle = {
-          column: viewRectangle.column - viewOffset.x,
-          row: viewRectangle.row - viewOffset.y,
-          width: Math.min(rectangle.column + rectangle.width, viewRectangle.column + viewRectangle.width),
-          height: Math.min(rectangle.row + rectangle.height, viewRectangle.row + viewRectangle.height),
+          column: rectangle.column +  viewRectangle.column - viewOffset.x,
+          row: rectangle.row + viewRectangle.row - viewOffset.y,
+          width: rectangle.width,
+          height: rectangle.height,
         };
 
         rectangle = viewedRectangle;
