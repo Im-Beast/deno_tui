@@ -2,7 +2,7 @@
 
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
-import { ComponentEvent, KeypressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
+import { ComponentEvent, KeyPressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import { emptyStyle, Style } from "./theme.ts";
 
 import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
@@ -51,7 +51,7 @@ export type TuiImplementation = TuiOptions & TuiPrivate;
 export type TuiEventMap = {
   render: RenderEvent;
   update: Event;
-  keyPress: KeypressEvent;
+  keyPress: KeyPressEvent;
   multiKeyPress: MultiKeyPressEvent;
   mousePress: MousePressEvent;
   close: CustomEvent<"close">;

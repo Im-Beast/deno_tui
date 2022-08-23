@@ -36,7 +36,7 @@ export class CanvasResizeEvent extends Event {
 }
 
 /** Event that's dispatched when key has been pressed */
-export class KeypressEvent extends Event {
+export class KeyPressEvent extends Event {
   readonly keyPress: KeyPress;
 
   constructor(keyPress: KeyPress) {
