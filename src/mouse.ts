@@ -39,7 +39,7 @@ export function handleMouseControls(tui: Tui): void {
         const viewOffset = view.offset;
 
         const viewedRectangle: Rectangle = {
-          column: rectangle.column +  viewRectangle.column - viewOffset.x,
+          column: rectangle.column + viewRectangle.column - viewOffset.x,
           row: rectangle.row + viewRectangle.row - viewOffset.y,
           width: rectangle.width,
           height: rectangle.height,
