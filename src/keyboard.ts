@@ -9,6 +9,8 @@ import { Component } from "./component.ts";
 import { LabelComponent } from "./components/label.ts";
 import { ViewComponent } from "./components/view.ts";
 import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
+import { clamp } from "./utils/numbers.ts";
+import { ScrollableViewComponent } from "./components/scrollable_view.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
@@ -164,14 +166,19 @@ export function handleKeyboardControls(tui: Tui): void {
 
     const closestComponent = closest[1];
 
-    // TODO: Make this a little bit smarter,
-    // Offset should be set that component could be clearly seen
-    // Preferably also centered but not just stuck to the corner
     const { view } = closestComponent;
     if (view) {
       const { row, column } = closestComponent.rectangle!;
-      view.offset.x = column;
-      view.offset.y = row;
+
+      view.offset.x = clamp(column, 0, view.maxOffset.x);
+      view.offset.y = clamp(row, 0, view.maxOffset.y);
+
+      if (view instanceof ScrollableViewComponent) {
+        const { horizontal, vertical } = view.scrollbars;
+
+        if (horizontal) horizontal.value = view.offset.x;
+        if (vertical) vertical.value = view.offset.x;
+      }
     }
 
     lastSelectedComponent.state = "base";
