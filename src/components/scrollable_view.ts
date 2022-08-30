@@ -34,10 +34,14 @@ export interface ScrollableViewComponentOptions extends PlaceComponentOptions {
 /** Complementary interface defining what's accessible in {SliderComponent} class in addition to {SliderComponentOptions} */
 export interface ScrollableViewComponentPrivate {
   theme: ScrollableViewTheme;
+  scrollbars: {
+    vertical?: SliderComponent | undefined;
+    horizontal?: SliderComponent | undefined;
+  };
 }
 
 /** Implementation for {ScrollableViewComponent} class */
-export type ScrollableViewComponentImplementation = ScrollableViewComponentOptions;
+export type ScrollableViewComponentImplementation = ScrollableViewComponentPrivate & ScrollableViewComponentOptions;
 
 /**
  * Component that can be assigned to other component's `view` property.
@@ -49,7 +53,7 @@ export class ScrollableViewComponent<
 > extends ViewComponent<EventMap> implements ScrollableViewComponentImplementation {
   declare theme: ScrollableViewTheme;
 
-  #scrollbars: {
+  scrollbars: {
     vertical?: SliderComponent;
     horizontal?: SliderComponent;
   };
@@ -76,13 +80,13 @@ export class ScrollableViewComponent<
       corner: corner ?? emptyStyle,
     };
 
-    this.#scrollbars = {};
+    this.scrollbars = {};
 
     this.tui.addEventListener("mousePress", ({ mousePress }) => {
       const { scroll, shift } = mousePress;
       if (!scroll || this.state === "base") return;
 
-      const { horizontal, vertical } = this.#scrollbars;
+      const { horizontal, vertical } = this.scrollbars;
 
       if (shift) {
         this.offset.x = clamp(this.offset.x + scroll, 0, this.maxOffset.x);
@@ -94,7 +98,7 @@ export class ScrollableViewComponent<
     });
 
     this.tui.addEventListener(["addComponent", "removeComponent"], () => {
-      const { horizontal, vertical } = this.#scrollbars;
+      const { horizontal, vertical } = this.scrollbars;
 
       if (horizontal) horizontal.max = this.maxOffset.x;
       if (vertical) vertical.max = this.maxOffset.y;
@@ -108,8 +112,8 @@ export class ScrollableViewComponent<
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    if (this.maxOffset.x > 0 && !this.#scrollbars.horizontal) {
-      this.#scrollbars.horizontal = new SliderComponent({
+    if (this.maxOffset.x > 0 && !this.scrollbars.horizontal) {
+      this.scrollbars.horizontal = new SliderComponent({
         tui,
         direction: "horizontal",
         min: 0,
@@ -130,21 +134,21 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.#scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
         this.offset.x = component.value;
       });
 
       this.margin.right = 1;
       this.updateOffsets();
-    } else if (this.maxOffset.x === 0 && this.#scrollbars.horizontal) {
-      this.#scrollbars.horizontal.remove();
-      delete this.#scrollbars.horizontal;
+    } else if (this.maxOffset.x === 0 && this.scrollbars.horizontal) {
+      this.scrollbars.horizontal.remove();
+      delete this.scrollbars.horizontal;
       this.margin.right = 0;
       this.updateOffsets();
     }
 
-    if (this.maxOffset.y > 0 && !this.#scrollbars.vertical) {
-      this.#scrollbars.vertical = new SliderComponent({
+    if (this.maxOffset.y > 0 && !this.scrollbars.vertical) {
+      this.scrollbars.vertical = new SliderComponent({
         tui,
         direction: "vertical",
         min: 0,
@@ -165,15 +169,15 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.#scrollbars.vertical!.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.vertical!.addEventListener("valueChange", ({ component }) => {
         this.offset.y = component.value;
       });
 
       this.margin.bottom = 1;
       this.updateOffsets();
-    } else if (this.maxOffset.y === 0 && this.#scrollbars.vertical) {
-      this.#scrollbars.vertical.remove();
-      delete this.#scrollbars.vertical;
+    } else if (this.maxOffset.y === 0 && this.scrollbars.vertical) {
+      this.scrollbars.vertical.remove();
+      delete this.scrollbars.vertical;
       this.margin.bottom = 0;
       this.updateOffsets();
     }
