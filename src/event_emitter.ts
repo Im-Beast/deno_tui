@@ -1,54 +1,79 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+/** Type for event listener function */
 export type EventListener<
-  Events extends Record<string, unknown[]>,
+  Events extends Record<string, EmitterEvent>,
   Type extends keyof Events = keyof Events,
-> = (this: EventEmitter<Events>, ...args: Events[Type]) => void | Promise<void>;
+> = (this: EventEmitter<Events>, ...args: Events[Type]["args"]) => void | Promise<void>;
 
-export class EventEmitter<EventMap extends Record<string, unknown[]> = Record<string, unknown[]>> {
-  // deno-lint-ignore no-explicit-any
-  #listeners = new Map<keyof EventMap, EventListener<EventMap, any>[]>();
+/**
+ * Type for creating new arguments
+ *  - Required as a workaround for simple tuples and arrays types not working properly
+ */
+export type EmitterEvent<Args extends unknown[] = unknown[]> = {
+  args: Args;
+};
 
-  on<Type extends keyof EventMap>(type: Type, listener: EventListener<EventMap, Type>): void {
-    let listeners = this.#listeners.get(type);
+/** Custom implementation of event emitter */
+export class EventEmitter<EventMap extends Record<string, EmitterEvent>> {
+  listeners: {
+    [key in keyof EventMap]?: EventListener<EventMap, key>[];
+  } = {};
+
+  /**
+   * Add new listener for specified event type
+   * If `once` is set to true it will run just once and then be removed from listeners list
+   */
+  on<Type extends keyof EventMap>(type: Type, listener: EventListener<EventMap, Type>, once?: boolean): () => void {
+    let listeners = this.listeners[type];
     if (!listeners) {
       listeners = [];
-      this.#listeners.set(type, listeners);
+      this.listeners[type] = listeners;
     }
 
-    if (listeners.includes(listener)) return;
+    if (once) {
+      listener = (...args: EventMap[Type]["args"]) => {
+        listener.apply(this, args);
+        this.off(type, listener);
+      };
+    }
+
+    if (listeners.includes(listener)) return () => this.off(type, listener);
     listeners.splice(listeners.length, 0, listener);
+    return () => this.off(type, listener);
   }
 
-  once<Type extends keyof EventMap>(type: Type, listener: EventListener<EventMap, Type>): void {
-    this.on(type, listener);
-    this.on(type, () => this.off(type, listener));
-  }
-
+  /**
+   * Remove event listeners
+   *  - If no event type is passed, every single listener will be removed
+   *  - If just type is passed with no listener, every listener for specific type will be removed
+   *  - If both type and listener is passed, just this specific listener will be removed
+   */
   off(): void;
   off<Type extends keyof EventMap>(type: Type): void;
   off<Type extends keyof EventMap>(type: Type, listener: EventListener<EventMap, Type>): void;
   off<Type extends keyof EventMap>(type?: Type, listener?: EventListener<EventMap, Type>): void {
     if (!type) {
-      this.#listeners = new Map();
+      this.listeners = {};
       return;
     }
 
     if (!listener) {
-      this.#listeners.set(type, []);
+      this.listeners[type] = [];
       return;
     }
 
-    const listeners = this.#listeners.get(type);
+    const listeners = this.listeners[type];
     if (!listeners) return;
     listeners.splice(listeners.indexOf(listener), 1);
   }
 
-  emit<Type extends keyof EventMap>(type: Type, ...args: EventMap[Type]): void {
-    const listeners = this.#listeners.get(type);
+  /** Emit specific type, after emitting all listeners associated with that event type will run with given arguments */
+  emit<Type extends keyof EventMap>(type: Type, ...args: EventMap[Type]["args"]): void {
+    const listeners = this.listeners[type];
     if (!listeners?.length) return;
 
-    for (const listener of listeners) {
+    for (const listener of listeners!) {
       listener.apply(this, args);
     }
   }
