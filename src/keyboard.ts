@@ -2,15 +2,15 @@
 
 import { Tui } from "./tui.ts";
 
-import { KeyPressEvent, MousePressEvent, MultiKeyPressEvent } from "./events.ts";
-import { MultiKeyPress, readKeypresses } from "./key_reader.ts";
+import { KeyPress, MultiKeyPress, readKeypresses } from "./key_reader.ts";
 
 import { Component } from "./component.ts";
 import { LabelComponent } from "./components/label.ts";
 import { ViewComponent } from "./components/view.ts";
-import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
-import { clamp } from "./utils/numbers.ts";
 import { ScrollableViewComponent } from "./components/scrollable_view.ts";
+
+import { clamp } from "./utils/numbers.ts";
+import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
@@ -19,6 +19,7 @@ import { ScrollableViewComponent } from "./components/scrollable_view.ts";
 export async function handleKeypresses(tui: Tui): Promise<void> {
   for await (const keyPresses of readKeypresses(tui.stdin)) {
     const multiKeyPress: MultiKeyPress = {
+      key: "multi",
       keys: [],
       buffer: [],
       ctrl: false,
@@ -27,7 +28,11 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
     };
 
     for (const keyPress of keyPresses) {
-      tui.dispatchEvent(keyPress.key === "mouse" ? new MousePressEvent(keyPress) : new KeyPressEvent(keyPress));
+      if (keyPress.key === "mouse") {
+        tui.emit("mousePress", keyPress);
+      } else {
+        tui.emit("keyPress", keyPress);
+      }
 
       multiKeyPress.keys.push(keyPress.key);
       multiKeyPress.buffer.push(keyPress.buffer);
@@ -37,7 +42,7 @@ export async function handleKeypresses(tui: Tui): Promise<void> {
     }
 
     if (multiKeyPress.keys.length > 1) {
-      tui.dispatchEvent(new MultiKeyPressEvent(multiKeyPress));
+      tui.emit("multiKeyPress", multiKeyPress);
     }
   }
 }
@@ -75,10 +80,8 @@ export function handleKeyboardControls(tui: Tui): void {
     },
   });
 
-  tui.addEventListener(["keyPress", "multiKeyPress"], (event) => {
-    const [keyPress, pressedKeys] = event instanceof MultiKeyPressEvent
-      ? [event.multiKeyPress, event.multiKeyPress.keys]
-      : [event.keyPress, [event.keyPress.key]];
+  const keyboardHandler = (keyPress: KeyPress | MultiKeyPress) => {
+    const pressedKeys = keyPress.key === "multi" ? keyPress.keys : [keyPress.key];
 
     if (!(keyPress.ctrl || (pressedKeys.length === 1 && pressedKeys[0] === "return"))) return;
 
@@ -184,5 +187,8 @@ export function handleKeyboardControls(tui: Tui): void {
     lastSelectedComponent.state = "base";
     closestComponent.interact("keyboard");
     lastSelectedComponent = closestComponent;
-  });
+  };
+
+  tui.on("keyPress", keyboardHandler);
+  tui.on("multiKeyPress", keyboardHandler);
 }

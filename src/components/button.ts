@@ -2,8 +2,7 @@
 
 import { BoxComponent } from "./box.ts";
 import { PlaceComponentOptions } from "../component.ts";
-
-import { EventRecord } from "../utils/typed_event_target.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
 /** Interface defining object that {SliderComponent}'s constructor can interpret */
 export interface ButtonComponentOptions extends PlaceComponentOptions {
@@ -16,7 +15,7 @@ export type ButtonComponentImplementation = ButtonComponentOptions;
 
 /** Component that can be pressed */
 export class ButtonComponent<
-  EventMap extends EventRecord = Record<never, never>,
+  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
 > extends BoxComponent<EventMap> implements ButtonComponentImplementation {
   #lastInteraction = 0;
   label?: string;

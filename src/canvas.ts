@@ -1,13 +1,12 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { CanvasResizeEvent, FrameEvent, RenderEvent } from "./events.ts";
+import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { Timing } from "./types.ts";
 
 import { sleep } from "./utils/async.ts";
 import { textWidth } from "./utils/strings.ts";
 import { moveCursor } from "./utils/ansi_codes.ts";
 import { fits, fitsInRectangle } from "./utils/numbers.ts";
-import { TypedEventTarget } from "./utils/typed_event_target.ts";
 import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
 
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
@@ -24,13 +23,13 @@ export interface CanvasOptions {
 
 /** Map that contains events that {Canvas} can dispatch */
 export type CanvasEventMap = {
-  "render": RenderEvent;
-  "frame": FrameEvent;
-  "resize": CanvasResizeEvent;
+  render: EmitterEvent<[Timing]>;
+  frame: EmitterEvent<[Timing]>;
+  resize: EmitterEvent<[ConsoleSize]>;
 };
 
 /** Canvas implementation that can be drawn onto and then rendered on terminal screen */
-export class Canvas extends TypedEventTarget<CanvasEventMap> {
+export class Canvas extends EventEmitter<CanvasEventMap> {
   size: ConsoleSize;
   refreshRate: number;
   stdout: Stdout;
@@ -52,7 +51,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
     switch (Deno.build.os) {
       case "windows":
-        this.addEventListener("render", ({ timing }) => {
+        this.on("render", (timing) => {
           if (timing !== Timing.Pre) return;
           this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
         });
@@ -76,7 +75,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.size = size;
     this.frameBuffer = [];
     this.previousFrameBuffer = [];
-    this.dispatchEvent(new CanvasResizeEvent(size));
+    this.emit("resize", size);
   }
 
   /**
@@ -163,7 +162,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
    * In the way yield and emit proper events.
    */
   renderFrame(frame: string[][]): void {
-    this.dispatchEvent(new RenderEvent(Timing.Pre));
+    this.emit("render", Timing.Pre);
 
     const { previousFrameBuffer, size } = this;
 
@@ -195,7 +194,7 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
     this.lastRender = performance.now();
     this.previousFrameBuffer = structuredClone(frame);
 
-    this.dispatchEvent(new RenderEvent(Timing.Post));
+    this.emit("render", Timing.Post);
   }
 
   /**
@@ -210,12 +209,12 @@ export class Canvas extends TypedEventTarget<CanvasEventMap> {
 
       if (this.lastRender === 0 || JSON.stringify(this.frameBuffer) !== JSON.stringify(this.previousFrameBuffer)) {
         yield Timing.Pre;
-        this.dispatchEvent(new FrameEvent(Timing.Pre));
+        this.emit("frame", Timing.Pre);
 
         this.renderFrame(this.frameBuffer);
 
         yield Timing.Post;
-        this.dispatchEvent(new FrameEvent(Timing.Post));
+        this.emit("frame", Timing.Post);
       }
 
       deltaTime -= performance.now();

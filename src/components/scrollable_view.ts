@@ -5,9 +5,9 @@ import { emptyStyle, Style, Theme } from "../theme.ts";
 import { PlaceComponentOptions } from "../component.ts";
 import { ViewComponent } from "./view.ts";
 import { SliderComponent } from "./slider.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp } from "../utils/numbers.ts";
-import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { DeepPartial } from "../types.ts";
 
@@ -49,7 +49,7 @@ export type ScrollableViewComponentImplementation = ScrollableViewComponentPriva
  * Components drawn over bounds of this component automatically adjust its offset, and when needed scrollbars are added.
  */
 export class ScrollableViewComponent<
-  EventMap extends EventRecord = Record<never, never>,
+  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
 > extends ViewComponent<EventMap> implements ScrollableViewComponentImplementation {
   declare theme: ScrollableViewTheme;
 
@@ -82,9 +82,9 @@ export class ScrollableViewComponent<
 
     this.scrollbars = {};
 
-    this.tui.addEventListener("mousePress", ({ mousePress }) => {
+    this.on("mousePress", (mousePress) => {
       const { scroll, shift } = mousePress;
-      if (!scroll || this.state === "base") return;
+      if (!scroll) return;
 
       const { horizontal, vertical } = this.scrollbars;
 
@@ -97,12 +97,15 @@ export class ScrollableViewComponent<
       }
     });
 
-    this.tui.addEventListener(["addComponent", "removeComponent"], () => {
+    const updateScrollbarOffsets = () => {
       const { horizontal, vertical } = this.scrollbars;
 
       if (horizontal) horizontal.max = this.maxOffset.x;
       if (vertical) vertical.max = this.maxOffset.y;
-    });
+    };
+
+    this.tui.on("addComponent", updateScrollbarOffsets);
+    this.tui.on("removeComponent", updateScrollbarOffsets);
   }
 
   draw(): void {
@@ -134,7 +137,7 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.horizontal.on("valueChange", (component) => {
         this.offset.x = component.value;
       });
 
@@ -169,7 +172,7 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.scrollbars.vertical!.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.vertical.on("valueChange", (component) => {
         this.offset.y = component.value;
       });
 

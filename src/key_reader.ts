@@ -139,6 +139,8 @@ export interface MousePress extends Omit<KeyPress, "key"> {
 
 /** Interface defining multiple key presses (both {KeyPress} and {MousePress}) that have been issued to stdin at once */
 export interface MultiKeyPress extends Omit<KeyPress, "buffer" | "key"> {
+  /** MultiKeyPress id */
+  key: "multi";
   /** Raw data which was sent to stdin about every key */
   buffer: KeyPress["buffer"][];
   /** Array storing KeyPress information about keys */

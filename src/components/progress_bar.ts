@@ -1,15 +1,13 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { hierarchizeTheme, Theme } from "../theme.ts";
-import { ComponentEvent } from "../events.ts";
-
 import { PlaceComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
 import { clamp, normalize } from "../utils/numbers.ts";
 
-import type { DeepPartial } from "../types.ts";
+import type { _any, DeepPartial } from "../types.ts";
 
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
@@ -48,12 +46,12 @@ export type ProgressBarComponentImplementation = ProgressBarComponentOptions & P
 
 /** EventMap that {ProgressBarComponent} uses */
 export type ProgressBarComponentEventMap = {
-  valueChange: ComponentEvent<"valueChange", ProgressBarComponent>;
+  valueChange: EmitterEvent<[ProgressBarComponent<_any>]>;
 };
 
 /** Component that indicates progress */
 export class ProgressBarComponent<
-  EventMap extends EventRecord = Record<never, never>,
+  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
 > extends BoxComponent<EventMap & ProgressBarComponentEventMap> implements ProgressBarComponentImplementation {
   #value: number;
 
@@ -82,7 +80,7 @@ export class ProgressBarComponent<
     this.#value = clamp(value, this.min, this.max);
 
     if (this.#value !== prev) {
-      this.dispatchEvent(new ComponentEvent("valueChange", this));
+      this.emit("valueChange", this);
     }
   }
 

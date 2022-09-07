@@ -1,10 +1,11 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { PlaceComponent, PlaceComponentOptions } from "../component.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
-
-export class BoxComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
+/** Simple component that is a Box that cannot be interacted with by default */
+export class BoxComponent<EventMap extends Record<string, EmitterEvent> = Record<never, never>>
+  extends PlaceComponent<EventMap> {
   constructor(options: PlaceComponentOptions) {
     super(options);
   }

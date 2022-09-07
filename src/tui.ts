@@ -2,13 +2,13 @@
 
 import { Canvas } from "./canvas.ts";
 import { Component } from "./component.ts";
-import { ComponentEvent, KeyPressEvent, MousePressEvent, MultiKeyPressEvent, RenderEvent } from "./events.ts";
 import { emptyStyle, Style } from "./theme.ts";
+import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
+import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 
 import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
 import { sleep } from "./utils/async.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
-import { TypedEventTarget } from "./utils/typed_event_target.ts";
 import {
   CLEAR_SCREEN,
   HIDE_CURSOR,
@@ -17,7 +17,7 @@ import {
   USE_SECONDARY_BUFFER,
 } from "./utils/ansi_codes.ts";
 
-import type { Stdin, Stdout, Timing } from "./types.ts";
+import type { _any, Stdin, Stdout, Timing } from "./types.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -49,23 +49,23 @@ export type TuiImplementation = TuiOptions & TuiPrivate;
 
 /** EventMap that {Tui} uses */
 export type TuiEventMap = {
-  render: RenderEvent;
-  update: Event;
-  keyPress: KeyPressEvent;
-  multiKeyPress: MultiKeyPressEvent;
-  mousePress: MousePressEvent;
-  close: CustomEvent<"close">;
-  addComponent: ComponentEvent<"addComponent">;
-  removeComponent: ComponentEvent<"removeComponent">;
+  render: EmitterEvent<[Timing]>;
+  update: EmitterEvent<[]>;
+  keyPress: EmitterEvent<[KeyPress]>;
+  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
+  mousePress: EmitterEvent<[MousePress]>;
+  close: EmitterEvent<[]>;
+  addComponent: EmitterEvent<[Component<_any>]>;
+  removeComponent: EmitterEvent<[Component<_any>]>;
 };
 
 /** Main object of Tui that contains everything keeping it running */
-export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementation {
+export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation {
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
   style: Style;
-  components: SortedArray<Component>;
+  components: SortedArray<Component<_any>>;
   updateRate: number;
 
   constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {
@@ -84,7 +84,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     this.updateRate = updateRate ?? this.canvas.refreshRate;
 
     const closeEventDispatcher = () => {
-      this.dispatchEvent(new CustomEvent("close"));
+      this.emit("close");
     };
 
     // Dispatch "close" event when Tui should be stopped
@@ -94,7 +94,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     if (Deno.build.os === "windows") {
       Deno.addSignalListener("SIGBREAK", closeEventDispatcher);
 
-      this.addEventListener("keyPress", ({ keyPress: { key, ctrl } }) => {
+      this.on("keyPress", ({ key, ctrl }) => {
         if (key === "c" && ctrl) closeEventDispatcher();
       });
     } else {
@@ -102,7 +102,9 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
     }
 
     // Handle "close" event
-    this.addEventListener("close", () => {
+    this.on("close", () => {
+      this.off();
+
       Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
 
       // Delay exiting from app so it's possible to attach anywhere else to "close" event
@@ -115,7 +117,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
   /** Async generator that dispatches "update" event */
   async *update(): AsyncGenerator<{ type: "update" }, void, void> {
     while (true) {
-      this.dispatchEvent(new CustomEvent("update"));
+      this.emit("update");
       yield { type: "update" };
       await sleep(this.updateRate);
     }
@@ -124,7 +126,7 @@ export class Tui extends TypedEventTarget<TuiEventMap> implements TuiImplementat
   /** Async generator that dispatches "render" event */
   async *render(): AsyncGenerator<{ type: "render"; timing: Timing }, void, void> {
     for await (const timing of this.canvas.render()) {
-      this.dispatchEvent(new CustomEvent("render", { detail: { timing } }));
+      this.emit("render", timing);
       yield { type: "render", timing };
     }
   }

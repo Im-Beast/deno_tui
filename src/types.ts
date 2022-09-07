@@ -1,5 +1,12 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+/**
+ * Type used for omitting usage of mulitple no-explicit-any lint rule
+ * **IT SHOULD BE USED** only for specifying component literal types
+ */
+// deno-lint-ignore no-explicit-any
+export type _any = any;
+
 /** Type for Standard Output – where data gets written */
 export type Stdout = typeof Deno.stdout;
 
