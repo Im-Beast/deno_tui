@@ -10,6 +10,7 @@ import { fits, fitsInRectangle } from "./utils/numbers.ts";
 import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
 
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
+import { Deffered } from "./utils/deffered.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -202,23 +203,25 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
    * If so, run `renderFrame()` with current frame buffer and in the way yield and emit proper events.
    * On each iteration it sleeps for adjusted `refreshRate` time.
    */
-  async *render(): AsyncGenerator<Timing, void, void> {
-    while (true) {
-      let deltaTime = performance.now();
-      this.fps = 1000 / (performance.now() - this.lastRender);
+  render(): () => void {
+    const deffered = new Deffered<void>();
 
-      if (this.lastRender === 0 || JSON.stringify(this.frameBuffer) !== JSON.stringify(this.previousFrameBuffer)) {
-        yield Timing.Pre;
-        this.emit("frame", Timing.Pre);
+    (async () => {
+      while (deffered.state === "pending") {
+        let deltaTime = performance.now();
+        this.fps = 1000 / (performance.now() - this.lastRender);
 
-        this.renderFrame(this.frameBuffer);
+        if (this.lastRender === 0 || JSON.stringify(this.frameBuffer) !== JSON.stringify(this.previousFrameBuffer)) {
+          this.emit("frame", Timing.Pre);
+          this.renderFrame(this.frameBuffer);
+          this.emit("frame", Timing.Post);
+        }
 
-        yield Timing.Post;
-        this.emit("frame", Timing.Post);
+        deltaTime -= performance.now();
+        await sleep(this.refreshRate + deltaTime);
       }
+    })();
 
-      deltaTime -= performance.now();
-      await sleep(this.refreshRate + deltaTime);
-    }
+    return deffered.resolve;
   }
 }
