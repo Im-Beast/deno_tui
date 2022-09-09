@@ -3,11 +3,11 @@
 import { Tui } from "../tui.ts";
 import { Canvas } from "../canvas.ts";
 import { Component, PlaceComponent, PlaceComponentOptions } from "../component.ts";
-import { EmitterEvent } from "../event_emitter.ts";
 
 import { SortedArray } from "../utils/sorted_array.ts";
 
-import type { _any, Margin, Offset, Rectangle } from "../types.ts";
+import type { Margin, Offset, Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface describing object that disguises itself as {Canvas} and intercepts `draw` function and `rectangle` boundaries */
 export interface FakeCanvas extends Canvas {
@@ -41,13 +41,13 @@ export type ViewComponentImplementation = ViewComponentOptions & ViewComponentPr
  * This allows components to be drawn independently from other components.
  */
 export class ViewComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends PlaceComponent<EventMap> implements ViewComponentImplementation {
   fakeTui: FakeTui;
   offset: Offset;
   maxOffset: Offset;
   margin: Margin;
-  components: SortedArray<Component<_any>>;
+  components: SortedArray<Component<EventRecord>>;
 
   constructor(options: ViewComponentOptions) {
     super(options);
@@ -102,7 +102,7 @@ export class ViewComponent<
   }
 
   /** @param component if specified then checks and updates offsets when given component overflows current offsets otherwise it loops over components to recalculate offsets */
-  updateOffsets(component?: Component<_any>): void {
+  updateOffsets(component?: Component<EventRecord>): void {
     const { top, bottom, left, right } = this.margin;
 
     if (!component) {

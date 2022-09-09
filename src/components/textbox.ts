@@ -7,7 +7,7 @@ import { EmitterEvent } from "../event_emitter.ts";
 import { insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
-import type { _any } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {TextboxComponent}'s constructor can interpret */
 export interface TextboxComponentOptions extends PlaceComponentOptions {
@@ -31,7 +31,7 @@ export type TextboxComponentImplementation = TextboxComponentOptions & TextboxCo
 
 /** EventMap that {TextboxComponent} uses */
 export type TextboxComponentEventMap = ComponentEventMap & {
-  valueChange: EmitterEvent<[TextboxComponent<_any>]>;
+  valueChange: EmitterEvent<[TextboxComponent<EventRecord>]>;
 };
 
 /**
@@ -44,7 +44,7 @@ export type TextboxComponentEventMap = ComponentEventMap & {
  *  - Delete/Backspace - Delete preceding/subsequent character
  */
 export class TextboxComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & TextboxComponentEventMap> implements TextboxComponentImplementation {
   #value: string[] = [];
 

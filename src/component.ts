@@ -6,7 +6,8 @@ import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 
 import type { ViewComponent } from "./components/view.ts";
-import type { _any, Rectangle } from "./types.ts";
+import type { Rectangle } from "./types.ts";
+import type { EventRecord } from "./event_emitter.ts";
 
 /** Interface defining object that {Component}'s constructor can interpret */
 export interface ComponentOptions {
@@ -36,8 +37,8 @@ export type ComponentImplementation = ComponentPrivate;
 
 /** Default EventMap that every component should use */
 export type ComponentEventMap = {
-  stateChange: EmitterEvent<[Component<_any>]>;
-  remove: EmitterEvent<[Component<_any>]>;
+  stateChange: EmitterEvent<[Component<EventRecord>]>;
+  remove: EmitterEvent<[Component<EventRecord>]>;
   keyPress: EmitterEvent<[KeyPress]>;
   multiKeyPress: EmitterEvent<[MultiKeyPress]>;
   mousePress: EmitterEvent<[MousePress]>;
@@ -51,14 +52,14 @@ export type ComponentState =
 
 /** Base Component that should be used as base for creating other components */
 export class Component<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends EventEmitter<EventMap & ComponentEventMap> implements ComponentImplementation {
   tui: Tui;
   theme: Theme;
   #state: ComponentState;
   zIndex: number;
 
-  #view?: ViewComponent<_any>;
+  #view?: ViewComponent<EventRecord>;
   #rectangle?: Rectangle;
 
   constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
@@ -98,7 +99,7 @@ export class Component<
   }
 
   /** Returns view that's currently associated with component */
-  get view(): ViewComponent<_any> | undefined {
+  get view(): ViewComponent<EventRecord> | undefined {
     return this.#view;
   }
 
@@ -173,7 +174,7 @@ export interface PlaceComponentOptions extends ComponentOptions {
 
 /** Component that definitely has it's rectangle set */
 export class PlaceComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> {
   #rectangle: Rectangle;
 

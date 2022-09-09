@@ -17,7 +17,8 @@ import {
   USE_SECONDARY_BUFFER,
 } from "./utils/ansi_codes.ts";
 
-import type { _any, Stdin, Stdout, Timing } from "./types.ts";
+import type { Stdin, Stdout, Timing } from "./types.ts";
+import type { EventRecord } from "./event_emitter.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -55,8 +56,8 @@ export type TuiEventMap = {
   multiKeyPress: EmitterEvent<[MultiKeyPress]>;
   mousePress: EmitterEvent<[MousePress]>;
   close: EmitterEvent<[]>;
-  addComponent: EmitterEvent<[Component<_any>]>;
-  removeComponent: EmitterEvent<[Component<_any>]>;
+  addComponent: EmitterEvent<[Component<EventRecord>]>;
+  removeComponent: EmitterEvent<[Component<EventRecord>]>;
 };
 
 /** Main object of Tui that contains everything keeping it running */
@@ -65,7 +66,7 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
   stdin: Stdin;
   stdout: Stdout;
   style: Style;
-  components: SortedArray<Component<_any>>;
+  components: SortedArray<Component<EventRecord>>;
   updateRate: number;
 
   constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {

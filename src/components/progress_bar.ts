@@ -7,7 +7,8 @@ import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
 
-import type { _any, DeepPartial } from "../types.ts";
+import type { DeepPartial } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
@@ -46,12 +47,12 @@ export type ProgressBarComponentImplementation = ProgressBarComponentOptions & P
 
 /** EventMap that {ProgressBarComponent} uses */
 export type ProgressBarComponentEventMap = {
-  valueChange: EmitterEvent<[ProgressBarComponent<_any>]>;
+  valueChange: EmitterEvent<[ProgressBarComponent<EventRecord>]>;
 };
 
 /** Component that indicates progress */
 export class ProgressBarComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & ProgressBarComponentEventMap> implements ProgressBarComponentImplementation {
   #value: number;
 

@@ -5,11 +5,11 @@ import { emptyStyle, Style, Theme } from "../theme.ts";
 import { PlaceComponentOptions } from "../component.ts";
 import { ViewComponent } from "./view.ts";
 import { SliderComponent } from "./slider.ts";
-import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Theme used by {ScrollableView} to style itself */
 export interface ScrollableViewTheme extends Theme {
@@ -49,7 +49,7 @@ export type ScrollableViewComponentImplementation = ScrollableViewComponentPriva
  * Components drawn over bounds of this component automatically adjust its offset, and when needed scrollbars are added.
  */
 export class ScrollableViewComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends ViewComponent<EventMap> implements ScrollableViewComponentImplementation {
   declare theme: ScrollableViewTheme;
 

@@ -2,7 +2,7 @@
 
 /** Type for event listener function */
 export type EventListener<
-  Events extends Record<string, EmitterEvent>,
+  Events extends EventRecord,
   Type extends keyof Events = keyof Events,
 > = (this: EventEmitter<Events>, ...args: Events[Type]["args"]) => void | Promise<void>;
 
@@ -14,8 +14,10 @@ export type EmitterEvent<Args extends unknown[] = unknown[]> = {
   args: Args;
 };
 
+export type EventRecord = Record<string, EmitterEvent>;
+
 /** Custom implementation of event emitter */
-export class EventEmitter<EventMap extends Record<string, EmitterEvent>> {
+export class EventEmitter<EventMap extends EventRecord> {
   listeners: {
     [key in keyof EventMap]?: EventListener<EventMap, key>[];
   } = {};

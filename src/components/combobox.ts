@@ -5,7 +5,8 @@ import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
-import type { _any, Rectangle } from "../types.ts";
+import type { Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {ComboboxComponent}'s constructor can interpret */
 export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
@@ -28,7 +29,7 @@ export type ComboboxComponentImplementation = ComboboxComponentOptions & Combobo
 
 /** EventMap that {ComboboxComponent} uses */
 export type ComboboxComponentEventMap = {
-  valueChange: EmitterEvent<[ComboboxComponent<_any, _any>]>;
+  valueChange: EmitterEvent<[ComboboxComponent<string[], EventRecord>]>;
 };
 
 /**
@@ -37,7 +38,7 @@ export type ComboboxComponentEventMap = {
  */
 export class ComboboxComponent<
   OptionType extends string[] = string[],
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & ComboboxComponentEventMap> implements ComboboxComponentImplementation {
   #lastInteraction = 0;
   #temporaryComponents: Component[] = [];

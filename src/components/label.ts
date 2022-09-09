@@ -1,11 +1,11 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Component, ComponentOptions } from "../component.ts";
-import { EmitterEvent } from "../event_emitter.ts";
 
 import { textWidth } from "../utils/strings.ts";
 
 import type { Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface describing positioning of label when given boundaries using `rectangle` */
 export interface LabelTextAlign {
@@ -30,7 +30,7 @@ export type LabelComponentImplementation = LabelComponentOptions;
  * When `rectangle`'s `width` and/or `height` properties are set to `-1` then `width` and/or `height` are set dynamically depending on the text size.
  */
 export class LabelComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> implements LabelComponentImplementation {
   #rectangle: Rectangle;
   value: string;

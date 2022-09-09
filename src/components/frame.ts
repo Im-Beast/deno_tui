@@ -1,7 +1,8 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Component, ComponentOptions, ComponentState } from "../component.ts";
-import { EmitterEvent } from "../event_emitter.ts";
+
+import type { EventRecord } from "../event_emitter.ts";
 
 import type { Rectangle } from "../types.ts";
 
@@ -58,7 +59,7 @@ export type FrameComponentImplementation = FrameComponentPrivate;
 
 /** Component that creates frame border either around a `component` or within `rectangle` depending on what's specified */
 export class FrameComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> implements FrameComponentImplementation {
   framePieces: "sharp" | "rounded" | FramePieceType;
 

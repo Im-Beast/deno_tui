@@ -2,7 +2,8 @@
 
 import { ButtonComponent } from "./button.ts";
 import { PlaceComponentOptions } from "../component.ts";
-import { EmitterEvent } from "../event_emitter.ts";
+
+import type { EventRecord } from "../event_emitter.ts";
 
 enum Mark {
   Check = "✓",
@@ -25,7 +26,7 @@ export type CheckboxComponentImplementation = CheckboxComponentPrivate;
 
 /** Component that allows user to toggle input */
 export class CheckboxComponent<
-  EventMap extends Record<string, EmitterEvent> = Record<never, never>,
+  EventMap extends EventRecord = Record<never, never>,
 > extends ButtonComponent<EventMap> implements CheckboxComponentImplementation {
   #value: boolean;
   label: string;
