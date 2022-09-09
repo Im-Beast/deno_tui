@@ -35,6 +35,8 @@ const tui = new Tui({
   }),
 });
 
+tui.dispatch();
+
 handleKeypresses(tui);
 handleMouseControls(tui);
 handleKeyboardControls(tui);
@@ -359,17 +361,18 @@ queueMicrotask(() => {
 
 let direction = 1;
 let avgFps = 60;
-for await (const event of tui.run()) {
-  if (event.type === "update") {
-    avgFps = ((avgFps * 99) + tui.canvas.fps) / 100;
-    const fpsText = `${avgFps.toFixed(2)} FPS`;
-    tui.canvas.draw(0, 0, baseTheme.base(fpsText));
 
-    if (progressBar1.value === progressBar1.max || progressBar1.value === progressBar1.min) {
-      direction *= -1;
-    }
+tui.run();
 
-    progressBar1.value += direction;
-    progressBar2.value += direction;
+tui.on("update", () => {
+  avgFps = ((avgFps * 99) + tui.canvas.fps) / 100;
+  const fpsText = `${avgFps.toFixed(2)} FPS`;
+  tui.canvas.draw(0, 0, baseTheme.base(fpsText));
+
+  if (progressBar1.value === progressBar1.max || progressBar1.value === progressBar1.min) {
+    direction *= -1;
   }
-}
+
+  progressBar1.value += direction;
+  progressBar2.value += direction;
+});
