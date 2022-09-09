@@ -6,7 +6,6 @@ import { emptyStyle, Style } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 
-import { CombinedAsyncIterator } from "./utils/combined_async_iterator.ts";
 import { sleep } from "./utils/async.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
 import {
@@ -19,6 +18,7 @@ import {
 
 import type { Stdin, Stdout, Timing } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
+import { Deffered } from "./utils/deffered.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -55,13 +55,15 @@ export type TuiEventMap = {
   keyPress: EmitterEvent<[KeyPress]>;
   multiKeyPress: EmitterEvent<[MultiKeyPress]>;
   mousePress: EmitterEvent<[MousePress]>;
-  close: EmitterEvent<[]>;
+  dispatch: EmitterEvent<[]>;
   addComponent: EmitterEvent<[Component<EventRecord>]>;
   removeComponent: EmitterEvent<[Component<EventRecord>]>;
 };
 
 /** Main object of Tui that contains everything keeping it running */
 export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation {
+  #dispatches: (() => void)[] = [];
+
   canvas: Canvas;
   stdin: Stdin;
   stdout: Stdout;
@@ -83,78 +85,103 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
     });
 
     this.updateRate = updateRate ?? this.canvas.refreshRate;
-
-    const closeEventDispatcher = () => {
-      this.emit("close");
-    };
-
-    // Dispatch "close" event when Tui should be stopped
-    addEventListener("unload", closeEventDispatcher);
-    Deno.addSignalListener("SIGINT", closeEventDispatcher);
-
-    if (Deno.build.os === "windows") {
-      Deno.addSignalListener("SIGBREAK", closeEventDispatcher);
-
-      this.on("keyPress", ({ key, ctrl }) => {
-        if (key === "c" && ctrl) closeEventDispatcher();
-      });
-    } else {
-      Deno.addSignalListener("SIGTERM", closeEventDispatcher);
-    }
-
-    // Handle "close" event
-    this.on("close", () => {
-      this.off();
-
-      Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
-
-      // Delay exiting from app so it's possible to attach anywhere else to "close" event
-      queueMicrotask(() => {
-        Deno.exit(0);
-      });
-    });
-  }
-
-  /** Async generator that dispatches "update" event */
-  async *update(): AsyncGenerator<{ type: "update" }, void, void> {
-    while (true) {
-      this.emit("update");
-      yield { type: "update" };
-      await sleep(this.updateRate);
-    }
-  }
-
-  /** Async generator that dispatches "render" event */
-  async *render(): AsyncGenerator<{ type: "render"; timing: Timing }, void, void> {
-    for await (const timing of this.canvas.render()) {
-      this.emit("render", timing);
-      yield { type: "render", timing };
-    }
   }
 
   /**
-   *  Async generator that handles "update" and "render" events
-   *   - on "update" event it renders background using `tui.style`.
-   *   Then it calls `draw()` on every component in `tui.components`
+   * It does several things:
+   *  - Disables all event listeners
+   *  - Calls `Component.remove` on every component in `Tui.components`
+   *  - Stops `Tui.render()` and `Tui.update()` via `Tui.#dispatches`
+   *  - Writes ANSI sequences to stdout which shows back cursor and returns to using primary terminal buffer
+   *  - Queues microtask to exit deno app with exit code 0
    */
-  async *run(): AsyncGenerator<{ type: "render"; timing: Timing } | { type: "update" }, void, void> {
+  remove(): void {
+    this.off();
+
+    for (const dispatch of this.#dispatches) dispatch();
+    for (const component of this.components) component.remove();
+
+    Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
+
+    // Delay exiting from app so it's possible to attach anywhere else to "close" event
+    queueMicrotask(() => Deno.exit(0));
+  }
+
+  /**
+   * Emits "dispatch" event on signals and keystrokes that should terminate an application
+   *  - SIGBREAK
+   *  - SIGTERM (not windows)
+   *  - SIGINT
+   *  - CTRL+C (windows)
+   */
+  dispatch(): void {
+    const closeEventDispatcher = () => this.emit("dispatch");
+
+    switch (Deno.build.os) {
+      case "windows":
+        Deno.addSignalListener("SIGBREAK", closeEventDispatcher);
+
+        this.on("keyPress", ({ key, ctrl }) => {
+          if (key === "c" && ctrl) closeEventDispatcher();
+        });
+        break;
+      default:
+        Deno.addSignalListener("SIGTERM", closeEventDispatcher);
+        break;
+    }
+
+    Deno.addSignalListener("SIGINT", closeEventDispatcher);
+
+    this.on("dispatch", this.remove);
+  }
+
+  /**
+   * Generates "update" events in {Tui}
+   * Returns function that stops it
+   */
+  update(): () => void {
+    const deffered = new Deffered<void>();
+
+    (async () => {
+      while (deffered.state === "pending") {
+        this.emit("update");
+        await sleep(this.updateRate);
+      }
+    })();
+
+    return deffered.resolve;
+  }
+
+  /**
+   * Redirects "frame" event from {Canvas} to "render" event in {Tui}
+   * Returns function that stops {Canvas.render}
+   */
+  render(): () => void {
+    this.canvas.on("frame", (timing) => this.emit("render", timing));
+    return this.canvas.render();
+  }
+
+  /**
+   * It does several things:
+   *  - Writes ANSI sequences to stdout to use secondary terminal buffer, hide cursor and clear screen
+   *  - Calls `Tui.update()` and `Tui.render()`
+   *  - On "update" event it renders background using `Tui.style` and calls `Component.draw()` on every component in `Tui.components`
+   */
+  run(): void {
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR + CLEAR_SCREEN));
 
-    const iterator = new CombinedAsyncIterator<
-      { type: "render"; timing: Timing } | { type: "update" }
-    >(this.update(), this.render());
+    this.#dispatches.push(
+      this.update(),
+      this.render(),
+    );
 
-    for await (const event of iterator) {
-      if (event.type === "update") {
-        const { columns, rows } = this.canvas.size;
-        this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
+    this.on("update", () => {
+      const { columns, rows } = this.canvas.size;
+      this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
 
-        for (const component of this.components) {
-          component.draw();
-        }
+      for (const component of this.components) {
+        component.draw();
       }
-
-      yield event;
-    }
+    });
   }
 }
