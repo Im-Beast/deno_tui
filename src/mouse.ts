@@ -18,7 +18,7 @@ const encoder = new TextEncoder();
 export function handleMouseControls(tui: Tui): void {
   Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
 
-  tui.on("close", () => {
+  tui.on("dispatch", () => {
     Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
