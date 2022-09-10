@@ -96,7 +96,7 @@ const button = new ButtonComponent({
   label: String(value),
 });
 
-button.addEventListener("stateChange", () => {
+button.on("stateChange", () => {
   if (button.state !== "active") return;
   button.label = String(++value);
 })
