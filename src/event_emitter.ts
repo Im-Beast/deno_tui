@@ -34,8 +34,9 @@ export class EventEmitter<EventMap extends EventRecord> {
     }
 
     if (once) {
+      const originalListener = listener;
       listener = (...args: EventMap[Type]["args"]) => {
-        listener.apply(this, args);
+        originalListener.apply(this, args);
         this.off(type, listener);
       };
     }
