@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { clamp, fits, fitsInRectangle, normalize } from "../../src/utils/numbers.ts";
 import { assertEquals } from "../deps.ts";
 
