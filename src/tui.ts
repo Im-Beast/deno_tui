@@ -93,7 +93,6 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
    *  - Calls `Component.remove` on every component in `Tui.components`
    *  - Stops `Tui.render()` and `Tui.update()` via `Tui.#dispatches`
    *  - Writes ANSI sequences to stdout which shows back cursor and returns to using primary terminal buffer
-   *  - Queues microtask to exit deno app with exit code 0
    */
   remove(): void {
     this.off();
@@ -102,9 +101,6 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
     for (const component of this.components) component.remove();
 
     Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
-
-    // Delay exiting from app so it's possible to attach anywhere else to "close" event
-    queueMicrotask(() => Deno.exit(0));
   }
 
   /**
@@ -132,7 +128,11 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
 
     Deno.addSignalListener("SIGINT", closeEventDispatcher);
 
-    this.on("dispatch", this.remove);
+    this.on("dispatch", () => {
+      this.remove();
+      // Delay exiting from app so it's possible to attach anywhere else to "dispatch" event
+      queueMicrotask(() => Deno.exit(0));
+    });
   }
 
   /**
