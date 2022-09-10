@@ -1,15 +1,15 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { hierarchizeTheme, Theme } from "../theme.ts";
-import { ComponentEvent } from "../events.ts";
 
 import { PlaceComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
-import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { DeepPartial } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Theme used by {SliderComponent} to style itself */
 export interface SliderTheme extends Theme {
@@ -38,7 +38,7 @@ export type SliderComponentImplementation = SliderComponentOptions & SliderCompo
 
 /** EventMap that {SliderComponent} uses */
 export type SliderComponentEventMap = {
-  valueChange: ComponentEvent<"valueChange", SliderComponent>;
+  valueChange: EmitterEvent<[SliderComponent<EventRecord>]>;
 };
 
 /** Component that allows user to input number by sliding a handle */
@@ -64,11 +64,10 @@ export class SliderComponent<
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
     const lastMove = { x: -1, y: -1, time: 0 };
-    this.tui.addEventListener("keyPress", ({ keyPress }) => {
+    this.on("keyPress", (keyPress) => {
       const { key, ctrl, meta, shift } = keyPress;
 
       if (ctrl || meta || shift) return;
-      if (this.state !== "active" && this.state !== "focused") return;
 
       switch (key) {
         case "up":
@@ -82,7 +81,7 @@ export class SliderComponent<
       }
     });
 
-    this.tui.addEventListener("mousePress", ({ mousePress }) => {
+    this.on("mousePress", (mousePress) => {
       const { x, y, drag } = mousePress;
 
       if (Date.now() - lastMove.time > 300) {
@@ -118,7 +117,7 @@ export class SliderComponent<
     this.#value = clamp(value, this.min, this.max);
 
     if (this.#value !== prev) {
-      this.dispatchEvent(new ComponentEvent("valueChange", this));
+      this.emit("valueChange", this);
     }
   }
 

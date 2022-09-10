@@ -1,13 +1,13 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Tui } from "./tui.ts";
-import { ComponentEvent } from "./events.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
+import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
+import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 
-import { EventRecord, TypedEventTarget } from "./utils/typed_event_target.ts";
-
-import type { Rectangle } from "./types.ts";
 import type { ViewComponent } from "./components/view.ts";
+import type { Rectangle } from "./types.ts";
+import type { EventRecord } from "./event_emitter.ts";
 
 /** Interface defining object that {Component}'s constructor can interpret */
 export interface ComponentOptions {
@@ -33,13 +33,15 @@ export interface ComponentPrivate {
 }
 
 /** Implementation for {Component} class */
-export type ComponentImplementation =
-  & ComponentPrivate
-  & TypedEventTarget<ComponentEventMap>;
+export type ComponentImplementation = ComponentPrivate;
 
 /** Default EventMap that every component should use */
 export type ComponentEventMap = {
-  stateChange: ComponentEvent<"stateChange">;
+  stateChange: EmitterEvent<[Component<EventRecord>]>;
+  remove: EmitterEvent<[Component<EventRecord>]>;
+  keyPress: EmitterEvent<[KeyPress]>;
+  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
+  mousePress: EmitterEvent<[MousePress]>;
 };
 
 /** Interactivity states that components should use */
@@ -51,13 +53,13 @@ export type ComponentState =
 /** Base Component that should be used as base for creating other components */
 export class Component<
   EventMap extends EventRecord = Record<never, never>,
-> extends TypedEventTarget<EventMap & ComponentEventMap> implements ComponentImplementation {
+> extends EventEmitter<EventMap & ComponentEventMap> implements ComponentImplementation {
   tui: Tui;
   theme: Theme;
   #state: ComponentState;
   zIndex: number;
 
-  #view?: ViewComponent;
+  #view?: ViewComponent<EventRecord>;
   #rectangle?: Rectangle;
 
   constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
@@ -70,16 +72,34 @@ export class Component<
     this.tui = tui;
     this.#view = view;
 
+    const offKeyPress = this.tui.on("keyPress", (keyPress) => {
+      if (this.#state !== "base") this.emit("keyPress", keyPress);
+    });
+
+    const offMultiKeyPress = this.tui.on("multiKeyPress", (multiKeyPress) => {
+      if (this.#state !== "base") this.emit("multiKeyPress", multiKeyPress);
+    });
+
+    const offMousePress = this.tui.on("mousePress", (mousePress) => {
+      if (this.#state !== "base") this.emit("mousePress", mousePress);
+    });
+
+    this.on("remove", () => {
+      offKeyPress();
+      offMultiKeyPress();
+      offMousePress();
+    });
+
     // This should run after everything else is setup
     // That's why it's added after everything on even loop is ready
     queueMicrotask(() => {
       this.tui.components.push(this);
-      this.tui.dispatchEvent(new ComponentEvent("addComponent", this));
+      this.tui.emit("addComponent", this);
     });
   }
 
   /** Returns view that's currently associated with component */
-  get view(): ViewComponent | undefined {
+  get view(): ViewComponent<EventRecord> | undefined {
     return this.#view;
   }
 
@@ -118,7 +138,7 @@ export class Component<
   /** Sets current component state and dispatches stateChange event */
   set state(state) {
     this.#state = state;
-    this.dispatchEvent(new ComponentEvent("stateChange", this));
+    this.emit("stateChange", this);
   }
 
   /** Returns current component state */
@@ -140,8 +160,10 @@ export class Component<
 
   /** Remove component from `tui` and dispatch `removeComponent` event   */
   remove(): void {
+    this.off();
+    this.emit("remove", this);
     this.tui.components.remove(this);
-    this.tui.dispatchEvent(new ComponentEvent("removeComponent", this));
+    this.tui.emit("removeComponent", this);
   }
 }
 

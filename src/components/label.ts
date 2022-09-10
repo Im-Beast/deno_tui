@@ -3,9 +3,9 @@
 import { Component, ComponentOptions } from "../component.ts";
 
 import { textWidth } from "../utils/strings.ts";
-import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface describing positioning of label when given boundaries using `rectangle` */
 export interface LabelTextAlign {

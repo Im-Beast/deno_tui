@@ -3,10 +3,11 @@
 import { Tui } from "../tui.ts";
 import { Canvas } from "../canvas.ts";
 import { Component, PlaceComponent, PlaceComponentOptions } from "../component.ts";
-import type { Margin, Offset, Rectangle } from "../types.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
+
+import type { Margin, Offset, Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface describing object that disguises itself as {Canvas} and intercepts `draw` function and `rectangle` boundaries */
 export interface FakeCanvas extends Canvas {
@@ -46,7 +47,7 @@ export class ViewComponent<
   offset: Offset;
   maxOffset: Offset;
   margin: Margin;
-  components: SortedArray<Component>;
+  components: SortedArray<Component<EventRecord>>;
 
   constructor(options: ViewComponentOptions) {
     super(options);
@@ -55,7 +56,7 @@ export class ViewComponent<
     this.maxOffset = { x: 0, y: 0 };
     this.margin = options.margin ?? { top: 0, left: 0, right: 0, bottom: 0 };
 
-    this.components = new SortedArray<Component>();
+    this.components = new SortedArray();
 
     const { canvas } = this.tui;
     const fakeCanvas = { canvas } as unknown as FakeCanvas;
@@ -79,7 +80,7 @@ export class ViewComponent<
     const fakeTui = { realTui: tui, canvas: fakeCanvas } as FakeTui;
     this.fakeTui = Object.setPrototypeOf(fakeTui, tui);
 
-    fakeTui.addEventListener("addComponent", ({ component }) => {
+    fakeTui.on("addComponent", (component) => {
       if (component.view !== this || !component.rectangle) return;
 
       component.tui = fakeTui;
@@ -89,7 +90,7 @@ export class ViewComponent<
       this.updateOffsets(component);
     });
 
-    fakeTui.addEventListener("removeComponent", ({ component }) => {
+    fakeTui.on("removeComponent", (component) => {
       if (component.view !== this) return;
 
       component.tui = fakeTui.realTui;
@@ -101,7 +102,7 @@ export class ViewComponent<
   }
 
   /** @param component if specified then checks and updates offsets when given component overflows current offsets otherwise it loops over components to recalculate offsets */
-  updateOffsets(component?: Component): void {
+  updateOffsets(component?: Component<EventRecord>): void {
     const { top, bottom, left, right } = this.margin;
 
     if (!component) {

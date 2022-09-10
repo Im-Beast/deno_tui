@@ -2,8 +2,9 @@
 
 import { PlaceComponent, PlaceComponentOptions } from "../component.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
+/** Simple component that is a Box that cannot be interacted with by default */
 export class BoxComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
   constructor(options: PlaceComponentOptions) {
     super(options);

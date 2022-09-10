@@ -1,14 +1,13 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { ComponentEvent } from "../events.ts";
-
-import { PlaceComponentOptions } from "../component.ts";
+import { ComponentEventMap, PlaceComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
-import { ComboboxComponent } from "./combobox.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
 import { insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
+
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {TextboxComponent}'s constructor can interpret */
 export interface TextboxComponentOptions extends PlaceComponentOptions {
@@ -31,8 +30,8 @@ export interface TextboxComponentPrivate {
 export type TextboxComponentImplementation = TextboxComponentOptions & TextboxComponentPrivate;
 
 /** EventMap that {TextboxComponent} uses */
-export type TextboxComponentEventMap = {
-  value: ComponentEvent<"valueChange", ComboboxComponent>;
+export type TextboxComponentEventMap = ComponentEventMap & {
+  valueChange: EmitterEvent<[TextboxComponent<EventRecord>]>;
 };
 
 /**
@@ -63,9 +62,7 @@ export class TextboxComponent<
     this.value = options.value ?? "";
     this.cursorPosition = { x: this.#value.at(-1)?.length ?? 0, y: this.#value.length - 1 ?? 0 };
 
-    this.tui.addEventListener("keyPress", ({ keyPress }) => {
-      if (this.state === "base") return;
-
+    this.on("keyPress", (keyPress) => {
       const { key, ctrl, meta } = keyPress;
 
       if (ctrl || meta) return;
@@ -131,7 +128,8 @@ export class TextboxComponent<
       x = clamp(x, 0, this.#value[y].length);
 
       this.cursorPosition = { x, y };
-      this.dispatchEvent(new ComponentEvent("valueChange", this));
+
+      this.emit("valueChange", this);
     });
   }
 

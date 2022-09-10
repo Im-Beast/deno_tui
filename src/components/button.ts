@@ -3,7 +3,7 @@
 import { BoxComponent } from "./box.ts";
 import { PlaceComponentOptions } from "../component.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {SliderComponent}'s constructor can interpret */
 export interface ButtonComponentOptions extends PlaceComponentOptions {

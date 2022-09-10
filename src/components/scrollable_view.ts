@@ -7,9 +7,9 @@ import { ViewComponent } from "./view.ts";
 import { SliderComponent } from "./slider.ts";
 
 import { clamp } from "../utils/numbers.ts";
-import { EventRecord } from "../utils/typed_event_target.ts";
 
 import type { DeepPartial } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Theme used by {ScrollableView} to style itself */
 export interface ScrollableViewTheme extends Theme {
@@ -82,9 +82,9 @@ export class ScrollableViewComponent<
 
     this.scrollbars = {};
 
-    this.tui.addEventListener("mousePress", ({ mousePress }) => {
+    this.on("mousePress", (mousePress) => {
       const { scroll, shift } = mousePress;
-      if (!scroll || this.state === "base") return;
+      if (!scroll) return;
 
       const { horizontal, vertical } = this.scrollbars;
 
@@ -97,12 +97,15 @@ export class ScrollableViewComponent<
       }
     });
 
-    this.tui.addEventListener(["addComponent", "removeComponent"], () => {
+    const updateScrollbarOffsets = () => {
       const { horizontal, vertical } = this.scrollbars;
 
       if (horizontal) horizontal.max = this.maxOffset.x;
       if (vertical) vertical.max = this.maxOffset.y;
-    });
+    };
+
+    this.tui.on("addComponent", updateScrollbarOffsets);
+    this.tui.on("removeComponent", updateScrollbarOffsets);
   }
 
   draw(): void {
@@ -134,7 +137,7 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.scrollbars.horizontal.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.horizontal.on("valueChange", (component) => {
         this.offset.x = component.value;
       });
 
@@ -169,7 +172,7 @@ export class ScrollableViewComponent<
         },
       });
 
-      this.scrollbars.vertical!.addEventListener("valueChange", ({ component }) => {
+      this.scrollbars.vertical.on("valueChange", (component) => {
         this.offset.y = component.value;
       });
 

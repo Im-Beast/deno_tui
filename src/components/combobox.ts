@@ -1,14 +1,12 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { ComponentEvent } from "../events.ts";
-
 import { Component, ComponentOptions } from "../component.ts";
 import { BoxComponent } from "./box.ts";
 import { ButtonComponent } from "./button.ts";
-
-import { EventRecord } from "../utils/typed_event_target.ts";
+import { EmitterEvent } from "../event_emitter.ts";
 
 import type { Rectangle } from "../types.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {ComboboxComponent}'s constructor can interpret */
 export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
@@ -31,7 +29,7 @@ export type ComboboxComponentImplementation = ComboboxComponentOptions & Combobo
 
 /** EventMap that {ComboboxComponent} uses */
 export type ComboboxComponentEventMap = {
-  valueChange: ComponentEvent<"valueChange", ComboboxComponent>;
+  valueChange: EmitterEvent<[ComboboxComponent<string[], EventRecord>]>;
 };
 
 /**
@@ -94,12 +92,12 @@ export class ComboboxComponent<
           zIndex: this.zIndex,
         });
 
-        button.addEventListener("stateChange", ({ component }) => {
+        button.on("stateChange", (component) => {
           const { state } = component;
           if (state !== "active") return;
           this.label = option;
           this.option = option;
-          this.dispatchEvent(new ComponentEvent("valueChange", this));
+          this.emit("valueChange", this);
           this.interact();
         });
 

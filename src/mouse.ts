@@ -18,11 +18,11 @@ const encoder = new TextEncoder();
 export function handleMouseControls(tui: Tui): void {
   Deno.writeSync(tui.stdout.rid, encoder.encode(ENABLE_MOUSE));
 
-  tui.addEventListener("close", () => {
+  tui.on("dispatch", () => {
     Deno.writeSync(tui.stdout.rid, encoder.encode(DISABLE_MOUSE));
   });
 
-  tui.addEventListener("mousePress", ({ mousePress }) => {
+  tui.on("mousePress", (mousePress) => {
     const { x, y, drag, scroll, shift, meta, ctrl, release } = mousePress;
 
     if (drag || scroll !== 0 || shift || meta || ctrl) return;

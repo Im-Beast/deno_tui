@@ -10,6 +10,8 @@ const tui = new Tui({
   style: crayon.bgBlack.white,
 });
 
+tui.dispatch();
+
 let hue = 0;
 const box = new BoxComponent({
   tui,
@@ -29,21 +31,21 @@ const moveDirection = {
   y: 0.5,
 };
 
-for await (const event of tui.run()) {
+tui.run();
+
+tui.on("update", () => {
   // Frequency of this type being dispatched is based on `tui.updateRate`
   // If you would like to support lower or higher update rates you should calculate delta time and base box movement on that
-  if (event.type === "update") {
-    const canvasSize = tui.canvas.size;
+  const canvasSize = tui.canvas.size;
 
-    if (box.rectangle.row + box.rectangle.height >= canvasSize.rows || box.rectangle.row <= 0) {
-      moveDirection.y *= -1;
-    }
-
-    if (box.rectangle.column + box.rectangle.width >= canvasSize.columns || box.rectangle.column <= 0) {
-      moveDirection.x *= -1;
-    }
-
-    box.rectangle.column += moveDirection.x;
-    box.rectangle.row += moveDirection.y;
+  if (box.rectangle.row + box.rectangle.height >= canvasSize.rows || box.rectangle.row <= 0) {
+    moveDirection.y *= -1;
   }
-}
+
+  if (box.rectangle.column + box.rectangle.width >= canvasSize.columns || box.rectangle.column <= 0) {
+    moveDirection.x *= -1;
+  }
+
+  box.rectangle.column += moveDirection.x;
+  box.rectangle.row += moveDirection.y;
+});

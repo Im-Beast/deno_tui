@@ -3,7 +3,7 @@
 import { ButtonComponent } from "./button.ts";
 import { PlaceComponentOptions } from "../component.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 enum Mark {
   Check = "✓",

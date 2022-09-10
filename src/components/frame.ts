@@ -2,7 +2,7 @@
 
 import { Component, ComponentOptions, ComponentState } from "../component.ts";
 
-import { EventRecord } from "../utils/typed_event_target.ts";
+import type { EventRecord } from "../event_emitter.ts";
 
 import type { Rectangle } from "../types.ts";
 
