@@ -24,9 +24,6 @@ Simple [Deno](https://github.com/denoland/deno/) module that allows easy creatio
 
 > **Note** --unstable flag is required everywhere, because not every used API is stabilized yet.
 
-> **Note** I'm unable to test macOS version myself, if you do – please open a discussion or an issue describing how well
-> (or not) it runs
-
 | Operating system     | Linux | macOS | Windows¹<sup>,</sup>² | WSL  |
 | -------------------- | ----- | ----- | --------------------- | ---- |
 | Base                 | ✔️    | ✔️    | ✔️                    | ✔️   |
@@ -59,6 +56,8 @@ const tui = new Tui({
     stdout: Deno.stdout,
   }),
 });
+
+tui.dispatch(); // Close Tui on CTRL+C
 ```
 
 2. Enable interaction using keyboard and mouse
@@ -99,7 +98,7 @@ const button = new ButtonComponent({
 
 button.addEventListener("stateChange", () => {
   if (button.state !== "active") return;
-  button.label = String(value);
+  button.label = String(++value);
 })
 ```
 
@@ -108,9 +107,7 @@ button.addEventListener("stateChange", () => {
 ```ts
 ...
 
-for await (const _event of tui.run()) {
-  // You can intercept and react to "update" and "render" events here
-}
+tui.run();
 ```
 
 ## 🤝 Contributing
