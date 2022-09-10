@@ -10,6 +10,8 @@ const tui = new Tui({
   style: crayon.bgBlack.white,
 });
 
+tui.dispatch();
+
 handleKeypresses(tui);
 handleMouseControls(tui);
 
@@ -17,7 +19,7 @@ class DraggableBoxComponent extends BoxComponent {
   constructor(options: PlaceComponentOptions) {
     super(options);
 
-    tui.addEventListener("mousePress", ({ mousePress: { drag, x, y } }) => {
+    tui.on("mousePress", ({ drag, x, y }) => {
       if (!drag || this.state === "base") return;
 
       this.rectangle.column = x;
@@ -90,6 +92,4 @@ new DraggableBoxComponent({
   zIndex: 3,
 });
 
-for await (const _ of tui.run()) {
-  //
-}
+tui.run();
