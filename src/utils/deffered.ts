@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 /** Promise with `reject` and `resolve` functions */
 export class Deffered<T = void> extends Promise<T> {
   resolve!: (value: T | PromiseLike<T>) => void;
