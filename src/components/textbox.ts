@@ -84,72 +84,85 @@ export class TextboxComponent<
 
     this.on("keyPress", (keyPress) => {
       const { key, ctrl, meta } = keyPress;
-
       if (ctrl || meta) return;
 
       let { x, y } = this.cursorPosition;
+
+      const startValue = this.value;
 
       if (key.length === 1) {
         this.#value[y] = insertAt(this.#value[y], x, key);
         ++x;
       } else {
+        const currentLine = this.#value[y];
+        const endOfLine = x === currentLine.length;
+
         switch (key) {
           case "space":
-            this.#value[y] = insertAt(this.#value[y], ++x, " ");
+            this.#value[y] = insertAt(this.#value[y], x, " ");
+            ++x;
             break;
           case "tab":
-            this.#value[y] = insertAt(this.#value[y], ++x, "\t");
+            this.#value[y] = insertAt(this.#value[y], x, "  ");
+            ++x;
+            break;
+          case "up":
+            --y;
+            break;
+          case "down":
+            ++y;
+            break;
+          case "left":
+            --x;
+            break;
+          case "right":
+            ++x;
             break;
           case "home":
             x = 0;
             break;
           case "end":
-            x = this.#value[y].length;
-            break;
-          case "up":
-            x = Math.min(x, this.#value[--y]?.length ?? 0);
-            break;
-          case "down":
-            x = Math.min(x, this.#value[++y]?.length ?? 0);
-            break;
-          case "left":
-            x = Math.max(x - 1, 0);
-            break;
-          case "right":
-            x = Math.min(x + 1, this.#value[y].length);
-            break;
-          case "backspace":
-            if (x > 0) {
-              this.#value[y] = this.#value[y].slice(0, x - 1) +
-                this.#value[y].slice(x);
-              --x;
-            }
-            break;
-          case "delete":
-            this.#value[y] = this.#value[y].slice(0, x) +
-              this.#value[y].slice(x + 1);
+            x = currentLine.length;
             break;
           case "return":
-            if (!this.multiline) break;
-
-            if (x === this.#value[y].length) {
-              ++y;
-            } else {
-              this.#value.splice(y, 1, this.#value[y].slice(0, x), this.#value[y].slice(x));
-              ++y;
+            if (!endOfLine) {
+              const splitLines = [currentLine.slice(0, x), currentLine.slice(x)];
+              this.#value.splice(y, 1, ...splitLines);
               x = 0;
+            }
+            ++y;
+            break;
+          case "delete":
+            if (!endOfLine) {
+              this.#value[y] = currentLine.slice(0, x) + currentLine.slice(x + 1);
+            } else if (this.#value.length > y + 1) {
+              const combinedLines = currentLine + this.#value[y + 1];
+              this.#value.splice(y, 2, combinedLines);
+            }
+            break;
+          case "backspace":
+            if (y - 1 >= 0 && x === 0) {
+              const previousLine = this.#value[y - 1];
+              const combinedLines = previousLine + currentLine;
+              this.#value.splice(y - 1, 2, combinedLines);
+              --y;
+              x = previousLine.length;
+            } else if (x !== 0) {
+              this.#value[y] = currentLine.slice(0, x - 1) + currentLine.slice(x);
+              --x;
             }
             break;
         }
       }
 
+      y = Math.max(y, 0);
       this.#value[y] ||= "";
-      y = clamp(y, 0, this.#value.length);
       x = clamp(x, 0, this.#value[y].length);
-
       this.cursorPosition = { x, y };
 
-      this.emit("valueChange", this);
+      if (this.value !== startValue) {
+        this.emit("valueChange", this);
+      }
     });
   }
 
