@@ -6,5 +6,10 @@
     "options": {
       "lineWidth": 120
     }
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-control-regex"]
+    }
   }
 }

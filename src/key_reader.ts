@@ -557,7 +557,6 @@ export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePre
   let codes: string[] = [];
 
   if (decodedBuffer.split("\x1b").length > 1) {
-    // deno-lint-ignore no-control-regex
     codes = decodedBuffer.split(/(?=\x1b)/);
   } else if (decodedBuffer.length > 1 && !decodedBuffer.includes("\x1b")) {
     codes = decodedBuffer.split("");

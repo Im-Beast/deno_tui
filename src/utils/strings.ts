@@ -10,7 +10,6 @@ export const UNICODE_CHAR_REGEXP =
 
 /** Strips string of all styles */
 export function stripStyles(string: string): string {
-  // deno-lint-ignore no-control-regex
   return string.replaceAll(/\x1b\[([0-9]|;)+m/gi, "");
 }
 
