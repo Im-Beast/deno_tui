@@ -8,19 +8,29 @@ import { insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
+import { emptyStyle, Style, Theme } from "../theme.ts";
+import type { DeepPartial } from "../types.ts";
+
+export interface TextboxTheme extends Theme {
+  placeholder: Style;
+}
 
 /** Interface defining object that {TextboxComponent}'s constructor can interpret */
 export interface TextboxComponentOptions extends PlaceComponentOptions {
+  theme?: DeepPartial<TextboxTheme>;
   /** Whether texbox should allow new lines */
   multiline?: boolean;
   /** Whether textbox value should be starred ("*") */
   hidden?: boolean;
   /** Current value of textbox */
   value?: string;
+  /** Text displayed as a proposition of example text input */
+  placeholder?: string;
 }
 
 /** Complementary interface defining what's accessible in {TextboxComponent} class in addition to {TextboxComponentOptions} */
 export interface TextboxComponentPrivate {
+  theme: TextboxTheme;
   multiline: boolean;
   hidden: boolean;
   value: string;
@@ -46,7 +56,10 @@ export type TextboxComponentEventMap = ComponentEventMap & {
 export class TextboxComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & TextboxComponentEventMap> implements TextboxComponentImplementation {
+  declare theme: TextboxTheme;
+
   #value: string[] = [];
+  #placeholder?: string[];
 
   cursorPosition: {
     x: number;
@@ -54,6 +67,7 @@ export class TextboxComponent<
   };
   multiline: boolean;
   hidden: boolean;
+  placeholder?: string;
 
   constructor(options: TextboxComponentOptions) {
     super(options);
@@ -61,6 +75,12 @@ export class TextboxComponent<
     this.hidden = options.hidden ?? false;
     this.value = options.value ?? "";
     this.cursorPosition = { x: this.#value.at(-1)?.length ?? 0, y: this.#value.length - 1 ?? 0 };
+    this.placeholder = options.placeholder;
+    if (this.placeholder) {
+      this.#placeholder = this.placeholder.split("\n");
+    }
+
+    this.theme.placeholder = options.theme?.placeholder ?? emptyStyle;
 
     this.on("keyPress", (keyPress) => {
       const { key, ctrl, meta } = keyPress;
@@ -143,13 +163,16 @@ export class TextboxComponent<
   }
 
   draw(): void {
-    const { value } = this;
-
     super.draw();
 
-    if (!value) return;
+    if (!this.value && !this.placeholder) return;
+    const isPlaceholder = !this.value;
+    const textArray = isPlaceholder ? this.#placeholder! : this.#value;
 
-    const { style } = this;
+    const style = isPlaceholder && this.theme.placeholder
+      ? (text: string) => this.style(this.theme.placeholder(text).replaceAll("\x1b[0m", ""))
+      : this.style;
+
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
     const { x, y } = this.cursorPosition;
@@ -157,7 +180,7 @@ export class TextboxComponent<
     const offsetX = Math.max(x - width + 1, 0);
     const offsetY = Math.max(y - height + 1, 0);
 
-    for (const [i, line] of this.#value.entries()) {
+    for (const [i, line] of textArray.entries()) {
       if (i < offsetY) continue;
       if (i - offsetY >= height) break;
 
@@ -175,7 +198,7 @@ export class TextboxComponent<
     canvas.draw(
       column + Math.min(x, width - 1),
       row + Math.min(y, height - 1),
-      style("\x1b[7m" + (this.#value[y][x] ?? " ") + "\x1b[0m"),
+      style("\x1b[7m" + (textArray[y][x] ?? " ") + "\x1b[0m"),
     );
   }
 

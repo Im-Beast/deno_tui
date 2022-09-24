@@ -221,6 +221,22 @@ new TextboxComponent({
 
 new TextboxComponent({
   tui,
+  theme: {
+    ...baseTheme,
+    placeholder: crayon.lightBlack,
+  },
+  multiline: false,
+  rectangle: {
+    column: 2,
+    row: 15,
+    height: 1,
+    width: 10,
+  },
+  placeholder: "example",
+});
+
+new TextboxComponent({
+  tui,
   theme: baseTheme,
   multiline: false,
   hidden: true,
