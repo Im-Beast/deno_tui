@@ -54,13 +54,13 @@ export type ComponentState =
 export class Component<
   EventMap extends EventRecord = Record<never, never>,
 > extends EventEmitter<EventMap & ComponentEventMap> implements ComponentImplementation {
-  tui: Tui;
-  theme: Theme;
   #state: ComponentState;
-  zIndex: number;
-
   #view?: ViewComponent<EventRecord>;
   #rectangle?: Rectangle;
+
+  tui: Tui;
+  theme: Theme;
+  zIndex: number;
 
   constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
     super();

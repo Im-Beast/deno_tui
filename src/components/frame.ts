@@ -61,10 +61,10 @@ export type FrameComponentImplementation = FrameComponentPrivate;
 export class FrameComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> implements FrameComponentImplementation {
-  framePieces: "sharp" | "rounded" | FramePieceType;
-
   #component?: Component;
   #rectangle?: Rectangle;
+
+  framePieces: "sharp" | "rounded" | FramePieceType;
 
   constructor({ tui, view, component, rectangle, theme, framePieces, zIndex }: FrameComponentOptions) {
     super({

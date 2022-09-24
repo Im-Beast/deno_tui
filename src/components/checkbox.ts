@@ -29,6 +29,7 @@ export class CheckboxComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends ButtonComponent<EventMap> implements CheckboxComponentImplementation {
   #value: boolean;
+
   label: string;
 
   constructor(options: CheckboxComponentOptions) {

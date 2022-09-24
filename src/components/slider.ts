@@ -46,6 +46,7 @@ export class SliderComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & SliderComponentEventMap> implements SliderComponentImplementation {
   declare theme: SliderTheme;
+
   direction: "horizontal" | "vertical";
   min: number;
   max: number;

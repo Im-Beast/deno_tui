@@ -19,6 +19,7 @@ export class ButtonComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap> implements ButtonComponentImplementation {
   #lastInteraction = 0;
+
   label?: string;
 
   constructor(options: ButtonComponentOptions) {

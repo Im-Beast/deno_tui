@@ -20,6 +20,7 @@ export interface ProgressBarTheme extends Theme {
 
 /** Interface defining object that {ProgressBarComponent}'s constructor can interpret */
 export interface ProgressBarComponentOptions extends PlaceComponentOptions {
+  theme?: DeepPartial<ProgressBarTheme>;
   /** Current value */
   value: number;
   /** Minimal value of {ProgressBarComponent} */
@@ -28,7 +29,6 @@ export interface ProgressBarComponentOptions extends PlaceComponentOptions {
   max: number;
   /** Whether {ProgressBarComponent} is vertical or horizontal */
   direction: "horizontal" | "vertical";
-  theme?: DeepPartial<ProgressBarTheme>;
   /**
    * Whether {ProgressBarComponent} should use UNICODE characters to create effect of more gradual, smooth looking progress
    * Keep in mind that not every terminal might support used characters
@@ -54,9 +54,10 @@ export type ProgressBarComponentEventMap = {
 export class ProgressBarComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends BoxComponent<EventMap & ProgressBarComponentEventMap> implements ProgressBarComponentImplementation {
+  declare theme: ProgressBarTheme;
+
   #value: number;
 
-  declare theme: ProgressBarTheme;
   direction: "horizontal" | "vertical";
   min: number;
   max: number;

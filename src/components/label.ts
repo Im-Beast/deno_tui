@@ -33,6 +33,7 @@ export class LabelComponent<
   EventMap extends EventRecord = Record<never, never>,
 > extends Component<EventMap> implements LabelComponentImplementation {
   #rectangle: Rectangle;
+
   value: string;
   align: LabelTextAlign;
 

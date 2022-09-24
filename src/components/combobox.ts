@@ -42,6 +42,7 @@ export class ComboboxComponent<
 > extends BoxComponent<EventMap & ComboboxComponentEventMap> implements ComboboxComponentImplementation {
   #lastInteraction = 0;
   #temporaryComponents: Component[] = [];
+
   label: string;
   options: string[];
   option?: OptionType[number];
