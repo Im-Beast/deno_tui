@@ -251,14 +251,24 @@ new TextboxComponent({
 
 new TextboxComponent({
   tui,
-  theme: baseTheme,
+  theme: {
+    ...baseTheme,
+    lineNumbers: {
+      base: crayon.bgBlue.white,
+    },
+    highlightedLine: {
+      base: crayon.bgLightBlue,
+    },
+  },
   multiline: true,
+  lineNumbering: true,
+  lineHighlighting: true,
   hidden: false,
   rectangle: {
     column: 29,
     row: 11,
     height: 5,
-    width: 10,
+    width: 12,
   },
   value: "hello!\nwhats up?",
 });
