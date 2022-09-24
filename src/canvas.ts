@@ -103,6 +103,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       if (!fitsInRectangle(column, row, rectangle)) return;
 
       frameBufferRow[column] = value;
+
       if (frameBufferRow[column + 1] === undefined) {
         const style = value.replace(stripped, "").replaceAll("\x1b[0m", "");
         frameBufferRow[column + 1] = `${style} \x1b[0m`;
@@ -110,10 +111,13 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       return;
     }
 
-    const distinctStyles = value
-      .replace(stripped, "")
-      .split("\x1b[0m")
-      .filter((v) => v.length > 0);
+    const noResetStyle = value.replaceAll("\x1b[0m", "");
+    const borderIndex = noResetStyle.lastIndexOf("m", noResetStyle.length - stripped.length);
+
+    const distinctStyles = (
+      noResetStyle.substring(0, borderIndex) +
+      noResetStyle.substring(borderIndex).replace(stripped, "")
+    ).split("\x1b[0m").filter((v) => v.length > 0);
 
     if (distinctStyles.length > 1) {
       for (const [i, style] of distinctStyles.entries()) {
