@@ -141,7 +141,7 @@ export class SliderComponent<
           canvas.draw(
             column + normalizedValue * (width - thumbWidth),
             row,
-            thumbStyle((" ".repeat(thumbWidth) + "\n").repeat(height)),
+            thumbStyle((" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height)),
           );
         }
         break;
@@ -152,7 +152,7 @@ export class SliderComponent<
           canvas.draw(
             column,
             row + normalizedValue * (height - thumbHeight),
-            thumbStyle((" ".repeat(width) + "\n").repeat(thumbHeight)),
+            thumbStyle((" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1))),
           );
         }
         break;
