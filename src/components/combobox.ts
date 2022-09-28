@@ -76,6 +76,8 @@ export class ComboboxComponent<
 
     this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
+    const temporaryComponents = this.#temporaryComponents;
+
     if (this.state === "active") {
       const { column, row, width, height } = this.rectangle;
 
@@ -102,12 +104,13 @@ export class ComboboxComponent<
           this.interact();
         });
 
-        this.#temporaryComponents.push(button);
+        temporaryComponents.push(button);
       }
     } else {
-      for (const component of this.#temporaryComponents) {
+      for (const component of temporaryComponents) {
         component.remove();
       }
+      temporaryComponents.length = 0;
     }
 
     this.#lastInteraction = now;
