@@ -9,6 +9,10 @@ import type { ViewComponent } from "./components/view.ts";
 import type { Rectangle } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
 
+/** Type defining any {Component}, even inherited ones */
+// deno-lint-ignore no-explicit-any
+export type AnyComponent = Component<any>;
+
 /** Interface defining object that {Component}'s constructor can interpret */
 export interface ComponentOptions {
   /** Parent tui, used for retrieving canvas and adding event listeners */
