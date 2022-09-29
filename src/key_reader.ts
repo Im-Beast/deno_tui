@@ -160,7 +160,7 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
       });
 
       try {
-        Deno.setRaw(stdin.rid, true);
+        stdin.setRaw(true);
       } catch { /**/ }
 
       while (true) {
@@ -177,7 +177,7 @@ export async function* readKeypresses(stdin: Stdin): AsyncGenerator<(KeyPress | 
     }
     default:
       try {
-        Deno.setRaw(stdin.rid, true, { cbreak: true });
+        stdin.setRaw(true, { cbreak: true });
       } catch { /**/ }
 
       while (true) {
