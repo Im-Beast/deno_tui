@@ -5,7 +5,7 @@ import { PlaceComponentOptions } from "../component.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
 
-/** Interface defining object that {SliderComponent}'s constructor can interpret */
+/** Interface defining object that {ButtonComponent}'s constructor can interpret */
 export interface ButtonComponentOptions extends PlaceComponentOptions {
   /** Text displayed on the center of the button */
   label?: string;
