@@ -65,9 +65,7 @@ export class SliderComponent<
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
     const lastMove = { x: -1, y: -1, time: 0 };
-    this.on("keyPress", (keyPress) => {
-      const { key, ctrl, meta, shift } = keyPress;
-
+    this.on("keyPress", ({ key, ctrl, meta, shift }) => {
       if (ctrl || meta || shift) return;
 
       switch (key) {
@@ -82,9 +80,7 @@ export class SliderComponent<
       }
     });
 
-    this.on("mousePress", (mousePress) => {
-      const { x, y, drag } = mousePress;
-
+    this.on("mousePress", ({ x, y, drag }) => {
       if (Date.now() - lastMove.time > 300) {
         lastMove.x = -1;
         lastMove.y = -1;
