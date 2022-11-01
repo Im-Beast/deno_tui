@@ -8,6 +8,10 @@ export function emptyStyle(text: string): string {
   return text;
 }
 
+export function replaceEmptyStyle(style: Style, replacement: Style): Style {
+  return style === emptyStyle ? replacement : style;
+}
+
 /** Applies default values to properties (lower one hierarchy or `emptyStyle`) that aren't set */
 export function hierarchizeTheme<
   T extends Theme = Theme,
