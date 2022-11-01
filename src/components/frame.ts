@@ -66,21 +66,21 @@ export class FrameComponent<
 
   framePieces: "sharp" | "rounded" | FramePieceType;
 
-  constructor({ tui, view, component, rectangle, theme, framePieces, zIndex }: FrameComponentOptions) {
+  constructor(options: FrameComponentOptions) {
     super({
-      tui,
-      view,
-      rectangle,
-      theme: theme ?? component?.theme,
-      zIndex: zIndex ?? component?.zIndex,
+      tui: options.tui,
+      view: options.view,
+      rectangle: options.rectangle,
+      theme: options.theme ?? options.component?.theme,
+      zIndex: options.zIndex ?? options.component?.zIndex,
     });
 
-    this.component = component;
+    this.component = options.component;
     if (!this.#component) {
-      this.rectangle = rectangle!;
+      this.rectangle = options.rectangle!;
     }
 
-    this.framePieces = framePieces ?? "sharp";
+    this.framePieces = options.framePieces ?? "sharp";
 
     if (!this.#rectangle) {
       throw new Error("You need to pass either rectangle or component that has its rectangle set to FrameComponent");

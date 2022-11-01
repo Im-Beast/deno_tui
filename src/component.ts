@@ -66,15 +66,15 @@ export class Component<
   theme: Theme;
   zIndex: number;
 
-  constructor({ rectangle, theme, zIndex, tui, view }: ComponentOptions) {
+  constructor(options: ComponentOptions) {
     super();
 
-    this.#rectangle = rectangle;
-    this.theme = hierarchizeTheme(theme ?? {});
-    this.zIndex = zIndex ?? 0;
+    this.#rectangle = options.rectangle;
+    this.theme = hierarchizeTheme(options.theme ?? {});
+    this.zIndex = options.zIndex ?? 0;
     this.#state = "base";
-    this.tui = tui;
-    this.#view = view;
+    this.tui = options.tui;
+    this.#view = options.view;
 
     const offKeyPress = this.tui.on("keyPress", (keyPress) => {
       if (this.#state !== "base") this.emit("keyPress", keyPress);

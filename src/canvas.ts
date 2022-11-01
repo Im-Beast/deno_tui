@@ -39,27 +39,27 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   lastRender: number;
   fps: number;
 
-  constructor({ refreshRate, stdout }: CanvasOptions) {
+  constructor(options: CanvasOptions) {
     super();
 
-    this.refreshRate = refreshRate;
-    this.stdout = stdout;
+    this.refreshRate = options.refreshRate;
+    this.stdout = options.stdout;
     this.frameBuffer = [];
     this.previousFrameBuffer = [];
     this.fps = 0;
     this.lastRender = 0;
-    this.size = Deno.consoleSize(this.stdout.rid);
+    this.size = Deno.consoleSize();
 
     switch (Deno.build.os) {
       case "windows":
         this.on("render", (timing) => {
           if (timing !== Timing.Pre) return;
-          this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
+          this.resizeCanvas(Deno.consoleSize());
         });
         break;
       default:
         Deno.addSignalListener("SIGWINCH", () => {
-          this.resizeCanvas(Deno.consoleSize(this.stdout.rid));
+          this.resizeCanvas(Deno.consoleSize());
         });
         break;
     }

@@ -71,20 +71,20 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
   components: SortedArray<Component<EventRecord>>;
   updateRate: number;
 
-  constructor({ stdin, stdout, canvas, style, updateRate }: TuiOptions) {
+  constructor(options: TuiOptions) {
     super();
 
-    this.stdin = stdin ?? Deno.stdin;
-    this.stdout = stdout ?? Deno.stdout;
-    this.style = style ?? emptyStyle;
+    this.stdin = options.stdin ?? Deno.stdin;
+    this.stdout = options.stdout ?? Deno.stdout;
+    this.style = options.style ?? emptyStyle;
     this.components = new SortedArray((a, b) => a.zIndex - b.zIndex);
 
-    this.canvas = canvas ?? new Canvas({
+    this.canvas = options.canvas ?? new Canvas({
       refreshRate: 16,
       stdout: this.stdout,
     });
 
-    this.updateRate = updateRate ?? this.canvas.refreshRate;
+    this.updateRate = options.updateRate ?? this.canvas.refreshRate;
   }
 
   /**
