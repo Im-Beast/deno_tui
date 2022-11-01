@@ -19,6 +19,7 @@ import { TextboxComponent } from "../src/components/textbox.ts";
 import { Theme } from "../src/theme.ts";
 import { LabelComponent } from "../src/components/label.ts";
 import { ScrollableViewComponent } from "../src/components/scrollable_view.ts";
+import { TableComponent } from "../src/components/table.ts";
 
 const baseTheme: Theme = {
   base: crayon.bgLightBlue,
@@ -273,6 +274,36 @@ new TextboxComponent({
   value: "hello!\nwhats up?",
 });
 
+new TableComponent({
+  tui,
+  theme: {
+    base: crayon.bgBlack.white,
+    frame: { focused: crayon.bgBlack.bold },
+    header: { base: crayon.bgBlack.bold.lightBlue },
+    selectedRow: {
+      base: crayon.bold.bgBlue.white,
+      focused: crayon.bold.bgLightBlue.white,
+      active: crayon.bold.bgMagenta.black,
+    },
+  },
+  rectangle: {
+    column: 75,
+    height: 8,
+    row: 11,
+  },
+  headers: ["ID", "Name"],
+  data: [
+    ["0", "Thomas Jeronimo"],
+    ["1", "Jeremy Wanker"],
+    ["2", "Julianne James"],
+    ["3", "Tommie Moyer"],
+    ["4", "Marta Reilly"],
+    ["5", "Bernardo Robertson"],
+    ["6", "Hershel Grant"],
+  ],
+  framePieces: "rounded",
+});
+
 const scrollView = new ScrollableViewComponent({
   tui,
   theme: {
@@ -290,7 +321,7 @@ const scrollView = new ScrollableViewComponent({
     },
   },
   rectangle: {
-    column: 75,
+    column: 100,
     row: 11,
     width: 20,
     height: 8,
