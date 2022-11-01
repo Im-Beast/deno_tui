@@ -22,14 +22,12 @@ Simple [Deno](https://github.com/denoland/deno/) module that allows easy creatio
 
 ## 🖥️ OS Support
 
-> **Note** --unstable flag is required everywhere, because not every used API is stabilized yet.
-
-| Operating system     | Linux | macOS | Windows¹<sup>,</sup>² | WSL  |
-| -------------------- | ----- | ----- | --------------------- | ---- |
-| Base                 | ✔️    | ✔️    | ✔️                    | ✔️   |
-| Keyboard support     | ✔️    | ✔️    | ✔️                    | ✔️   |
-| Mouse support        | ✔️    | ✔️    | ❌                     | ✔️   |
-| Required permissions | none  | none  | --allow-ffi³          | none |
+| Operating system     | Linux | macOS | Windows¹<sup>,</sup>²   | WSL  |
+| -------------------- | ----- | ----- | ----------------------- | ---- |
+| Base                 | ✔️    | ✔️    | ✔️                      | ✔️   |
+| Keyboard support     | ✔️    | ✔️    | ✔️                      | ✔️   |
+| Mouse support        | ✔️    | ✔️    | ❌                       | ✔️   |
+| Required permissions | none  | none  | --unstable --allow-ffi³ | none |
 
 ¹ - [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) is a heavily recommended way to run Tui on Windows, if
 you need to stick to clean Windows, please consider using [Windows Terminal](https://github.com/Microsoft/Terminal).
