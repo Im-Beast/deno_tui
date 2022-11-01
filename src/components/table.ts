@@ -274,11 +274,10 @@ export class TableComponent<
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state =
-      this.state === "focused" &&
+    this.state = this.state === "focused" &&
         ((this.selectedRow == this.#lastSelectedRow && interactionDelay < 500) || method === "keyboard")
-        ? "active"
-        : "focused";
+      ? "active"
+      : "focused";
 
     this.#lastInteraction = now;
     this.#lastSelectedRow = this.selectedRow;
