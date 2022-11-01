@@ -72,6 +72,7 @@ export class TableComponent<
   declare theme: TableTheme;
 
   #lastInteraction = 0;
+  #lastSelectedRow = 0;
   #rectangle: Rectangle;
 
   rowOffset: number;
@@ -273,8 +274,13 @@ export class TableComponent<
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
 
-    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
+    this.state =
+      this.state === "focused" &&
+        ((this.selectedRow == this.#lastSelectedRow && interactionDelay < 500) || method === "keyboard")
+        ? "active"
+        : "focused";
 
     this.#lastInteraction = now;
+    this.#lastSelectedRow = this.selectedRow;
   }
 }
