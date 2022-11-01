@@ -8,6 +8,7 @@ export function emptyStyle(text: string): string {
   return text;
 }
 
+/** Returns {replacement} if {style} is an {emptyStyle} otherwise returns {style} back */
 export function replaceEmptyStyle(style: Style, replacement: Style): Style {
   return style === emptyStyle ? replacement : style;
 }

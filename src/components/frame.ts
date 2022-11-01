@@ -33,7 +33,7 @@ export type FramePieceType = {
 export type FrameComponentOptions =
   & ComponentOptions
   & {
-    /** Option that changes from what characters {FrameComponent} is built */
+    /** Option that changes from characters from which {FrameComponent} is built */
     framePieces?: "sharp" | "rounded" | FramePieceType;
   }
   & (

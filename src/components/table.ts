@@ -41,22 +41,38 @@ export type TableFramePieceType = {
 
 /** Theme used by {TableComponent} to style itself */
 export interface TableTheme extends Theme {
+  /** Style for table headers */
   header: Theme;
+  /** Style for currently selected row */
   selectedRow: Theme;
+  /** Style for frame surrounding table */
   frame: Theme;
 }
 
+/** Object that determines text & width of a column in {TableComponent}'s headers */
 export interface TableHeader {
+  /** Text displayed above column */
   title: string;
+  /** Enforced width of a column */
   width: number;
 }
 
 /** Interface defining object that {TableComponent}'s constructor can interpret */
 export interface TableComponentOptions extends Omit<ComponentOptions, "rectangle"> {
-  headers: (TableHeader | string)[];
-  data: string[][];
-  rectangle: Omit<Rectangle, "width">;
   theme: DeepPartial<TableTheme>;
+  /**
+   *  Headers detailing size & text displayed for each data column
+   *  When string is used width is determined by maximal width of either text or data in column
+   */
+  headers: (TableHeader | string)[];
+  /** Data displayed by table */
+  data: string[][];
+  /**
+   *  Position and size of component
+   *  {TableComponent}'s rectangle doesn't include `width` property as width is defined by headers and table data
+   */
+  rectangle: Omit<Rectangle, "width">;
+  /** Option that changes characters that surround {TableComponent} */
   framePieces?: "sharp" | "rounded" | TableFramePieceType;
 }
 
