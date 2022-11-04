@@ -187,7 +187,7 @@ export class TableComponent<
   get rectangle(): Rectangle {
     return {
       ...this.#rectangle,
-      width: this.headers.reduce(
+      width: this.headers.reduce<number>(
         // + 1 because of spacing between each header
         (a, b) => a + b.width + 1,
         0,
