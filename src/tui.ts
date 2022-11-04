@@ -101,6 +101,7 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
     for (const component of this.components) component.remove();
 
     Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
+    this.stdin.setRaw(false);
   }
 
   /**
