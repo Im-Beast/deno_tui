@@ -111,7 +111,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       return;
     }
 
-    const noResetStyle = value.match(/((.|\s)+?)\x1b\[0m/)?.[1] ?? "";
+    const resetStyleIndex = value.indexOf("\x1b[0m");
+    const noResetStyle = resetStyleIndex === -1 ? "" : value.substring(0, resetStyleIndex);
     const borderIndex = noResetStyle.lastIndexOf("m", noResetStyle.length - stripped.length);
 
     const distinctStyles = (
