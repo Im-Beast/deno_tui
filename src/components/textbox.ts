@@ -37,7 +37,7 @@ export interface TextboxComponentOptions extends PlaceComponentOptions {
   /** Whether to number textbox rows */
   lineNumbering?: boolean;
   /** Function that defines what key does what while textbox is focused/active */
-  keyboardHandler?: boolean;
+  keyboardHandler?: (textbox: TextboxComponent<EventRecord>) => (keyPress: KeyPress) => void;
 }
 
 /** Complementary interface defining what's accessible in {TextboxComponent} class in addition to {TextboxComponentOptions} */
