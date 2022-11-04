@@ -11,6 +11,7 @@ import { ScrollableViewComponent } from "./components/scrollable_view.ts";
 
 import { clamp } from "./utils/numbers.ts";
 import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
+import { TextboxComponent } from "./components/textbox.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`
@@ -106,6 +107,9 @@ export function handleKeyboardControls(tui: Tui): void {
           ++moveVector.x;
           break;
         case "return":
+          // Not final fix
+          // TODO: allow components to block sending specific keypresses to keyboard handler when they are focused
+          if (lastSelectedComponent instanceof TextboxComponent) return;
           lastSelectedComponent.interact("keyboard");
           return;
         default: {
