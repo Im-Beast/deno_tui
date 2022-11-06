@@ -9,8 +9,7 @@ import { clamp } from "../utils/numbers.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
 import { emptyStyle, hierarchizeTheme, Style, Theme } from "../theme.ts";
-import type { DeepPartial } from "../types.ts";
-import { KeyPress } from "../key_reader.ts";
+import type { DeepPartial, KeyPress } from "../types.ts";
 
 export interface TextboxTheme extends Theme {
   /** Style for numbers counting textbox rows */

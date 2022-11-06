@@ -3,10 +3,9 @@
 import { Tui } from "./tui.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
-import { KeyPress, MousePress, MultiKeyPress } from "./key_reader.ts";
 
 import type { ViewComponent } from "./components/view.ts";
-import type { Rectangle } from "./types.ts";
+import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
 
 /** Type defining any {Component}, even inherited ones */

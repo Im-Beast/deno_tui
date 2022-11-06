@@ -31,7 +31,7 @@ const tuiStyle = crayon.bgBlack.white;
 const tui = new Tui({
   style: tuiStyle,
   canvas: new Canvas({
-    refreshRate: 1000 / 60,
+    refreshRate: 1000 / 1000,
     stdout: Deno.stdout,
   }),
 });
