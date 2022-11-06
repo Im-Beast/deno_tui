@@ -156,6 +156,6 @@ export class SliderComponent<
   }
 
   interact(): void {
-    this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
+    this.state = (this.state === "focused" || this.state === "active") ? "active" : "focused";
   }
 }
