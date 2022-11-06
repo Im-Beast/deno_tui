@@ -158,7 +158,6 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
  * If it can't convert specified {code} to {MousePress} it returns undefined.
  */
 export function decodeMouseSGR(buffer: Uint8Array, code: string): MousePress | undefined {
-  code = code.replace("\x1b", "");
   const action = code.at(-1);
 
   if (!code.startsWith("[<") || (action !== "m" && action !== "M")) {
@@ -283,7 +282,9 @@ export function* decodeUnixBuffer(buffer: Uint8Array): Generator<KeyPress | Mous
     codes = [decodedBuffer];
   }
 
-  for (const code of codes) {
+  for (let code of codes) {
+    code = code.replace("\x1b", "");
+
     const mousePress = decodeMouseSGR(buffer, code) ?? decodeMouseVT_UTF8(buffer, code);
     if (mousePress) {
       yield mousePress;
