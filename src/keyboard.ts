@@ -11,7 +11,6 @@ import { ScrollableViewComponent } from "./components/scrollable_view.ts";
 
 import { clamp } from "./utils/numbers.ts";
 import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
-import { TextboxComponent } from "./components/textbox.ts";
 
 import type { KeyPress, MultiKeyPress } from "./types.ts";
 
@@ -88,7 +87,7 @@ export function handleKeyboardControls(tui: Tui): void {
 
     if (!(keyPress.ctrl || (pressedKeys.length === 1 && pressedKeys[0] === "return"))) return;
 
-    lastSelectedComponent ??= tui.components.find(
+    lastSelectedComponent = tui.components.find(
       ({ state }) => state === "focused",
     ) ?? getComponentClosestToTopLeftCorner(tui, true);
 
@@ -109,9 +108,6 @@ export function handleKeyboardControls(tui: Tui): void {
           ++moveVector.x;
           break;
         case "return":
-          // Not final fix
-          // TODO: allow components to block sending specific keypresses to keyboard handler when they are focused
-          if (lastSelectedComponent instanceof TextboxComponent) return;
           lastSelectedComponent.interact("keyboard");
           return;
         default: {
