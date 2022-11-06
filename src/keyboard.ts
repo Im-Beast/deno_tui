@@ -88,7 +88,7 @@ export function handleKeyboardControls(tui: Tui): void {
     if (!(keyPress.ctrl || (pressedKeys.length === 1 && pressedKeys[0] === "return"))) return;
 
     lastSelectedComponent = tui.components.find(
-      ({ state }) => state === "focused",
+      ({ state, view }) => state !== "base" && view === currentView,
     ) ?? getComponentClosestToTopLeftCorner(tui, true);
 
     const moveVector = { x: 0, y: 0 };
