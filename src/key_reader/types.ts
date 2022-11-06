@@ -1,3 +1,4 @@
+// Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import type { Range } from "../types.ts";
 
 /** Type defining keys that `key_reader.ts` can distinguish */
