@@ -181,6 +181,8 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
       this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
 
       for (const component of this.components) {
+        const { rectangle } = component;
+        if (rectangle && (rectangle.column > columns || rectangle.row > rows)) continue;
         component.draw();
       }
     });
