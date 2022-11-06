@@ -2,7 +2,7 @@
 
 import { Tui } from "./tui.ts";
 
-import { KeyPress, MultiKeyPress, readKeypresses } from "./key_reader.ts";
+import { readKeypresses } from "./key_reader.ts";
 
 import { Component } from "./component.ts";
 import { LabelComponent } from "./components/label.ts";
@@ -12,6 +12,8 @@ import { ScrollableViewComponent } from "./components/scrollable_view.ts";
 import { clamp } from "./utils/numbers.ts";
 import { getComponentClosestToTopLeftCorner } from "./utils/component.ts";
 import { TextboxComponent } from "./components/textbox.ts";
+
+import type { KeyPress, MultiKeyPress } from "./types.ts";
 
 /**
  * Intercepts keypresses from `readKeypress()` and dispatch them as events to `tui`

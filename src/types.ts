@@ -1,5 +1,7 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+export * from "./key_reader/types.ts";
+
 /** Type for Standard Output – where data gets written */
 export type Stdout = typeof Deno.stdout;
 
