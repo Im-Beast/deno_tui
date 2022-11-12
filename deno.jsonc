@@ -1,5 +1,6 @@
 {
   "tasks": {
+    "demo-draggable" : "deno run --watch --unstable -A examples/draggable_box.ts" ,
     "demo": "deno run --watch --unstable -A ./examples/demo.ts"
   },
   "fmt": {
