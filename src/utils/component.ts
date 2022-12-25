@@ -1,13 +1,20 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "../tui.ts";
 import { Component } from "../component.ts";
+import { View } from "../view.ts";
 
 /** Returns component that's the closest to top left corner of tui's canvas */
-export function getComponentClosestToTopLeftCorner(tui: Tui, interactable = false): Component {
+export function getComponentClosestToTopLeftCorner(tui: Tui, filterFn?: (component: Component) => boolean): Component;
+export function getComponentClosestToTopLeftCorner(view: View, filterFn?: (component: Component) => boolean): Component;
+export function getComponentClosestToTopLeftCorner(
+  instance: Tui | View,
+  filterFn?: (component: Component) => boolean,
+): Component {
   let closestToTLCorner!: [number, Component];
-  for (const component of tui.components) {
-    const { rectangle, zIndex, interact } = component;
-    if (!rectangle || (interactable && interact === Component.prototype.interact)) {
+
+  for (const component of instance.components) {
+    const { rectangle, zIndex } = component;
+    if (!rectangle || !filterFn?.(component)) {
       continue;
     }
 
