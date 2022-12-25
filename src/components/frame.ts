@@ -29,17 +29,17 @@ export type FramePieceType = {
   [key in keyof typeof sharpFramePieces]: string;
 };
 
-/** Interface defining object that {FrameComponent}'s constructor can interpret */
-export type FrameComponentOptions =
+/** Interface defining object that {Frame}'s constructor can interpret */
+export type FrameOptions =
   & ComponentOptions
   & {
-    /** Option that changes from characters from which {FrameComponent} is built */
+    /** Option that changes from characters from which {Frame} is built */
     framePieces?: "sharp" | "rounded" | FramePieceType;
   }
   & (
     {
       rectangle?: never;
-      /** Component that {FrameComponent} will surround */
+      /** Component that {Frame} will surround */
       component: Component;
     } | {
       component?: never;
@@ -47,26 +47,26 @@ export type FrameComponentOptions =
     }
   );
 
-/** Complementary interface defining what's accessible in {FrameComponent} class in addition to {FrameComponentOptions} */
-export interface FrameComponentPrivate {
+/** Complementary interface defining what's accessible in {Frame} class in addition to {FrameOptions} */
+export interface FramePrivate {
   framePieces: "sharp" | "rounded" | FramePieceType;
   rectangle: Rectangle;
   component?: Component;
 }
 
-/** Implementation for {FrameComponent} class */
-export type FrameComponentImplementation = FrameComponentPrivate;
+/** Implementation for {Frame} class */
+export type FrameImplementation = FramePrivate;
 
 /** Component that creates frame border either around a `component` or within `rectangle` depending on what's specified */
-export class FrameComponent<
+export class Frame<
   EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> implements FrameComponentImplementation {
+> extends Component<EventMap> implements FrameImplementation {
   #component?: Component;
   #rectangle?: Rectangle;
 
   framePieces: "sharp" | "rounded" | FramePieceType;
 
-  constructor(options: FrameComponentOptions) {
+  constructor(options: FrameOptions) {
     super({
       tui: options.tui,
       view: options.view,
@@ -83,7 +83,7 @@ export class FrameComponent<
     this.framePieces = options.framePieces ?? "sharp";
 
     if (!this.#rectangle) {
-      throw new Error("You need to pass either rectangle or component that has its rectangle set to FrameComponent");
+      throw new Error("You need to pass either rectangle or component that has its rectangle set to Frame");
     }
   }
 
@@ -117,7 +117,9 @@ export class FrameComponent<
     if (!this.#component.rectangle) {
       throw new Error("You need component that has its rectangle set");
     }
+
     this.rectangle = this.#component.rectangle;
+    this.view = this.#component.view;
   }
 
   get state(): ComponentState {
@@ -129,7 +131,7 @@ export class FrameComponent<
   draw(): void {
     super.draw();
 
-    const { style, framePieces } = this;
+    const { style, framePieces, view } = this;
     const { canvas } = this.component?.tui ?? this.tui;
 
     const { column, row, width, height } = this.rectangle;
@@ -140,20 +142,22 @@ export class FrameComponent<
       ? roundedFramePieces
       : framePieces;
 
-    canvas.draw(column, row, style(pieces.topLeft));
-    canvas.draw(column + width - 1, row, style(pieces.topRight));
+    const drawOptions = view ? { view } : undefined;
+
+    canvas.draw(column, row, style(pieces.topLeft), drawOptions);
+    canvas.draw(column + width - 1, row, style(pieces.topRight), drawOptions);
 
     for (let y = row + 1; y < row + height - 1; ++y) {
-      canvas.draw(column, y, style(pieces.vertical));
-      canvas.draw(column + width - 1, y, style(pieces.vertical));
+      canvas.draw(column, y, style(pieces.vertical), drawOptions);
+      canvas.draw(column + width - 1, y, style(pieces.vertical), drawOptions);
     }
 
     for (let x = column + 1; x < column + width - 1; ++x) {
-      canvas.draw(x, row, style(pieces.horizontal));
-      canvas.draw(x, row + height - 1, style(pieces.horizontal));
+      canvas.draw(x, row, style(pieces.horizontal), drawOptions);
+      canvas.draw(x, row + height - 1, style(pieces.horizontal), drawOptions);
     }
 
-    canvas.draw(column, row + height - 1, style(pieces.bottomLeft));
-    canvas.draw(column + width - 1, row + height - 1, style(pieces.bottomRight));
+    canvas.draw(column, row + height - 1, style(pieces.bottomLeft), drawOptions);
+    canvas.draw(column + width - 1, row + height - 1, style(pieces.bottomRight), drawOptions);
   }
 }

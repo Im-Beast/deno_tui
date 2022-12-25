@@ -1,15 +1,15 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Component, ComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
-import { ButtonComponent } from "./button.ts";
+import { Box } from "./box.ts";
+import { Button } from "./button.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
 import type { Rectangle } from "../types.ts";
 import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {ComboboxComponent}'s constructor can interpret */
-export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
+export interface ComboboxOptions<OptionType extends string[] = string[]> extends ComponentOptions {
   rectangle: Rectangle;
   /** Text displayed on combobox by default */
   label?: string;
@@ -18,36 +18,35 @@ export interface ComboboxComponentOptions<OptionType extends string[] = string[]
 }
 
 /** Complementary interface defining what's accessible in {ComboboxComponent} class in addition to {ComboboxComponentOptions} */
-export interface ComboboxComponentPrivate<OptionType extends string[] = string[]> {
+export interface ComboboxPrivate<OptionType extends string[] = string[]> {
   label: string;
   /** Currently selected option */
   value?: OptionType[number];
 }
 
 /** Implementation for {ComboboxComponent} class */
-export type ComboboxComponentImplementation = ComboboxComponentOptions & ComboboxComponentPrivate;
+export type ComboboxImplementation = ComboboxOptions & ComboboxPrivate;
 
 /** EventMap that {ComboboxComponent} uses */
-export type ComboboxComponentEventMap = {
-  valueChange: EmitterEvent<[ComboboxComponent<string[], EventRecord>]>;
+export type ComboboxEventMap = {
+  valueChange: EmitterEvent<[Combobox<string[], EventRecord>]>;
 };
 
 /**
  * Component that allows user to input value by selecting one from available options.
  * If `label` isn't provided then first value from `options` will be used.
  */
-export class ComboboxComponent<
+export class Combobox<
   OptionType extends string[] = string[],
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & ComboboxComponentEventMap> implements ComboboxComponentImplementation {
+> extends Box<EventMap & ComboboxEventMap> implements ComboboxImplementation {
   #lastInteraction = 0;
-  #temporaryComponents: Component[] = [];
 
   label: string;
   options: string[];
   option?: OptionType[number];
 
-  constructor(options: ComboboxComponentOptions<OptionType>) {
+  constructor(options: ComboboxOptions<OptionType>) {
     super(options);
     this.options = options.options;
     this.label = options.label ?? this.options[0];
@@ -58,14 +57,15 @@ export class ComboboxComponent<
     super.draw();
 
     if (this.label) {
-      const { style } = this;
-      const { canvas } = this.tui;
+      const { style, tui } = this;
+      const { canvas } = tui;
       const { column, row, width, height } = this.rectangle;
 
       canvas.draw(
         column + (width / 2) - (this.label.length / 2),
         row + (height / 2),
         style(this.label),
+        this,
       );
     }
   }
@@ -76,13 +76,11 @@ export class ComboboxComponent<
 
     this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
 
-    const temporaryComponents = this.#temporaryComponents;
-
     if (this.state === "active") {
       const { column, row, width, height } = this.rectangle;
 
       for (const [i, option] of this.options.entries()) {
-        const button = new ButtonComponent({
+        const button = new Button({
           tui: this.tui,
           rectangle: {
             column,
@@ -104,13 +102,13 @@ export class ComboboxComponent<
           this.interact();
         });
 
-        temporaryComponents.push(button);
+        this.children.push(button);
       }
     } else {
-      for (const component of temporaryComponents) {
+      for (const component of this.children) {
         component.remove();
       }
-      temporaryComponents.length = 0;
+      this.children.length = 0;
     }
 
     this.#lastInteraction = now;

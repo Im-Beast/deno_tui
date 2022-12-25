@@ -5,7 +5,7 @@ import { PlaceComponent, PlaceComponentOptions } from "../component.ts";
 import type { EventRecord } from "../event_emitter.ts";
 
 /** Simple component that is a Box that cannot be interacted with by default */
-export class BoxComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
+export class Box<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
   constructor(options: PlaceComponentOptions) {
     super(options);
   }
@@ -17,6 +17,6 @@ export class BoxComponent<EventMap extends EventRecord = Record<never, never>> e
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
+    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)), this);
   }
 }

@@ -1,7 +1,7 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { ComponentEventMap, PlaceComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
+import { Box } from "./box.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
 import { insertAt } from "../utils/strings.ts";
@@ -20,8 +20,8 @@ export interface TextboxTheme extends Theme {
   placeholder: Style;
 }
 
-/** Interface defining object that {TextboxComponent}'s constructor can interpret */
-export interface TextboxComponentOptions extends PlaceComponentOptions {
+/** Interface defining object that {Textbox}'s constructor can interpret */
+export interface TextboxOptions extends PlaceComponentOptions {
   theme?: DeepPartial<TextboxTheme>;
   /** Whether texbox should allow new lines */
   multiline?: boolean;
@@ -36,11 +36,11 @@ export interface TextboxComponentOptions extends PlaceComponentOptions {
   /** Whether to number textbox rows */
   lineNumbering?: boolean;
   /** Function that defines what key does what while textbox is focused/active */
-  keyboardHandler?: (textbox: TextboxComponent<EventRecord>) => (keyPress: KeyPress) => void;
+  keyboardHandler?: (textbox: Textbox<EventRecord>) => (keyPress: KeyPress) => void;
 }
 
-/** Complementary interface defining what's accessible in {TextboxComponent} class in addition to {TextboxComponentOptions} */
-export interface TextboxComponentPrivate {
+/** Complementary interface defining what's accessible in {Textbox} class in addition to {TextboxOptions} */
+export interface TextboxPrivate {
   theme: TextboxTheme;
   lineHighlighting: boolean;
   lineNumbering: boolean;
@@ -49,16 +49,16 @@ export interface TextboxComponentPrivate {
   value: string;
 }
 
-/** Implementation for {TextboxComponent} class */
-export type TextboxComponentImplementation = TextboxComponentOptions & TextboxComponentPrivate;
+/** Implementation for {Textbox} class */
+export type TextboxImplementation = TextboxOptions & TextboxPrivate;
 
-/** EventMap that {TextboxComponent} uses */
-export type TextboxComponentEventMap = ComponentEventMap & {
-  valueChange: EmitterEvent<[TextboxComponent<EventRecord>]>;
+/** EventMap that {Textbox} uses */
+export type TextboxEventMap = ComponentEventMap & {
+  valueChange: EmitterEvent<[Textbox<EventRecord>]>;
 };
 
-/** Default keyboard handler for {TextboxComponent} */
-export function textboxKeyboardHandler(textbox: TextboxComponent<EventRecord>): (keyPress: KeyPress) => void {
+/** Default keyboard handler for {Textbox} */
+export function textboxKeyboardHandler(textbox: Textbox<EventRecord>): (keyPress: KeyPress) => void {
   return (keyPress) => {
     const { key, ctrl, meta } = keyPress;
     if (ctrl || meta) return;
@@ -154,9 +154,9 @@ export function textboxKeyboardHandler(textbox: TextboxComponent<EventRecord>): 
  *  - PgUp/PgDown - Go to the start/end of the text input
  *  - Delete/Backspace - Delete preceding/subsequent character
  */
-export class TextboxComponent<
+export class Textbox<
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & TextboxComponentEventMap> implements TextboxComponentImplementation {
+> extends Box<EventMap & TextboxEventMap> implements TextboxImplementation {
   declare theme: TextboxTheme;
 
   rawValue: string[] = [];
@@ -172,7 +172,7 @@ export class TextboxComponent<
   lineNumbering: boolean;
   placeholder?: string;
 
-  constructor(options: TextboxComponentOptions) {
+  constructor(options: TextboxOptions) {
     super(options);
     this.multiline = options.multiline ?? false;
     this.lineHighlighting = options.lineHighlighting ?? false;
@@ -186,8 +186,8 @@ export class TextboxComponent<
     }
 
     this.theme.placeholder = options.theme?.placeholder ?? emptyStyle;
-    this.theme.highlightedLine = hierarchizeTheme(options.theme?.highlightedLine ?? {});
-    this.theme.lineNumbers = hierarchizeTheme(options.theme?.lineNumbers ?? {});
+    this.theme.highlightedLine = hierarchizeTheme(options.theme?.highlightedLine);
+    this.theme.lineNumbers = hierarchizeTheme(options.theme?.lineNumbers);
 
     this.on("keyPress", textboxKeyboardHandler(this));
   }
@@ -239,7 +239,7 @@ export class TextboxComponent<
 
       if (this.lineHighlighting && i === y && highlightedLineStyle !== emptyStyle) {
         lineText = highlightedLineStyle(lineText);
-        canvas.draw(column, row + i - offsetY, highlightedLineStyle(" ".repeat(width)));
+        canvas.draw(column, row + i - offsetY, highlightedLineStyle(" ".repeat(width)), this);
       }
 
       lineText = textStyle(lineText);
@@ -248,6 +248,7 @@ export class TextboxComponent<
         column,
         row + i - offsetY,
         lineText,
+        this,
       );
 
       if (!this.lineNumbering) continue;
@@ -261,6 +262,7 @@ export class TextboxComponent<
         column - textLineOffset,
         row + i - offsetY,
         rowNumberText,
+        this,
       );
     }
 
@@ -270,6 +272,7 @@ export class TextboxComponent<
       column + Math.min(x, width - 1),
       row + Math.min(y, height - 1),
       textStyle("\x1b[7m" + (textArray[y][x] ?? " ") + "\x1b[0m"),
+      this,
     );
   }
 

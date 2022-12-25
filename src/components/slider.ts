@@ -3,7 +3,7 @@
 import { hierarchizeTheme, Theme } from "../theme.ts";
 
 import { PlaceComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
+import { Box } from "./box.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
@@ -11,13 +11,13 @@ import { clamp, normalize } from "../utils/numbers.ts";
 import type { DeepPartial } from "../types.ts";
 import type { EventRecord } from "../event_emitter.ts";
 
-/** Theme used by {SliderComponent} to style itself */
+/** Theme used by {Slider} to style itself */
 export interface SliderTheme extends Theme {
   thumb: Theme;
 }
 
-/** Interface defining object that {SliderComponent}'s constructor can interpret */
-export interface SliderComponentOptions extends PlaceComponentOptions {
+/** Interface defining object that {Slider}'s constructor can interpret */
+export interface SliderOptions extends PlaceComponentOptions {
   value: number;
   min: number;
   max: number;
@@ -27,24 +27,24 @@ export interface SliderComponentOptions extends PlaceComponentOptions {
   theme?: DeepPartial<SliderTheme>;
 }
 
-/** Complementary interface defining what's accessible in {ScrollableViewComponent} class in addition to {SliderComponentOptions} */
-export interface SliderComponentPrivate {
+/** Complementary interface defining what's accessible in {ScrollableViewComponent} class in addition to {SliderOptions} */
+export interface SliderPrivate {
   adjustThumbSize: boolean;
   theme: SliderTheme;
 }
 
-/** Implementation for {SliderComponent} class */
-export type SliderComponentImplementation = SliderComponentOptions & SliderComponentPrivate;
+/** Implementation for {Slider} class */
+export type SliderImplementation = SliderOptions & SliderPrivate;
 
-/** EventMap that {SliderComponent} uses */
-export type SliderComponentEventMap = {
-  valueChange: EmitterEvent<[SliderComponent<EventRecord>]>;
+/** EventMap that {Slider} uses */
+export type SliderEventMap = {
+  valueChange: EmitterEvent<[Slider<EventRecord>]>;
 };
 
 /** Component that allows user to input number by sliding a handle */
-export class SliderComponent<
+export class Slider<
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & SliderComponentEventMap> implements SliderComponentImplementation {
+> extends Box<EventMap & SliderEventMap> implements SliderImplementation {
   declare theme: SliderTheme;
 
   direction: "horizontal" | "vertical";
@@ -54,14 +54,14 @@ export class SliderComponent<
   #value: number;
   adjustThumbSize: boolean;
 
-  constructor(options: SliderComponentOptions) {
+  constructor(options: SliderOptions) {
     super(options);
     this.direction = options.direction;
     this.min = options.min;
     this.max = options.max;
     this.#value = options.value;
     this.step = options.step;
-    this.theme.thumb = hierarchizeTheme(options.theme?.thumb ?? {});
+    this.theme.thumb = hierarchizeTheme(options.theme?.thumb);
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
     const lastMove = { x: -1, y: -1, time: 0 };
@@ -138,6 +138,7 @@ export class SliderComponent<
             column + normalizedValue * (width - thumbWidth),
             row,
             thumbStyle((" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height)),
+            this,
           );
         }
         break;
@@ -149,6 +150,7 @@ export class SliderComponent<
             column,
             row + normalizedValue * (height - thumbHeight),
             thumbStyle((" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1))),
+            this,
           );
         }
         break;

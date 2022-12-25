@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { ButtonComponent } from "./button.ts";
+import { Button } from "./button.ts";
 import { PlaceComponentOptions } from "../component.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
@@ -11,28 +11,28 @@ enum Mark {
 }
 
 /** Interface defining object that {CheckboxComponent}'s constructor can interpret */
-export interface CheckboxComponentOptions extends PlaceComponentOptions {
+export interface CheckboxOptions extends PlaceComponentOptions {
   /** Whether checkbox is checked or not */
   value?: boolean;
 }
 
 /** Complementary interface defining what's accessible in {CheckboxComponent} class in addition to {CheckboxComponentOptions} */
-export interface CheckboxComponentPrivate {
+export interface CheckboxPrivate {
   value: boolean;
 }
 
 /** Implementation for {CheckboxComponent} class */
-export type CheckboxComponentImplementation = CheckboxComponentPrivate;
+export type CheckboxImplementation = CheckboxPrivate;
 
 /** Component that allows user to toggle input */
-export class CheckboxComponent<
+export class Checkbox<
   EventMap extends EventRecord = Record<never, never>,
-> extends ButtonComponent<EventMap> implements CheckboxComponentImplementation {
+> extends Button<EventMap> implements CheckboxImplementation {
   #value: boolean;
 
   label: string;
 
-  constructor(options: CheckboxComponentOptions) {
+  constructor(options: CheckboxOptions) {
     super(options);
     this.#value = options.value ?? false;
     this.label = this.value ? Mark.Check : Mark.Cross;

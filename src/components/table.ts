@@ -39,7 +39,7 @@ export type TableFramePieceType = {
   [key in keyof typeof sharpTableFramePieces]: string;
 };
 
-/** Theme used by {TableComponent} to style itself */
+/** Theme used by {Slider} to style itself */
 export interface TableTheme extends Theme {
   /** Style for table headers */
   header: Theme;
@@ -49,7 +49,7 @@ export interface TableTheme extends Theme {
   frame: Theme;
 }
 
-/** Object that determines text & width of a column in {TableComponent}'s headers */
+/** Object that determines text & width of a column in {Table}'s headers */
 export interface TableHeader {
   /** Text displayed above column */
   title: string;
@@ -57,8 +57,8 @@ export interface TableHeader {
   width: number;
 }
 
-/** Interface defining object that {TableComponent}'s constructor can interpret */
-export interface TableComponentOptions extends Omit<ComponentOptions, "rectangle"> {
+/** Interface defining object that {Table}'s constructor can interpret */
+export interface TableOptions extends Omit<ComponentOptions, "rectangle"> {
   theme: DeepPartial<TableTheme>;
   /**
    *  Headers detailing size & text displayed for each data column
@@ -69,22 +69,22 @@ export interface TableComponentOptions extends Omit<ComponentOptions, "rectangle
   data: string[][];
   /**
    *  Position and size of component
-   *  {TableComponent}'s rectangle doesn't include `width` property as width is defined by headers and table data
+   *  {Table}'s rectangle doesn't include `width` property as width is defined by headers and table data
    */
   rectangle: Omit<Rectangle, "width">;
-  /** Option that changes characters that surround {TableComponent} */
+  /** Option that changes characters that surround {Table} */
   framePieces?: "sharp" | "rounded" | TableFramePieceType;
 }
 
-/** Implementation for {TableComponent} class */
-export type TableComponentImplementation = Omit<TableComponentOptions, "rectangle"> & {
+/** Implementation for {Table} class */
+export type TableImplementation = Omit<TableOptions, "rectangle"> & {
   rectangle: Rectangle;
 };
 
 /** Component that can be pressed */
-export class TableComponent<
+export class Table<
   EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> implements TableComponentImplementation {
+> extends Component<EventMap> implements TableImplementation {
   declare theme: TableTheme;
 
   #lastInteraction = 0;
@@ -97,12 +97,12 @@ export class TableComponent<
   selectedRow: number;
   framePieces: "sharp" | "rounded" | TableFramePieceType;
 
-  constructor(options: TableComponentOptions) {
+  constructor(options: TableOptions) {
     super(options as unknown as ComponentOptions);
 
-    this.theme.frame = hierarchizeTheme(options.theme.frame ?? {});
-    this.theme.selectedRow = hierarchizeTheme(options.theme.selectedRow ?? {});
-    this.theme.header = hierarchizeTheme(options.theme.header ?? {});
+    this.theme.frame = hierarchizeTheme(options.theme.frame);
+    this.theme.selectedRow = hierarchizeTheme(options.theme.selectedRow);
+    this.theme.header = hierarchizeTheme(options.theme.header);
 
     this.framePieces = options.framePieces ?? "sharp";
     this.rowOffset = 0;
@@ -209,13 +209,13 @@ export class TableComponent<
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
-    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
+    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)), this);
 
     // Drawing header cells
     {
       let colOffset = 0;
       for (const header of headers) {
-        canvas.draw(column + colOffset + 1, row + 1, headerStyle(header.title));
+        canvas.draw(column + colOffset + 1, row + 1, headerStyle(header.title), this);
         colOffset += header.width + 1;
       }
     }
@@ -233,7 +233,7 @@ export class TableComponent<
         const isSelected = r === this.selectedRow;
         const rowStyle = isSelected ? selectedRowStyle : style;
         if (isSelected) {
-          canvas.draw(column, drawRow, rowStyle(" ".repeat(width)));
+          canvas.draw(column, drawRow, rowStyle(" ".repeat(width)), this);
         }
 
         colOffset = 0;
@@ -245,13 +245,16 @@ export class TableComponent<
           const headerWidth = headers[c].width;
 
           canvas.draw(drawColumn, drawRow, rowStyle(colData), {
-            column: drawColumn,
-            row: drawRow,
-            width: Math.min(
-              lastColumn - drawColumn - 1,
-              headerWidth - 1,
-            ),
-            height: 1,
+            boundary: {
+              column: drawColumn,
+              row: drawRow,
+              width: Math.min(
+                lastColumn - drawColumn - 1,
+                headerWidth - 1,
+              ),
+              height: 1,
+            },
+            view: this.view,
           });
           colOffset += headerWidth + 1;
         }
@@ -265,31 +268,31 @@ export class TableComponent<
       ? roundedTableFramePieces
       : framePieces;
 
-    canvas.draw(column, row, frameStyle(pieces.topLeft));
-    canvas.draw(column + width - 1, row, frameStyle(pieces.topRight));
+    canvas.draw(column, row, frameStyle(pieces.topLeft), this);
+    canvas.draw(column + width - 1, row, frameStyle(pieces.topRight), this);
 
     for (let y = row + 1; y < row + height - 1; ++y) {
-      canvas.draw(column, y, frameStyle(pieces.vertical));
-      canvas.draw(column + width - 1, y, frameStyle(pieces.vertical));
+      canvas.draw(column, y, frameStyle(pieces.vertical), this);
+      canvas.draw(column + width - 1, y, frameStyle(pieces.vertical), this);
     }
 
-    canvas.draw(column, row + 2, frameStyle(pieces.leftHorizontal));
-    canvas.draw(column + width - 1, row + 2, frameStyle(pieces.rightHorizontal));
+    canvas.draw(column, row + 2, frameStyle(pieces.leftHorizontal), this);
+    canvas.draw(column + width - 1, row + 2, frameStyle(pieces.rightHorizontal), this);
 
     for (let x = column + 1; x < column + width - 1; ++x) {
-      canvas.draw(x, row, frameStyle(pieces.horizontal));
-      canvas.draw(x, row + 2, frameStyle(pieces.horizontal));
-      canvas.draw(x, row + height - 1, frameStyle(pieces.horizontal));
+      canvas.draw(x, row, frameStyle(pieces.horizontal), this);
+      canvas.draw(x, row + 2, frameStyle(pieces.horizontal), this);
+      canvas.draw(x, row + height - 1, frameStyle(pieces.horizontal), this);
     }
 
-    canvas.draw(column, row + height - 1, frameStyle(pieces.bottomLeft));
-    canvas.draw(column + width - 1, row + height - 1, frameStyle(pieces.bottomRight));
+    canvas.draw(column, row + height - 1, frameStyle(pieces.bottomLeft), this);
+    canvas.draw(column + width - 1, row + height - 1, frameStyle(pieces.bottomRight), this);
   }
 
   interact(method?: "mouse" | "keyboard"): void {
     const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
 
+    const interactionDelay = now - this.#lastInteraction;
     this.state = this.state === "focused" &&
         ((this.selectedRow == this.#lastSelectedRow && interactionDelay < 500) || method === "keyboard")
       ? "active"

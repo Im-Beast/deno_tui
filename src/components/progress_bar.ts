@@ -2,7 +2,7 @@
 
 import { hierarchizeTheme, Theme } from "../theme.ts";
 import { PlaceComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
+import { Box } from "./box.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
@@ -13,47 +13,47 @@ import type { EventRecord } from "../event_emitter.ts";
 export const horizontalSmoothProgressChars = ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const;
 export const verticalSmoothProgressChars = ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const;
 
-/** Theme used by {ProgressBarComponent} to style itself */
+/** Theme used by {ProgressBar} to style itself */
 export interface ProgressBarTheme extends Theme {
   progress: Theme;
 }
 
-/** Interface defining object that {ProgressBarComponent}'s constructor can interpret */
-export interface ProgressBarComponentOptions extends PlaceComponentOptions {
+/** Interface defining object that {ProgressBar}'s constructor can interpret */
+export interface ProgressBarOptions extends PlaceComponentOptions {
   theme?: DeepPartial<ProgressBarTheme>;
   /** Current value */
   value: number;
-  /** Minimal value of {ProgressBarComponent} */
+  /** Minimal value of {ProgressBar} */
   min: number;
-  /** Maximal value of {ProgressBarComponent} */
+  /** Maximal value of {ProgressBar} */
   max: number;
-  /** Whether {ProgressBarComponent} is vertical or horizontal */
+  /** Whether {ProgressBar} is vertical or horizontal */
   direction: "horizontal" | "vertical";
   /**
-   * Whether {ProgressBarComponent} should use UNICODE characters to create effect of more gradual, smooth looking progress
+   * Whether {ProgressBar} should use UNICODE characters to create effect of more gradual, smooth looking progress
    * Keep in mind that not every terminal might support used characters
    */
   smooth?: boolean;
 }
 
-/** Complementary interface defining what's accessible in {ProgressBarComponent} class in addition to {ProgressBarComponentOptions} */
-export interface ProgressBarComponentPrivate {
+/** Complementary interface defining what's accessible in {ProgressBar} class in addition to {ProgressBarOptions} */
+export interface ProgressBarPrivate {
   theme: ProgressBarTheme;
   smooth: boolean;
 }
 
-/** Implementation for {ProgressBarComponent} class */
-export type ProgressBarComponentImplementation = ProgressBarComponentOptions & ProgressBarComponentPrivate;
+/** Implementation for {ProgressBar} class */
+export type ProgressBarImplementation = ProgressBarOptions & ProgressBarPrivate;
 
-/** EventMap that {ProgressBarComponent} uses */
-export type ProgressBarComponentEventMap = {
-  valueChange: EmitterEvent<[ProgressBarComponent<EventRecord>]>;
+/** EventMap that {ProgressBar} uses */
+export type ProgressBarEventMap = {
+  valueChange: EmitterEvent<[ProgressBar<EventRecord>]>;
 };
 
 /** Component that indicates progress */
-export class ProgressBarComponent<
+export class ProgressBar<
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & ProgressBarComponentEventMap> implements ProgressBarComponentImplementation {
+> extends Box<EventMap & ProgressBarEventMap> implements ProgressBarImplementation {
   declare theme: ProgressBarTheme;
 
   #value: number;
@@ -63,14 +63,14 @@ export class ProgressBarComponent<
   max: number;
   smooth: boolean;
 
-  constructor(options: ProgressBarComponentOptions) {
+  constructor(options: ProgressBarOptions) {
     super(options);
     this.direction = options.direction;
     this.min = options.min;
     this.max = options.max;
     this.#value = options.value;
     this.smooth = options.smooth ?? false;
-    this.theme.progress = hierarchizeTheme(options.theme?.progress ?? {});
+    this.theme.progress = hierarchizeTheme(options.theme?.progress);
   }
 
   get value() {
@@ -129,6 +129,7 @@ export class ProgressBarComponent<
             column,
             row,
             progressStyle((valueString + "\n").repeat(height)),
+            this,
           );
         }
         break;
@@ -139,6 +140,7 @@ export class ProgressBarComponent<
             column,
             row,
             progressStyle(valueString),
+            this,
           );
         }
         break;

@@ -7,7 +7,5 @@ export * from "./combobox.ts";
 export * from "./frame.ts";
 export * from "./label.ts";
 export * from "./progress_bar.ts";
-export * from "./scrollable_view.ts";
 export * from "./slider.ts";
 export * from "./textbox.ts";
-export * from "./view.ts";

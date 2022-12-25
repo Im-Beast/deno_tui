@@ -1,28 +1,28 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { BoxComponent } from "./box.ts";
+import { Box } from "./box.ts";
 import { PlaceComponentOptions } from "../component.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
 
 /** Interface defining object that {ButtonComponent}'s constructor can interpret */
-export interface ButtonComponentOptions extends PlaceComponentOptions {
+export interface ButtonOptions extends PlaceComponentOptions {
   /** Text displayed on the center of the button */
   label?: string;
 }
 
 /** Implementation for {ButtonComponent} class */
-export type ButtonComponentImplementation = ButtonComponentOptions;
+export type ButtonImplementation = ButtonOptions;
 
 /** Component that can be pressed */
-export class ButtonComponent<
+export class Button<
   EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap> implements ButtonComponentImplementation {
+> extends Box<EventMap> implements ButtonImplementation {
   #lastInteraction = 0;
 
   label?: string;
 
-  constructor(options: ButtonComponentOptions) {
+  constructor(options: ButtonOptions) {
     super(options);
     this.label = options.label;
   }
@@ -39,6 +39,7 @@ export class ButtonComponent<
         column + (width / 2) - (this.label.length / 2),
         row + (height / 2),
         style(this.label),
+        this,
       );
     }
   }

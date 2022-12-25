@@ -13,8 +13,8 @@ export interface LabelTextAlign {
   vertical: "top" | "center" | "bottom";
 }
 
-/** Interface defining object that {LabelComponent}'s constructor can interpret */
-export interface LabelComponentOptions extends ComponentOptions {
+/** Interface defining object that {Label}'s constructor can interpret */
+export interface LabelOptions extends ComponentOptions {
   rectangle: Rectangle;
   /** Position of label when given boundaries using `rectangle` */
   align: LabelTextAlign;
@@ -22,22 +22,22 @@ export interface LabelComponentOptions extends ComponentOptions {
   value: string;
 }
 
-/** Implementation for {LabelComponent} class */
-export type LabelComponentImplementation = LabelComponentOptions;
+/** Implementation for {Label} class */
+export type LabelImplementation = LabelOptions;
 
 /**
  * Component that displays text in given `rectangle`
  * When `rectangle`'s `width` and/or `height` properties are set to `-1` then `width` and/or `height` are set dynamically depending on the text size.
  */
-export class LabelComponent<
+export class Label<
   EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> implements LabelComponentImplementation {
+> extends Component<EventMap> implements LabelImplementation {
   #rectangle: Rectangle;
 
   value: string;
   align: LabelTextAlign;
 
-  constructor(options: LabelComponentOptions) {
+  constructor(options: LabelOptions) {
     super(options);
 
     this.value = options.value;
@@ -67,10 +67,10 @@ export class LabelComponent<
   draw(): void {
     super.draw();
 
-    const { style, align, value } = this;
+    const { style, align, value, rectangle } = this;
     const { canvas } = this.tui;
 
-    const { column, row, width, height } = this.rectangle;
+    const { column, row, width, height } = rectangle;
 
     const lines = value.split("\n");
     for (const [i, line] of lines.entries()) {
@@ -99,7 +99,10 @@ export class LabelComponent<
           break;
       }
 
-      canvas.draw(c, r, style(line), this.rectangle);
+      canvas.draw(c, r, style(line), {
+        boundary: rectangle,
+        view: this.view,
+      });
     }
   }
 }
