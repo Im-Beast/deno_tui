@@ -5,14 +5,21 @@ import { Timing } from "./types.ts";
 
 import { sleep } from "./utils/async.ts";
 import { textWidth } from "./utils/strings.ts";
+import { Deffered } from "./utils/deffered.ts";
 import { moveCursor } from "./utils/ansi_codes.ts";
 import { fits, fitsInRectangle } from "./utils/numbers.ts";
 import { isFullWidth, stripStyles, UNICODE_CHAR_REGEXP } from "./utils/strings.ts";
 
 import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
-import { Deffered } from "./utils/deffered.ts";
+import type { View } from "./view.ts";
+import type { Component } from "./component.ts";
 
 const textEncoder = new TextEncoder();
+
+export interface CanvasDrawOptions {
+  boundary?: Rectangle;
+  view?: View;
+}
 
 /** Interface defining object that {Canvas}'s constructor can interpret */
 export interface CanvasOptions {
@@ -79,60 +86,71 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.emit("resize", size);
   }
 
-  /**
-   * Render value starting on column and row on canvas
-   *
-   * When rectangle is given:
-   * If particular part of the rendering doesn't fit within rectangle boundaries then it's not drawn
-   */
-  draw(column: number, row: number, value: string, rectangle?: Rectangle): void {
-    if (typeof value !== "string" || value.length === 0 || typeof column !== "number" || typeof row !== "number") {
-      return;
-    }
+  draw(column: number, row: number, value: string, options?: CanvasDrawOptions): void;
+  draw(column: number, row: number, value: string, component?: Component): void;
+  draw(column: number, row: number, value: string, options?: Component & CanvasDrawOptions): void {
+    if (!value || value.length === 0) return;
 
     column = ~~column;
     row = ~~row;
 
-    const stripped = stripStyles(value);
+    let currentColumn = column;
+    let currentRow = row;
 
+    const stripped = stripStyles(value);
     if (stripped.length === 0) return;
 
-    const frameBufferRow = this.frameBuffer[row] ||= [];
+    if (options?.view) {
+      const { rectangle } = options.view;
+      currentColumn += rectangle.column;
+      currentRow += rectangle.row;
+
+      if (options.boundary) {
+        const { boundary } = options;
+
+        options.boundary = {
+          column: Math.min(boundary.column, rectangle.column),
+          row: Math.min(boundary.row, rectangle.row),
+          width: Math.min(boundary.width, rectangle.width - 1),
+          height: Math.min(boundary.height, rectangle.height - 1),
+        };
+      } else {
+        options.boundary = options.view.rectangle;
+      }
+    }
+
+    if (options?.boundary && !fitsInRectangle(currentColumn, currentRow, options.boundary)) {
+      return;
+    }
+
+    const frameBufferRow = this.frameBuffer[currentRow] ||= [];
 
     if (stripped.length === 1) {
-      if (!fitsInRectangle(column, row, rectangle)) return;
+      frameBufferRow[currentColumn] = value;
 
-      frameBufferRow[column] = value;
-
-      if (frameBufferRow[column + 1] === undefined) {
+      if (frameBufferRow[currentColumn + 1] === undefined) {
         const style = value.replace(stripped, "").replaceAll("\x1b[0m", "");
-        frameBufferRow[column + 1] = `${style} \x1b[0m`;
+        frameBufferRow[currentColumn + 1] = `${style} \x1b[0m`;
       }
       return;
     }
 
-    const resetStyleIndex = value.indexOf("\x1b[0m");
-    const noResetStyle = resetStyleIndex === -1 ? "" : value.substring(0, resetStyleIndex);
-    const borderIndex = noResetStyle.lastIndexOf("m", noResetStyle.length - stripped.length);
+    const diffStyles = value.split("\x1b[0m").filter(Boolean);
 
-    const distinctStyles = (
-      noResetStyle.substring(0, borderIndex) +
-      noResetStyle.substring(borderIndex).replace(stripped, "")
-    ).split("\x1b[0m").filter((v) => v.length > 0);
-
-    if (distinctStyles.length > 1) {
-      for (const [i, style] of distinctStyles.entries()) {
-        const previousStyle = distinctStyles?.[i - 1];
-        this.draw(column + textWidth(previousStyle), row, style, rectangle);
+    if (diffStyles.length > 1) {
+      let lastWidth = 0;
+      for (const value of diffStyles) {
+        this.draw(column + lastWidth, row, value, options);
+        lastWidth = textWidth(value);
       }
       return;
     }
 
-    const style = distinctStyles[0] ?? "";
+    const style = diffStyles[0].replace(stripped, "");
 
     if (value.includes("\n")) {
       for (const [i, line] of value.split("\n").entries()) {
-        this.draw(column, row + i, style + line + "\x1b[0m", rectangle);
+        this.draw(column, row + i, style + line + "\x1b[0m", options);
       }
       return;
     }
@@ -140,13 +158,14 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     const realCharacters = stripped.match(UNICODE_CHAR_REGEXP);
     if (!realCharacters?.length) return;
 
-    if (rectangle && !fits(row, rectangle.row, rectangle.row + rectangle.height)) return;
-
     let offset = 0;
     for (const character of realCharacters) {
-      const offsetColumn = column + offset;
+      const offsetColumn = currentColumn + offset;
 
-      if (rectangle && !fits(offsetColumn, rectangle.column, rectangle.column + rectangle.width)) {
+      if (
+        options?.boundary &&
+        !fits(offsetColumn, options.boundary.column, options.boundary.column + options.boundary.width)
+      ) {
         offset += isFullWidth(character) ? 2 : 1;
         continue;
       }
