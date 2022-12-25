@@ -11,5 +11,6 @@
     "rules": {
       "exclude": ["no-control-regex"]
     }
-  }
+  },
+  "lock": false
 }
