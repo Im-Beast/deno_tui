@@ -1,10 +1,10 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { Tui } from "./tui.ts";
-import { hierarchizeTheme, Style, Theme } from "./theme.ts";
+import { View } from "./view.ts";
+import { emptyStyle, hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
-import type { ViewComponent } from "./components/view.ts";
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
 
@@ -17,13 +17,17 @@ export interface ComponentOptions {
   /** Parent tui, used for retrieving canvas and adding event listeners */
   tui: Tui;
   /** Component that can manipulate drawing position on the canvas by replacing `tui` element with fake one */
-  view?: ViewComponent;
+  view?: View;
   /** Theme defining look of component */
   theme?: Partial<Theme>;
   /** Position and size of component */
   rectangle?: Rectangle;
   /** Components get rendered based on this value, lower values get rendered first */
   zIndex?: number;
+  /** Parent of a component */
+  parent?: Component | Tui;
+  /** Children of a component */
+  children?: Component[];
 }
 
 /** Interface defining what's accessible in {Component} class */
@@ -33,6 +37,8 @@ export interface ComponentPrivate {
   interact(method?: "keyboard" | "mouse"): void;
   state: ComponentState;
   zIndex: number;
+  children: Component[];
+  parent: Tui | Component;
 }
 
 /** Implementation for {Component} class */
@@ -49,48 +55,51 @@ export type ComponentEventMap = {
 
 /** Interactivity states that components should use */
 export type ComponentState =
+  | "base"
   | "focused"
   | "active"
-  | "base";
+  | "disabled"
+  | "hidden";
 
 /** Base Component that should be used as base for creating other components */
 export class Component<
   EventMap extends EventRecord = Record<never, never>,
 > extends EventEmitter<EventMap & ComponentEventMap> implements ComponentImplementation {
   #state: ComponentState;
-  #view?: ViewComponent<EventRecord>;
   #rectangle?: Rectangle;
+  #view?: View;
 
   tui: Tui;
   theme: Theme;
   zIndex: number;
+  parent: Tui | Component;
+  children: Component[];
 
   constructor(options: ComponentOptions) {
     super();
 
     this.#rectangle = options.rectangle;
-    this.theme = hierarchizeTheme(options.theme ?? {});
+    this.theme = hierarchizeTheme(options.theme);
     this.zIndex = options.zIndex ?? 0;
     this.#state = "base";
     this.tui = options.tui;
-    this.#view = options.view;
+    this.parent = options.parent ?? options.tui;
+    this.children = options.children ?? [];
+    this.view = options.view;
 
-    const offKeyPress = this.tui.on("keyPress", (keyPress) => {
-      if (this.#state !== "base") this.emit("keyPress", keyPress);
+    this.tui.on("keyPress", (event) => {
+      if (this.#state !== "focused" && this.#state !== "active") return;
+      this.emit("keyPress", event);
     });
 
-    const offMultiKeyPress = this.tui.on("multiKeyPress", (multiKeyPress) => {
-      if (this.#state !== "base") this.emit("multiKeyPress", multiKeyPress);
+    this.tui.on("mousePress", (event) => {
+      if (this.#state !== "focused" && this.#state !== "active") return;
+      this.emit("mousePress", event);
     });
 
-    const offMousePress = this.tui.on("mousePress", (mousePress) => {
-      if (this.#state !== "base") this.emit("mousePress", mousePress);
-    });
-
-    this.on("remove", () => {
-      offKeyPress();
-      offMultiKeyPress();
-      offMousePress();
+    this.tui.on("multiKeyPress", (event) => {
+      if (this.#state !== "focused" && this.#state !== "active") return;
+      this.emit("multiKeyPress", event);
     });
 
     // This should run after everything else is setup
@@ -101,23 +110,17 @@ export class Component<
     });
   }
 
-  /** Returns view that's currently associated with component */
-  get view(): ViewComponent<EventRecord> | undefined {
+  get view(): View | undefined {
     return this.#view;
   }
 
-  /** Sets view that will be associated with component and updates view offsets */
   set view(view) {
-    if (view) {
-      this.tui = view.fakeTui;
+    if (this.#view && view !== this.#view) {
+      this.#view.components.remove(this);
+    }
 
+    if (view?.components.indexOf(this) === -1) {
       view.components.push(this);
-      view.updateOffsets(this);
-    } else if (this.view) {
-      this.tui = this.view.fakeTui.realTui;
-
-      this.view.components.remove(this);
-      this.view.updateOffsets();
     }
 
     this.#view = view;
@@ -135,7 +138,7 @@ export class Component<
 
   /** Returns current component style */
   get style(): Style {
-    return this.theme[this.state];
+    return this.state === "hidden" ? emptyStyle : this.theme[this.state];
   }
 
   /** Sets current component state and dispatches stateChange event */
