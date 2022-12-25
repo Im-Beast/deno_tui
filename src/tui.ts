@@ -100,14 +100,16 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
     for (const component of this.components) component.remove();
 
     Deno.writeSync(this.stdout.rid, textEncoder.encode(SHOW_CURSOR + USE_PRIMARY_BUFFER));
-    this.stdin.setRaw(false);
+    try {
+      this.stdin.setRaw(false);
+    } catch { /** */ }
   }
 
   /**
    * Emits "dispatch" event on signals and keystrokes that should terminate an application
-   *  - SIGBREAK
-   *  - SIGTERM (not windows)
    *  - SIGINT
+   *  - SIGTERM (not windows)
+   *  - SIGBREAK (windows)
    *  - CTRL+C (windows)
    */
   dispatch(): void {
