@@ -1,6 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
-import { Component, ComponentOptions } from "../component.ts";
+import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 import { Button } from "./button.ts";
 import { EmitterEvent } from "../event_emitter.ts";
