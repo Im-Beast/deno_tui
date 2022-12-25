@@ -2,7 +2,7 @@
 
 import { Tui } from "./tui.ts";
 import { View } from "./view.ts";
-import { emptyStyle, hierarchizeTheme, Style, Theme } from "./theme.ts";
+import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
@@ -28,6 +28,8 @@ export interface ComponentOptions {
   parent?: Component | Tui;
   /** Children of a component */
   children?: Component[];
+  /** Visibility of a component */
+  visible?: boolean;
 }
 
 /** Interface defining what's accessible in {Component} class */
@@ -58,8 +60,7 @@ export type ComponentState =
   | "base"
   | "focused"
   | "active"
-  | "disabled"
-  | "hidden";
+  | "disabled";
 
 /** Base Component that should be used as base for creating other components */
 export class Component<
@@ -74,6 +75,7 @@ export class Component<
   zIndex: number;
   parent: Tui | Component;
   children: Component[];
+  visible: boolean;
 
   constructor(options: ComponentOptions) {
     super();
@@ -85,6 +87,7 @@ export class Component<
     this.tui = options.tui;
     this.parent = options.parent ?? options.tui;
     this.children = options.children ?? [];
+    this.visible = options.visible ?? true;
     this.view = options.view;
 
     this.tui.on("keyPress", (event) => {
@@ -138,7 +141,7 @@ export class Component<
 
   /** Returns current component style */
   get style(): Style {
-    return this.state === "hidden" ? emptyStyle : this.theme[this.state];
+    return this.theme[this.state];
   }
 
   /** Sets current component state and dispatches stateChange event */
