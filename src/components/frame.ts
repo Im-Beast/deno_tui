@@ -133,7 +133,7 @@ export class Frame<
   draw(): void {
     super.draw();
 
-    const { style, framePieces, view } = this;
+    const { style, framePieces } = this;
     const { canvas } = this.component?.tui ?? this.tui;
 
     const { column, row, width, height } = this.rectangle;
