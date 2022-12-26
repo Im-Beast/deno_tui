@@ -80,6 +80,8 @@ export class Frame<
       this.rectangle = options.rectangle!;
     }
 
+    this.view ??= this.component?.view;
+
     this.framePieces = options.framePieces ?? "sharp";
 
     if (!this.#rectangle) {
@@ -88,18 +90,18 @@ export class Frame<
   }
 
   get rectangle(): Rectangle {
-    if (this.#component) {
-      const { column, row, width, height } = this.#component!.rectangle!;
-
-      return {
-        column: column - 1,
-        row: row - 1,
-        width: width + 2,
-        height: height + 2,
-      };
+    if (!this.#component) {
+      return this.#rectangle!;
     }
 
-    return this.#rectangle!;
+    const { column, row, width, height } = this.#component.rectangle!;
+
+    return {
+      column: column - 1,
+      row: row - 1,
+      width: width + 2,
+      height: height + 2,
+    };
   }
 
   set rectangle(rectangle: Rectangle) {
@@ -142,22 +144,20 @@ export class Frame<
       ? roundedFramePieces
       : framePieces;
 
-    const drawOptions = view ? { view } : undefined;
-
-    canvas.draw(column, row, style(pieces.topLeft), drawOptions);
-    canvas.draw(column + width - 1, row, style(pieces.topRight), drawOptions);
+    canvas.draw(column, row, style(pieces.topLeft), this);
+    canvas.draw(column + width - 1, row, style(pieces.topRight), this);
 
     for (let y = row + 1; y < row + height - 1; ++y) {
-      canvas.draw(column, y, style(pieces.vertical), drawOptions);
-      canvas.draw(column + width - 1, y, style(pieces.vertical), drawOptions);
+      canvas.draw(column, y, style(pieces.vertical), this);
+      canvas.draw(column + width - 1, y, style(pieces.vertical), this);
     }
 
     for (let x = column + 1; x < column + width - 1; ++x) {
-      canvas.draw(x, row, style(pieces.horizontal), drawOptions);
-      canvas.draw(x, row + height - 1, style(pieces.horizontal), drawOptions);
+      canvas.draw(x, row, style(pieces.horizontal), this);
+      canvas.draw(x, row + height - 1, style(pieces.horizontal), this);
     }
 
-    canvas.draw(column, row + height - 1, style(pieces.bottomLeft), drawOptions);
-    canvas.draw(column + width - 1, row + height - 1, style(pieces.bottomRight), drawOptions);
+    canvas.draw(column, row + height - 1, style(pieces.bottomLeft), this);
+    canvas.draw(column + width - 1, row + height - 1, style(pieces.bottomRight), this);
   }
 }
