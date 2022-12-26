@@ -120,10 +120,12 @@ export class Component<
   set view(view) {
     if (this.#view && view !== this.#view) {
       this.#view.components.remove(this);
+      this.#view.updateOffsets();
     }
 
     if (view?.components.indexOf(this) === -1) {
       view.components.push(this);
+      view.updateOffsets();
     }
 
     this.#view = view;
