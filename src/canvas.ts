@@ -101,9 +101,9 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     if (stripped.length === 0) return;
 
     if (options?.view) {
-      const { rectangle } = options.view;
-      currentColumn += rectangle.column;
-      currentRow += rectangle.row;
+      const { rectangle, offset } = options.view;
+      currentColumn += rectangle.column - offset.x;
+      currentRow += rectangle.row - offset.y;
 
       if (options.boundary) {
         const { boundary } = options;
@@ -119,13 +119,13 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       }
     }
 
-    if (options?.boundary && !fitsInRectangle(currentColumn, currentRow, options.boundary)) {
-      return;
-    }
-
     const frameBufferRow = this.frameBuffer[currentRow] ||= [];
 
     if (stripped.length === 1) {
+      if (options?.boundary && !fitsInRectangle(currentColumn, currentRow, options.boundary)) {
+        return;
+      }
+
       frameBufferRow[currentColumn] = value;
 
       if (frameBufferRow[currentColumn + 1] === undefined) {
@@ -155,23 +155,28 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       return;
     }
 
+    if (options?.boundary && !fits(currentRow, options.boundary.row, options.boundary.row + options.boundary.height)) {
+      return;
+    }
+
     const realCharacters = stripped.match(UNICODE_CHAR_REGEXP);
     if (!realCharacters?.length) return;
 
     let offset = 0;
     for (const character of realCharacters) {
       const offsetColumn = currentColumn + offset;
+      const fullWidth = isFullWidth(character);
 
       if (
         options?.boundary &&
         !fits(offsetColumn, options.boundary.column, options.boundary.column + options.boundary.width)
       ) {
-        offset += isFullWidth(character) ? 2 : 1;
+        offset += fullWidth ? 2 : 1;
         continue;
       }
 
       frameBufferRow[offsetColumn] = `${style}${character}\x1b[0m`;
-      if (isFullWidth(character)) {
+      if (fullWidth) {
         delete frameBufferRow[offsetColumn + 1];
         ++offset;
       } else if (offsetColumn + 1 < frameBufferRow.length) {
