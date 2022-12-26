@@ -9,3 +9,4 @@ export * from "./label.ts";
 export * from "./progress_bar.ts";
 export * from "./slider.ts";
 export * from "./textbox.ts";
+export * from "./table.ts";
