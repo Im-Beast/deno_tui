@@ -8,9 +8,11 @@
 export const UNICODE_CHAR_REGEXP =
   /\ud83c[\udffb-\udfff](?=\ud83c[\udffb-\udfff])|(?:(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40(?:\udc65|\udc73|\udc77)\udb40(?:\udc6e|\udc63|\udc6c)\udb40(?:\udc67|\udc74|\udc73)\udb40\udc7f)|[^\ud800-\udfff][\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]?|[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?(?:\u200d(?:[^\ud800-\udfff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?)*/g;
 
+const STRIP_STYLE_REGEXP = /\x1b\[([0-9]|;)+m/gi;
+
 /** Strips string of all styles */
 export function stripStyles(string: string): string {
-  return string.replaceAll(/\x1b\[([0-9]|;)+m/gi, "");
+  return string.replaceAll(STRIP_STYLE_REGEXP, "");
 }
 
 /** Inserts string into string on given index */
@@ -23,8 +25,9 @@ export function textWidth(text: string): number {
   if (!text) return 0;
 
   let width = 0;
-  for (const letter of stripStyles(text)) {
-    width += isFullWidth(letter) ? 2 : 1;
+  const strippedString = stripStyles(text);
+  for (let i = 0; i < strippedString.length; i++) {
+    width += isFullWidth(strippedString[i]) ? 2 : 1;
   }
 
   return width;
