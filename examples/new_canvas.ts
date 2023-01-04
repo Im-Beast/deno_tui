@@ -1,27 +1,31 @@
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
-import { Canvas, DrawTextOptions } from "../src/canvas.ts";
+import { Canvas, DrawBoxOptions, DrawTextOptions } from "../src/canvas.ts";
 
 const c = new Canvas({
-  refreshRate: 0,
+  refreshRate: 1000 / 60,
   stdout: Deno.stdout,
 });
 
 c.drawBox({
-  column: 0,
-  row: 0,
-  get width() {
-    return c.size.columns;
-  },
-  get height() {
-    return c.size.rows;
+  rectangle: {
+    column: 0,
+    row: 0,
+    get width() {
+      return c.size.columns;
+    },
+    get height() {
+      return c.size.rows;
+    },
   },
   style: crayon.bgBlack,
   zIndex: -1,
 });
 
 c.drawText({
-  column: 0,
-  row: 0,
+  rectangle: {
+    column: 0,
+    row: 0,
+  },
   style: crayon.green,
   get value() {
     return c.fps.toFixed(2);
@@ -32,8 +36,10 @@ c.drawText({
 let value = `Hi ${Math.random().toFixed(~~(Math.random() * 10))}`;
 
 const text: DrawTextOptions = {
-  column: 5,
-  row: 5,
+  rectangle: {
+    column: 5,
+    row: 5,
+  },
   style: crayon.bgGreen,
   get value() {
     return value;
@@ -49,15 +55,17 @@ let dirRow = 1;
 let h = 0;
 
 for (let i = 0; i < 10; ++i) {
-  const box = {
-    get column() {
-      return ~~col + i * 10;
+  const box: DrawBoxOptions = {
+    rectangle: {
+      get column() {
+        return ~~col + i * 10;
+      },
+      get row() {
+        return ~~row;
+      },
+      width: 6,
+      height: 3,
     },
-    get row() {
-      return ~~row;
-    },
-    width: 6,
-    height: 3,
     get style() {
       return crayon.bgHsl(h % 360, 50, 50);
     },
