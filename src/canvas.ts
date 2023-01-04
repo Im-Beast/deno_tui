@@ -23,45 +23,38 @@ export type CanvasEventMap = {
   render: EmitterEvent<[]>;
 };
 
-export type DrawBoxOptions<Prepared extends boolean = false> =
-  & Rectangle
-  & (Prepared extends true ? {
-      zIndex: number;
-      rendered: boolean;
-      rerender: [number, number][];
-      lastRerenderSize: number;
-      readonly omit: string[];
-    }
-    : {
-      omit?: string[];
-      zIndex?: number;
-      rendered?: boolean;
-    })
-  & {
-    style: Style;
-    dynamic?: boolean;
-  };
+export type DrawObject<Type extends string> = {
+  type: Type;
+  rectangle: Rectangle;
+  rendered: boolean;
+  omitCells: string[];
+  rerenderCells: [number, number][];
+  previousRerenderSize: number;
+  zIndex: number;
+  style: Style;
+  dynamic: boolean;
+};
 
-export type DrawTextOptions<Prepared extends boolean = false> =
-  & (Prepared extends true ? {
-      width: number;
-      height: number;
-      zIndex: number;
-      rendered: boolean;
-      rerender: [number, number][];
-      lastRerenderSize: number;
-      readonly omit: string[];
-    }
-    : {
-      omit?: string[];
-      rendered?: boolean;
-      zIndex?: number;
-    })
-  & {
-    column: number;
-    row: number;
+export type DrawBoxOptions<Prepared extends boolean = false> = Prepared extends true ? DrawObject<"box"> : {
+  style: Style;
+  rectangle: Rectangle;
+  omitCells?: string[];
+  zIndex?: number;
+  dynamic?: boolean;
+};
+
+export type DrawTextOptions<Prepared extends boolean = false> = Prepared extends true ? DrawObject<"text"> & {
     value: string;
+  }
+  : {
+    value: string;
+    rectangle: {
+      column: number;
+      row: number;
+    };
     style: Style;
+    omitCells?: string[];
+    zIndex?: number;
     dynamic?: boolean;
   };
 
@@ -77,8 +70,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   refreshRate: number;
   stdout: Stdout;
 
-  drawnObjects: SortedArray<(DrawBoxOptions<true> | DrawTextOptions<true>)>;
+  drawnObjects: SortedArray<DrawTextOptions<true> | DrawBoxOptions<true>>;
   frameBuffer: string[][];
+
+  #rerenderQueue: [number, number][] = [];
 
   constructor(options: CanvasOptions) {
     super();
@@ -118,7 +113,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   drawText(text: DrawTextOptions): void {
     const preparedText = text as DrawTextOptions<true>;
 
-    text.omit ??= [];
+    preparedText.type = "text";
+    text.omitCells ??= [];
     text.zIndex ??= 0;
     text.dynamic ??= false;
 
@@ -129,7 +125,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   drawBox(box: DrawBoxOptions): void {
     const preparedBox = box as DrawBoxOptions<true>;
 
-    box.omit ??= [];
+    preparedBox.type = "box";
+    box.omitCells ??= [];
     box.zIndex ??= 0;
     box.dynamic ??= false;
 
@@ -139,41 +136,45 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
   updateIntersections(obj: typeof this["drawnObjects"][number]): void {
     // TODO: Check whether this can be further optimized
-    obj.rerender ??= [];
-    if (!this.onScreen(obj.row, obj.column)) return;
+    obj.rerenderCells ??= [];
+    const { column: c1, row: r1, width: w1, height: h1 } = obj.rectangle;
 
-    obj.lastRerenderSize = obj.rerender.length;
-    obj.omit.length = 0;
+    if (!this.onScreen(r1, c1)) return;
 
-    if ("value" in obj) {
+    obj.previousRerenderSize = obj.rerenderCells.length;
+    obj.omitCells.length = 0;
+
+    if (obj.type === "text") {
       const lines = obj.value.split("\n");
-      obj.width = textWidth(lines.sort((a, b) => textWidth(a) - textWidth(b))[0]);
-      obj.height = lines.length;
+      obj.rectangle.width = textWidth(lines.sort((a, b) => textWidth(a) - textWidth(b))[0]);
+      obj.rectangle.height = lines.length;
     }
 
     for (const obj2 of this.drawnObjects) {
-      if (obj === obj2 || obj.zIndex >= obj2.zIndex || !this.onScreen(obj2.row, obj2.column)) continue;
+      const { column: c2, height: h2, width: w2, row: r2 } = obj2.rectangle;
+
+      if (obj === obj2 || obj.zIndex >= obj2.zIndex || !this.onScreen(r2, c2)) continue;
 
       if (
-        !(obj.column < obj2.column + obj2.width &&
-          obj.column + obj.width > obj2.column &&
-          obj.row < obj2.row + obj2.height &&
-          obj.row + obj.height > obj2.row)
+        !(c1 < c2 + w2 &&
+          c1 + w1 > c2 &&
+          r1 < r2 + h2 &&
+          r1 + h1 > r2)
       ) continue;
 
-      const colWidth = Math.min(obj.column + obj.width, obj2.column + obj2.width);
-      const rowHeight = Math.min(obj.row + obj.height, obj2.row + obj2.height);
+      const colWidth = Math.min(c1 + w1, c2 + w2);
+      const rowHeight = Math.min(r1 + h1, r2 + h2);
 
-      const width = Math.max(0, colWidth - Math.max(obj.column, obj2.column));
-      const height = Math.max(0, rowHeight - Math.max(obj.row, obj2.row));
+      const width = Math.max(0, colWidth - Math.max(c1, c2));
+      const height = Math.max(0, rowHeight - Math.max(r1, r2));
 
       const column = colWidth - width;
       const row = rowHeight - height;
 
       for (let r = row; r < row + height; ++r) {
         for (let c = column; c < column + width; ++c) {
-          obj.omit.push(`${r},${c}`);
-          obj.rerender.push([r, c]);
+          obj.omitCells.push(`${r},${c}`);
+          obj.rerenderCells.push([r, c]);
         }
       }
     }
@@ -196,53 +197,55 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fps = 1000 / (performance.now() - this.lastRender);
     this.emit("render");
 
-    const rerender: [number, number][] = [];
-
     for (const object of this.drawnObjects) {
-      if (object.rendered && object.rerender.length === 0 && !object.dynamic) {
-        continue;
+      let renderPartially = false;
+
+      if (object.rendered && !object.dynamic) {
+        if (object.rerenderCells.length === 0) {
+          continue;
+        } else {
+          renderPartially = true;
+        }
       }
 
       this.updateIntersections(object);
 
-      const justRerender = object.rendered && !object.dynamic && object.rerender.length > 0;
-
       object.rendered = true;
 
       // Rerender part of object
-      if (justRerender) {
-        for (const [r, c] of object.rerender) {
-          const positionString = `${r},${c}`;
-          if (!this.onScreen(r, c) || object.omit.includes(positionString)) {
+      if (renderPartially) {
+        for (const [row, column] of object.rerenderCells) {
+          const positionString = `${row},${column}`;
+          if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
             continue;
           }
 
-          this.frameBuffer[r] ??= [];
-          this.frameBuffer[r][c] = object.style(" ");
-          rerender.push([r, c]);
+          this.frameBuffer[row] ??= [];
+          this.frameBuffer[row][column] = object.style(" ");
+          this.#rerenderQueue.push([row, column]);
         }
 
         // Clear old rerender data
-        object.rerender.splice(0, object.lastRerenderSize);
+        object.rerenderCells.splice(0, object.previousRerenderSize);
         continue;
       }
 
       // Render text
-      if ("value" in object) {
+      if (object.type === "text") {
         const lines = object.value.split("\n");
-        for (const [row, line] of lines.entries()) {
-          const r = object.row + row;
-          this.frameBuffer[r] ??= [];
-          for (let column = 0; column < line.length; ++column) {
-            const c = object.column + column;
+        for (const [r, line] of lines.entries()) {
+          const row = object.rectangle.row + r;
+          this.frameBuffer[row] ??= [];
+          for (let c = 0; c < line.length; ++c) {
+            const column = object.rectangle.column + c;
 
-            const positionString = `${r},${c}`;
-            if (!this.onScreen(r, c) || object.omit.includes(positionString)) {
+            const positionString = `${row},${column}`;
+            if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
               continue;
             }
 
-            this.frameBuffer[r][c] = object.style(line[column]);
-            rerender.push([r, c]);
+            this.frameBuffer[row][column] = object.style(line[c]);
+            this.#rerenderQueue.push([row, column]);
           }
         }
 
@@ -250,23 +253,27 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       }
 
       // Render box
-      for (let r = object.row; r < object.row + object.height; ++r) {
-        for (let c = object.column; c < object.column + object.width; ++c) {
-          const positionString = `${r},${c}`;
-          if (!this.onScreen(r, c) || object.omit.includes(positionString)) {
+      for (let row = object.rectangle.row; row < object.rectangle.row + object.rectangle.height; ++row) {
+        for (
+          let column = object.rectangle.column;
+          column < object.rectangle.column + object.rectangle.width;
+          ++column
+        ) {
+          const positionString = `${row},${column}`;
+          if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
             continue;
           }
 
-          this.frameBuffer[r] ??= [];
-          this.frameBuffer[r][c] = object.style(" ");
-          rerender.push([r, c]);
+          this.frameBuffer[row] ??= [];
+          this.frameBuffer[row][column] = object.style(" ");
+          this.#rerenderQueue.push([row, column]);
         }
       }
     }
 
-    if (rerender.length === 0) return;
+    if (this.#rerenderQueue.length === 0) return;
 
-    rerender.sort(
+    this.#rerenderQueue.sort(
       ([r, c], [r2, c2]) => r - r2 === 0 ? c - c2 : r - r2,
     );
 
@@ -281,24 +288,25 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     let lastRow = -1;
     let lastColumn = -1;
-    for (const [r, c] of rerender) {
-      if (r === lastRow && c === lastColumn) continue;
+    for (const [row, column] of this.#rerenderQueue) {
+      if (row === lastRow && column === lastColumn) continue;
 
-      if (r !== lastRow || c !== lastColumn + 1) {
+      if (row !== lastRow || column !== lastColumn + 1) {
         flushDrawSequence();
-        sequenceRow = r;
-        sequenceColumn = c;
+        sequenceRow = row;
+        sequenceColumn = column;
       }
 
-      drawSequence += this.frameBuffer[r][c];
+      drawSequence += this.frameBuffer[row][column];
 
-      lastRow = r;
-      lastColumn = c;
+      lastRow = row;
+      lastColumn = column;
     }
 
     // Complete final loop draw sequence
     flushDrawSequence();
 
+    this.#rerenderQueue.length = 0;
     this.lastRender = performance.now();
   }
 
