@@ -270,34 +270,34 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       ([r, c], [r2, c2]) => r - r2 === 0 ? c - c2 : r - r2,
     );
 
-    const drawSequences: [number, number, string][] = [];
+    let drawSequence = "";
+    let sequenceColumn = -1;
+    let sequenceRow = -1;
+    const flushDrawSequence = () => {
+      if (!drawSequence) return;
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
+      drawSequence = "";
+    };
 
     let lastRow = -1;
-    let lastCol = -1;
-    let index = -1;
+    let lastColumn = -1;
     for (const [r, c] of rerender) {
-      if (r === lastRow && c === lastCol) continue;
+      if (r === lastRow && c === lastColumn) continue;
 
-      if (r !== lastRow || c !== lastCol + 1) {
-        ++index;
-        drawSequences[index] = [r, c, ""];
+      if (r !== lastRow || c !== lastColumn + 1) {
+        flushDrawSequence();
+        sequenceRow = r;
+        sequenceColumn = c;
       }
 
-      drawSequences[index][2] += this.frameBuffer[r][c];
+      drawSequence += this.frameBuffer[r][c];
 
       lastRow = r;
-      lastCol = c;
+      lastColumn = c;
     }
 
-    // Multiple split sequences are faster to write than one long sequence
-    // That's why I didn't combine them into big one and then encoded them.
-    // It's probably because of the overhead of the textEncoder and writing taking a bit.
-    for (const [r, c, string] of drawSequences) {
-      Deno.writeSync(
-        Deno.stdout.rid,
-        textEncoder.encode(moveCursor(r, c) + string),
-      );
-    }
+    // Complete final loop draw sequence
+    flushDrawSequence();
 
     this.lastRender = performance.now();
   }
