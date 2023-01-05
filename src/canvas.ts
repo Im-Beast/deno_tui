@@ -27,7 +27,8 @@ export type DrawObject<Type extends string> = {
   type: Type;
   rectangle: Rectangle;
   rendered: boolean;
-  omitCells: string[];
+  omitCells: [number, number][];
+  omitCellsPointer: number;
   rerenderCells: [number, number][];
   previousRerenderSize: number;
   zIndex: number;
@@ -38,7 +39,8 @@ export type DrawObject<Type extends string> = {
 export type DrawBoxOptions<Prepared extends boolean = false> = Prepared extends true ? DrawObject<"box"> : {
   style: Style;
   rectangle: Rectangle;
-  omitCells?: string[];
+  omitCells?: [number, number][];
+  omitCellsPointer?: number;
   zIndex?: number;
   dynamic?: boolean;
 };
@@ -53,7 +55,8 @@ export type DrawTextOptions<Prepared extends boolean = false> = Prepared extends
       row: number;
     };
     style: Style;
-    omitCells?: string[];
+    omitCells?: [number, number][];
+    omitCellsPointer?: number;
     zIndex?: number;
     dynamic?: boolean;
   };
@@ -61,6 +64,19 @@ export type DrawTextOptions<Prepared extends boolean = false> = Prepared extends
 export function moveCursor(row: number, column: number): string {
   return `\x1b[${row + 1};${column + 1}H`;
 }
+
+const compareToOmitCell = (row: number, column: number, omitCell: [number, number]) =>
+  row === omitCell[0] && column === omitCell[1];
+
+const pushToPointedArray = (array: [number, number][], index: number, row: number, column: number): void => {
+  if (array.length === index) {
+    array.push([row, column]);
+  } else {
+    const entry = array[index];
+    entry[0] = row;
+    entry[1] = column;
+  }
+};
 
 export class Canvas extends EventEmitter<CanvasEventMap> {
   fps: number;
@@ -142,12 +158,22 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     if (!this.onScreen(r1, c1)) return;
 
     obj.previousRerenderSize = obj.rerenderCells.length;
-    obj.omitCells.length = 0;
+    const omitCells = obj.omitCells;
+    let omitCellsPointer = 0;
 
     if (obj.type === "text") {
-      const lines = obj.value.split("\n");
-      obj.rectangle.width = textWidth(lines.sort((a, b) => textWidth(a) - textWidth(b))[0]);
-      obj.rectangle.height = lines.length;
+      let maxWidth = 0;
+      let height = 0;
+      let index = -1;
+      do {
+        height++;
+        const lineEnd = obj.value.indexOf("\n", index + 1);
+        const substring = lineEnd === -1 ? obj.value.substring(index + 1) : obj.value.substring(index + 1, lineEnd);
+        maxWidth = Math.max(maxWidth, textWidth(substring));
+        index = lineEnd;
+      } while (index !== -1);
+      obj.rectangle.width = maxWidth;
+      obj.rectangle.height = height;
     }
 
     for (const obj2 of this.drawnObjects) {
@@ -173,11 +199,12 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       for (let r = row; r < row + height; ++r) {
         for (let c = column; c < column + width; ++c) {
-          obj.omitCells.push(`${r},${c}`);
+          pushToPointedArray(omitCells, omitCellsPointer++, r, c);
           obj.rerenderCells.push([r, c]);
         }
       }
     }
+    obj.omitCellsPointer = omitCellsPointer;
   }
 
   onScreen(row: number, column: number): boolean {
@@ -197,6 +224,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fps = 1000 / (performance.now() - this.lastRender);
     this.emit("render");
 
+    let rendererQueueIndex = 0;
+
     for (const object of this.drawnObjects) {
       let renderPartially = false;
 
@@ -212,69 +241,91 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       object.rendered = true;
 
-      // Rerender part of object
       if (renderPartially) {
+        // Rerender part of object
+        cells:
         for (const [row, column] of object.rerenderCells) {
-          const positionString = `${row},${column}`;
-          if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
+          if (!this.onScreen(row, column)) {
             continue;
           }
+          const omitCells = object.omitCells;
+          const omitCellsPointer = object.omitCellsPointer;
+          for (let i = 0; i < omitCellsPointer; i++) {
+            if (compareToOmitCell(row, column, omitCells[i])) {
+              continue cells;
+            }
+          }
 
-          this.frameBuffer[row] ??= [];
-          this.frameBuffer[row][column] = object.style(" ");
-          this.#rerenderQueue.push([row, column]);
+          const rowBuffer = this.frameBuffer[row] ??= [];
+          rowBuffer[column] = object.style(" ");
+          pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
         }
 
         // Clear old rerender data
         object.rerenderCells.splice(0, object.previousRerenderSize);
-        continue;
-      }
-
-      // Render text
-      if (object.type === "text") {
-        const lines = object.value.split("\n");
-        for (const [r, line] of lines.entries()) {
-          const row = object.rectangle.row + r;
-          this.frameBuffer[row] ??= [];
+      } else if (object.type === "text") {
+        // Render text
+        let index = -1;
+        let r = 0;
+        do {
+          const lineEnd = object.value.indexOf("\n", index + 1);
+          const line = lineEnd === -1 ? object.value.substring(index + 1) : object.value.substring(index + 1, lineEnd);
+          const row = object.rectangle.row + r++;
+          index = lineEnd;
+          const rowBuffer = this.frameBuffer[row] ??= [];
+          cells:
           for (let c = 0; c < line.length; ++c) {
             const column = object.rectangle.column + c;
 
-            const positionString = `${row},${column}`;
-            if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
+            if (!this.onScreen(row, column)) {
               continue;
             }
+            const omitCells = object.omitCells;
+            const omitCellsPointer = object.omitCellsPointer;
+            for (let i = 0; i < omitCellsPointer; i++) {
+              if (compareToOmitCell(row, column, omitCells[i])) {
+                continue cells;
+              }
+            }
 
-            this.frameBuffer[row][column] = object.style(line[c]);
-            this.#rerenderQueue.push([row, column]);
+            rowBuffer[column] = object.style(line[c]);
+            pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
           }
-        }
+        } while (index !== -1);
+      } else {
+        // Render box
+        for (let row = object.rectangle.row; row < object.rectangle.row + object.rectangle.height; ++row) {
+          cells:
+          for (
+            let column = object.rectangle.column;
+            column < object.rectangle.column + object.rectangle.width;
+            ++column
+          ) {
+            if (!this.onScreen(row, column)) {
+              continue;
+            }
+            const omitCells = object.omitCells;
+            const omitCellsPointer = object.omitCellsPointer;
+            for (let i = 0; i < omitCellsPointer; i++) {
+              if (compareToOmitCell(row, column, omitCells[i])) {
+                continue cells;
+              }
+            }
 
-        continue;
-      }
-
-      // Render box
-      for (let row = object.rectangle.row; row < object.rectangle.row + object.rectangle.height; ++row) {
-        for (
-          let column = object.rectangle.column;
-          column < object.rectangle.column + object.rectangle.width;
-          ++column
-        ) {
-          const positionString = `${row},${column}`;
-          if (!this.onScreen(row, column) || object.omitCells.includes(positionString)) {
-            continue;
+            const rowBuffer = this.frameBuffer[row] ??= [];
+            rowBuffer[column] = object.style(" ");
+            pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
           }
-
-          this.frameBuffer[row] ??= [];
-          this.frameBuffer[row][column] = object.style(" ");
-          this.#rerenderQueue.push([row, column]);
         }
       }
     }
 
-    if (this.#rerenderQueue.length === 0) return;
+    if (rendererQueueIndex === 0) return;
+
+    this.#rerenderQueue.length = rendererQueueIndex;
 
     this.#rerenderQueue.sort(
-      ([r, c], [r2, c2]) => r - r2 === 0 ? c - c2 : r - r2,
+      ([r1, c1], [r2, c2]) => r1 - r2 || c1 - c2,
     );
 
     let drawSequence = "";
@@ -306,7 +357,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     // Complete final loop draw sequence
     flushDrawSequence();
 
-    this.#rerenderQueue.length = 0;
     this.lastRender = performance.now();
   }
 
