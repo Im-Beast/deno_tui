@@ -6,7 +6,7 @@ import { sleep } from "./utils/async.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
 import { Deffered } from "./utils/deffered.ts";
-import { CLEAR_SCREEN } from "./utils/ansi_codes.ts";
+import { CLEAR_SCREEN, moveCursor } from "./utils/ansi_codes.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -29,8 +29,8 @@ export type DrawObject<Type extends string> = {
   rendered: boolean;
   omitCells: [number, number][];
   omitCellsPointer: number;
-  rerenderCells: [number, number][];
-  previousRerenderSize: number;
+  rerenderCells: number[];
+  rerenderCellsPointer: number;
   zIndex: number;
   style: Style;
   dynamic: boolean;
@@ -61,14 +61,25 @@ export type DrawTextOptions<Prepared extends boolean = false> = Prepared extends
     dynamic?: boolean;
   };
 
-export function moveCursor(row: number, column: number): string {
-  return `\x1b[${row + 1};${column + 1}H`;
+function compareToOmitCell(row: number, column: number, omitCell: [number, number]): boolean {
+  return row === omitCell[0] && column === omitCell[1];
 }
 
-const compareToOmitCell = (row: number, column: number, omitCell: [number, number]) =>
-  row === omitCell[0] && column === omitCell[1];
+function compareOmitCellRange(
+  row: number,
+  column: number,
+  omitCells: [number, number][],
+  omitCellsPointer: number,
+): boolean {
+  for (let i = 0; i < omitCellsPointer; i++) {
+    if (compareToOmitCell(row, column, omitCells[i])) {
+      return true;
+    }
+  }
+  return false;
+}
 
-const pushToPointedArray = (array: [number, number][], index: number, row: number, column: number): void => {
+function pushToPointedArray(array: [number, number][], index: number, row: number, column: number): void {
   if (array.length === index) {
     array.push([row, column]);
   } else {
@@ -76,7 +87,7 @@ const pushToPointedArray = (array: [number, number][], index: number, row: numbe
     entry[0] = row;
     entry[1] = column;
   }
-};
+}
 
 export class Canvas extends EventEmitter<CanvasEventMap> {
   fps: number;
@@ -157,8 +168,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     if (!this.onScreen(r1, c1)) return;
 
-    obj.previousRerenderSize = obj.rerenderCells.length;
-    const omitCells = obj.omitCells;
+    const { omitCells, rerenderCells } = obj;
+    obj.rerenderCellsPointer = rerenderCells.length;
     let omitCellsPointer = 0;
 
     if (obj.type === "text") {
@@ -200,10 +211,11 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       for (let r = row; r < row + height; ++r) {
         for (let c = column; c < column + width; ++c) {
           pushToPointedArray(omitCells, omitCellsPointer++, r, c);
-          obj.rerenderCells.push([r, c]);
+          rerenderCells.push(r, c);
         }
       }
     }
+
     obj.omitCellsPointer = omitCellsPointer;
   }
 
@@ -213,6 +225,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
   rerender(): void {
     Deno.writeSync(this.stdout.rid, textEncoder.encode(CLEAR_SCREEN));
+
     for (const object of this.drawnObjects) {
       this.updateIntersections(object);
       object.rendered = false;
@@ -225,6 +238,12 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.emit("render");
 
     let rendererQueueIndex = 0;
+
+    if (this.frameBuffer.length < this.size.rows) {
+      for (let r = 0; r < this.size.rows; ++r) {
+        this.frameBuffer[r] ??= [];
+      }
+    }
 
     for (const object of this.drawnObjects) {
       let renderPartially = false;
@@ -243,26 +262,24 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       if (renderPartially) {
         // Rerender part of object
-        cells:
-        for (const [row, column] of object.rerenderCells) {
-          if (!this.onScreen(row, column)) {
+        const { rerenderCells } = object;
+
+        for (let i = 0; i < rerenderCells.length; i += 2) {
+          const row = rerenderCells[i];
+          const column = rerenderCells[i + 1];
+
+          if (
+            !this.onScreen(row, column) || compareOmitCellRange(row, column, object.omitCells, object.omitCellsPointer)
+          ) {
             continue;
           }
-          const omitCells = object.omitCells;
-          const omitCellsPointer = object.omitCellsPointer;
-          for (let i = 0; i < omitCellsPointer; i++) {
-            if (compareToOmitCell(row, column, omitCells[i])) {
-              continue cells;
-            }
-          }
 
-          const rowBuffer = this.frameBuffer[row] ??= [];
-          rowBuffer[column] = object.style(" ");
+          this.frameBuffer[row][column] = object.style(" ");
           pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
         }
 
         // Clear old rerender data
-        object.rerenderCells.splice(0, object.previousRerenderSize);
+        rerenderCells.splice(0, object.rerenderCellsPointer);
       } else if (object.type === "text") {
         // Render text
         let index = -1;
@@ -270,22 +287,18 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
         do {
           const lineEnd = object.value.indexOf("\n", index + 1);
           const line = lineEnd === -1 ? object.value.substring(index + 1) : object.value.substring(index + 1, lineEnd);
-          const row = object.rectangle.row + r++;
           index = lineEnd;
-          const rowBuffer = this.frameBuffer[row] ??= [];
-          cells:
+
+          const row = object.rectangle.row + r++;
+          const rowBuffer = this.frameBuffer[row];
+
           for (let c = 0; c < line.length; ++c) {
             const column = object.rectangle.column + c;
-
-            if (!this.onScreen(row, column)) {
+            if (
+              !this.onScreen(row, column) ||
+              compareOmitCellRange(row, column, object.omitCells, object.omitCellsPointer)
+            ) {
               continue;
-            }
-            const omitCells = object.omitCells;
-            const omitCellsPointer = object.omitCellsPointer;
-            for (let i = 0; i < omitCellsPointer; i++) {
-              if (compareToOmitCell(row, column, omitCells[i])) {
-                continue cells;
-              }
             }
 
             rowBuffer[column] = object.style(line[c]);
@@ -295,24 +308,20 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       } else {
         // Render box
         for (let row = object.rectangle.row; row < object.rectangle.row + object.rectangle.height; ++row) {
-          cells:
+          const rowBuffer = this.frameBuffer[row];
+
           for (
             let column = object.rectangle.column;
             column < object.rectangle.column + object.rectangle.width;
             ++column
           ) {
-            if (!this.onScreen(row, column)) {
+            if (
+              !this.onScreen(row, column) ||
+              compareOmitCellRange(row, column, object.omitCells, object.omitCellsPointer)
+            ) {
               continue;
             }
-            const omitCells = object.omitCells;
-            const omitCellsPointer = object.omitCellsPointer;
-            for (let i = 0; i < omitCellsPointer; i++) {
-              if (compareToOmitCell(row, column, omitCells[i])) {
-                continue cells;
-              }
-            }
 
-            const rowBuffer = this.frameBuffer[row] ??= [];
             rowBuffer[column] = object.style(" ");
             pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
           }
