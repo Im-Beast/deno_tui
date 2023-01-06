@@ -1,12 +1,13 @@
-// TODO: organize imports
 import { Style } from "./theme.ts";
-import { ConsoleSize, Rectangle, Stdout } from "./types.ts";
-import { textWidth } from "./utils/strings.ts";
-import { sleep } from "./utils/async.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
-import { SortedArray } from "./utils/sorted_array.ts";
-import { Deffered } from "./utils/deffered.ts";
 import { CLEAR_SCREEN, moveCursor } from "./utils/ansi_codes.ts";
+
+import { sleep } from "./utils/async.ts";
+import { Deffered } from "./utils/deffered.ts";
+import { textWidth } from "./utils/strings.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
+
+import type { ConsoleSize, Rectangle, Stdout } from "./types.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -137,7 +138,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
   }
 
-  drawText(text: DrawTextOptions): void {
+  drawText(text: DrawTextOptions<false>): DrawTextOptions<true> {
     const preparedText = text as DrawTextOptions<true>;
 
     preparedText.type = "text";
@@ -147,9 +148,11 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     this.drawnObjects.push(preparedText);
     this.updateIntersections(preparedText);
+
+    return preparedText;
   }
 
-  drawBox(box: DrawBoxOptions): void {
+  drawBox(box: DrawBoxOptions<false>): DrawBoxOptions<true> {
     const preparedBox = box as DrawBoxOptions<true>;
 
     preparedBox.type = "box";
@@ -159,19 +162,11 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     this.drawnObjects.push(preparedBox);
     this.updateIntersections(preparedBox);
+
+    return preparedBox;
   }
 
   updateIntersections(obj: typeof this["drawnObjects"][number]): void {
-    // TODO: Check whether this can be further optimized
-    obj.rerenderCells ??= [];
-    const { column: c1, row: r1, width: w1, height: h1 } = obj.rectangle;
-
-    if (!this.onScreen(r1, c1)) return;
-
-    const { omitCells, rerenderCells } = obj;
-    obj.rerenderCellsPointer = rerenderCells.length;
-    let omitCellsPointer = 0;
-
     if (obj.type === "text") {
       let maxWidth = 0;
       let height = 0;
@@ -187,10 +182,21 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       obj.rectangle.height = height;
     }
 
+    obj.rerenderCells ??= [];
+    const { column: c1, row: r1, width: w1, height: h1 } = obj.rectangle;
+
+    if (!this.onScreen(r1, c1)) return;
+
+    const { omitCells, rerenderCells } = obj;
+    obj.rerenderCellsPointer = rerenderCells.length;
+    let omitCellsPointer = 0;
+
     for (const obj2 of this.drawnObjects) {
       const { column: c2, height: h2, width: w2, row: r2 } = obj2.rectangle;
 
-      if (obj === obj2 || obj.zIndex >= obj2.zIndex || !this.onScreen(r2, c2)) continue;
+      if (obj === obj2 || obj.zIndex >= obj2.zIndex || !this.onScreen(r2, c2)) {
+        continue;
+      }
 
       if (
         !(c1 < c2 + w2 &&
