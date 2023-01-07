@@ -133,7 +133,7 @@ export class Frame<
   draw(): void {
     super.draw();
 
-    const { style, framePieces } = this;
+    const { style, framePieces, zIndex } = this;
     const { canvas } = this.component?.tui ?? this.tui;
 
     const { column, row, width, height } = this.rectangle;
@@ -144,20 +144,103 @@ export class Frame<
       ? roundedFramePieces
       : framePieces;
 
-    canvas.draw(column, row, style(pieces.topLeft), this);
-    canvas.draw(column + width - 1, row, style(pieces.topRight), this);
+    // canvas.draw(column, row, style(pieces.topLeft), this);
+    // canvas.draw(column + width - 1, row, style(pieces.topRight), this);
 
-    for (let y = row + 1; y < row + height - 1; ++y) {
-      canvas.draw(column, y, style(pieces.vertical), this);
-      canvas.draw(column + width - 1, y, style(pieces.vertical), this);
-    }
+    canvas.drawBox({
+      rectangle: {
+        column,
+        row,
+        width,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.horizontal,
+    });
 
-    for (let x = column + 1; x < column + width - 1; ++x) {
-      canvas.draw(x, row, style(pieces.horizontal), this);
-      canvas.draw(x, row + height - 1, style(pieces.horizontal), this);
-    }
+    canvas.drawBox({
+      rectangle: {
+        column,
+        row: row + height - 1,
+        width,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.horizontal,
+    });
 
-    canvas.draw(column, row + height - 1, style(pieces.bottomLeft), this);
-    canvas.draw(column + width - 1, row + height - 1, style(pieces.bottomRight), this);
+    canvas.drawBox({
+      rectangle: {
+        column,
+        row,
+        width: 1,
+        height,
+      },
+      style,
+      zIndex,
+      filler: pieces.vertical,
+    });
+
+    canvas.drawBox({
+      rectangle: {
+        column: column + width - 1,
+        row,
+        width: 1,
+        height,
+      },
+      style,
+      zIndex,
+      filler: pieces.vertical,
+    });
+
+    canvas.drawBox({
+      rectangle: {
+        column,
+        row,
+        width: 1,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.topLeft,
+    });
+
+    canvas.drawBox({
+      rectangle: {
+        column: column + width - 1,
+        row,
+        width: 1,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.topRight,
+    });
+
+    canvas.drawBox({
+      rectangle: {
+        column,
+        row: row + height - 1,
+        width: 1,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.bottomLeft,
+    });
+
+    canvas.drawBox({
+      rectangle: {
+        column: column + width - 1,
+        row: row + height - 1,
+        width: 1,
+        height: 1,
+      },
+      style,
+      zIndex,
+      filler: pieces.bottomRight,
+    });
   }
 }

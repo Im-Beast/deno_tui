@@ -1,7 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { ComponentOptions } from "../component.ts";
-import { Box } from "./box.ts";
 import { Button } from "./button.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
@@ -39,7 +38,7 @@ export type ComboboxEventMap = {
 export class Combobox<
   OptionType extends string[] = string[],
   EventMap extends EventRecord = Record<never, never>,
-> extends Box<EventMap & ComboboxEventMap> implements ComboboxImplementation {
+> extends Button<EventMap & ComboboxEventMap> implements ComboboxImplementation {
   #lastInteraction = 0;
 
   label: string;
@@ -53,21 +52,12 @@ export class Combobox<
     this.option = options.label ? undefined : this.options[0];
   }
 
+  update(): void {
+    super.update();
+  }
+
   draw(): void {
     super.draw();
-
-    if (this.label) {
-      const { style, tui } = this;
-      const { canvas } = tui;
-      const { column, row, width, height } = this.rectangle;
-
-      canvas.draw(
-        column + (width / 2) - (this.label.length / 2),
-        row + (height / 2),
-        style(this.label),
-        this,
-      );
-    }
   }
 
   interact(): void {

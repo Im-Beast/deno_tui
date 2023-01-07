@@ -19,9 +19,18 @@ export function handleControls(tui: Tui): void {
 }
 
 export function handleKeyboardControls(tui: Tui): void {
-  tui.on("render", () => {
-    const text = currentView?.title ?? "";
-    tui.canvas.draw(tui.canvas.size.columns - textWidth(text), 0, tui.style(text));
+  const viewText = tui.canvas.drawText({
+    rectangle: {
+      get column() {
+        return tui.canvas.size.columns - textWidth(currentView?.title ?? "");
+      },
+      row: 0,
+    },
+    style: tui.style,
+    get value() {
+      return currentView?.title ?? "";
+    },
+    zIndex: Number.MAX_SAFE_INTEGER,
   });
 
   const updateLastSelectedComponent = () => {
@@ -79,12 +88,14 @@ export function handleKeyboardControls(tui: Tui): void {
           const viewIndex = +key.replace("f", "") - 1;
           const previousView = currentView;
           currentView = viewInstances[viewIndex];
+          viewText.rendered = false;
 
           if (viewIndex < viewInstances.length && currentView !== previousView) {
             lastSelectedComponent.state = "base";
             return;
           }
 
+          viewText.rendered = false;
           currentView = undefined;
           lastSelectedComponent.state = "base";
           return;

@@ -1,5 +1,5 @@
 import { Component } from "./component.ts";
-import { Slider, SliderTheme } from "./components/slider.ts";
+import type { Slider, SliderTheme } from "./components/slider.ts";
 import { EventRecord } from "./event_emitter.ts";
 import { Tui } from "./tui.ts";
 import { DeepPartial, Offset, Rectangle } from "./types.ts";
@@ -91,8 +91,10 @@ export class View {
         horizontalTheme = verticalTheme = self.theme.sliders;
       }
 
+      // FIXME: Circular dependency
+
       if (this.maxOffset.x > 0 && !this.scrollbars.horizontal) {
-        this.scrollbars.horizontal = new Slider({
+        /*         this.scrollbars.horizontal = new Slider({
           tui: this.tui,
           direction: "horizontal",
           min: 0,
@@ -115,11 +117,11 @@ export class View {
 
         this.scrollbars.horizontal.on("valueChange", (component) => {
           this.offset.x = component.value;
-        });
+        });*/
       }
 
       if (this.maxOffset.y > 0 && !this.scrollbars.vertical) {
-        this.scrollbars.vertical = new Slider({
+        /*        this.scrollbars.vertical = new Slider({
           tui: this.tui,
           direction: "vertical",
           min: 0,
@@ -131,7 +133,7 @@ export class View {
               column: column + width,
               row,
               height,
-              width: 1,
+              width: 2,
             };
           },
           step: 1,
@@ -142,16 +144,16 @@ export class View {
 
         this.scrollbars.vertical.on("valueChange", (component) => {
           this.offset.y = component.value;
-        });
+        });*/
       }
     })(this);
 
-    if (this.scrollbars.vertical) {
-      this.scrollbars.vertical.max = this.maxOffset.y;
-    }
-
     if (this.scrollbars.horizontal) {
       this.scrollbars.horizontal.max = this.maxOffset.x;
+    }
+
+    if (this.scrollbars.vertical) {
+      this.scrollbars.vertical.max = this.maxOffset.y;
     }
   }
 }

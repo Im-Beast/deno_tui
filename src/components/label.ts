@@ -67,7 +67,7 @@ export class Label<
   draw(): void {
     super.draw();
 
-    const { style, align, value, rectangle } = this;
+    const { style, align, value, rectangle, zIndex } = this;
     const { canvas } = this.tui;
 
     const { column, row, width, height } = rectangle;
@@ -99,9 +99,14 @@ export class Label<
           break;
       }
 
-      canvas.draw(c, r, style(line), {
-        boundary: rectangle,
-        view: this.view,
+      canvas.drawText({
+        rectangle: {
+          column: c,
+          row: r,
+        },
+        style,
+        value: line,
+        zIndex,
       });
     }
   }

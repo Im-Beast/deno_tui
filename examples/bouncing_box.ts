@@ -4,16 +4,18 @@
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
 import { Tui } from "../mod.ts";
-import { BoxComponent } from "../src/components/box.ts";
+import { Box } from "../src/components/box.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack.white,
 });
 
+tui.canvas.refreshRate = 1000 / 60;
+
 tui.dispatch();
 
 let hue = 0;
-const box = new BoxComponent({
+const box = new Box({
   tui,
   theme: {
     base: (text: string) => crayon.bgHsl(++hue % 360, 50, 50)(text),
@@ -24,16 +26,17 @@ const box = new BoxComponent({
     width: 6,
     height: 3,
   },
+  forceDynamicDrawing: true,
 });
 
 const moveDirection = {
   x: 1,
-  y: 0.5,
+  y: 1,
 };
 
 tui.run();
 
-tui.on("update", () => {
+tui.on("render", () => {
   // Frequency of this type being dispatched is based on `tui.updateRate`
   // If you would like to support lower or higher update rates you should calculate delta time and base box movement on that
   const canvasSize = tui.canvas.size;

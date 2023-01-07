@@ -3,8 +3,8 @@
 
 import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
 
-import { handleKeypresses, handleMouseControls, PlaceComponentOptions, Tui } from "../mod.ts";
-import { BoxComponent } from "../src/components/box.ts";
+import { handleControls, handleInput, PlaceComponentOptions, Tui } from "../mod.ts";
+import { Box } from "../src/components/box.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack.white,
@@ -12,12 +12,15 @@ const tui = new Tui({
 
 tui.dispatch();
 
-handleKeypresses(tui);
-handleMouseControls(tui);
+handleInput(tui);
+handleControls(tui);
 
-class DraggableBoxComponent extends BoxComponent {
+class DraggableBoxComponent extends Box {
   constructor(options: PlaceComponentOptions) {
     super(options);
+
+    // Make it respond on quick movements faster
+    this.forceDynamicDrawing = true;
 
     tui.on("mousePress", ({ drag, x, y }) => {
       if (!drag || this.state === "base") return;

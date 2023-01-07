@@ -89,7 +89,7 @@ export class ProgressBar<
   draw(): void {
     super.draw();
 
-    const { theme, state, value, min, max, direction } = this;
+    const { theme, state, value, min, max, direction, zIndex } = this;
     const { canvas } = this.tui;
     const { column, row, width, height } = this.rectangle;
 
@@ -125,23 +125,29 @@ export class ProgressBar<
       case "horizontal":
         {
           valueString ??= " ".repeat(normalizedValue * width);
-          canvas.draw(
-            column,
-            row,
-            progressStyle((valueString + "\n").repeat(height)),
-            this,
-          );
+          canvas.drawText({
+            rectangle: {
+              column: ~~column,
+              row: ~~row,
+            },
+            style: progressStyle,
+            value: (valueString + "\n").repeat(height),
+            zIndex,
+          });
         }
         break;
       case "vertical":
         {
           valueString ??= (" ".repeat(width) + "\n").repeat(normalizedValue * height);
-          canvas.draw(
-            column,
-            row,
-            progressStyle(valueString),
-            this,
-          );
+          canvas.drawText({
+            rectangle: {
+              column: ~~column,
+              row: ~~row,
+            },
+            style: progressStyle,
+            value: valueString,
+            zIndex,
+          });
         }
         break;
     }

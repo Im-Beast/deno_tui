@@ -16,7 +16,7 @@ import {
   USE_SECONDARY_BUFFER,
 } from "./utils/ansi_codes.ts";
 
-import type { KeyPress, MousePress, MultiKeyPress, Stdin, Stdout, Timing } from "./types.ts";
+import type { KeyPress, MousePress, MultiKeyPress, Stdin, Stdout } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
 
 const textEncoder = new TextEncoder();
@@ -49,7 +49,7 @@ export type TuiImplementation = TuiOptions & TuiPrivate;
 
 /** EventMap that {Tui} uses */
 export type TuiEventMap = {
-  render: EmitterEvent<[Timing]>;
+  render: EmitterEvent<[]>;
   update: EmitterEvent<[]>;
   keyPress: EmitterEvent<[KeyPress]>;
   multiKeyPress: EmitterEvent<[MultiKeyPress]>;
@@ -159,8 +159,8 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
    * Returns function that stops {Canvas.render}
    */
   render(): () => void {
-    this.canvas.on("frame", (timing) => this.emit("render", timing));
-    return this.canvas.render();
+    this.canvas.on("render", () => this.emit("render"));
+    return this.canvas.start();
   }
 
   /**
@@ -177,14 +177,32 @@ export class Tui extends EventEmitter<TuiEventMap> implements TuiImplementation 
       this.render(),
     );
 
-    this.on("update", () => {
-      const { columns, rows } = this.canvas.size;
-      this.canvas.draw(0, 0, this.style((" ".repeat(columns) + "\n").repeat(rows)));
+    const drawnComponents = new Set<Component>();
 
+    ((tui) => {
+      this.canvas.drawBox({
+        rectangle: {
+          column: 0,
+          row: 0,
+          get width() {
+            return tui.canvas.size.columns;
+          },
+          get height() {
+            return tui.canvas.size.rows;
+          },
+        },
+        style: tui.style,
+        dynamic: false,
+        zIndex: -1,
+      });
+    })(this);
+
+    this.on("update", () => {
       for (const component of this.components) {
-        const { rectangle } = component;
-        if (rectangle && (rectangle.column > columns || rectangle.row > rows)) continue;
+        component.update();
+        if (drawnComponents.has(component)) continue;
         component.draw();
+        drawnComponents.add(component);
       }
     });
   }

@@ -1,9 +1,9 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
 import { hierarchizeTheme, Theme } from "../theme.ts";
+import { Box } from "./box.ts";
 
 import { PlaceComponentOptions } from "../component.ts";
-import { Box } from "./box.ts";
 import { EmitterEvent } from "../event_emitter.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
@@ -56,6 +56,7 @@ export class Slider<
 
   constructor(options: SliderOptions) {
     super(options);
+
     this.direction = options.direction;
     this.min = options.min;
     this.max = options.max;
@@ -134,24 +135,28 @@ export class Slider<
         {
           const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
 
-          canvas.draw(
-            column + normalizedValue * (width - thumbWidth),
-            row,
-            thumbStyle((" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height)),
-            this,
-          );
+          canvas.drawText({
+            rectangle: {
+              column: Math.round(column + normalizedValue * (width - thumbWidth)),
+              row,
+            },
+            style: thumbStyle,
+            value: (" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height),
+          });
         }
         break;
       case "vertical":
         {
           const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
 
-          canvas.draw(
-            column,
-            row + normalizedValue * (height - thumbHeight),
-            thumbStyle((" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1))),
-            this,
-          );
+          canvas.drawText({
+            rectangle: {
+              column,
+              row: Math.round(row + normalizedValue * (height - thumbHeight)),
+            },
+            style: thumbStyle,
+            value: (" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1)),
+          });
         }
         break;
     }
