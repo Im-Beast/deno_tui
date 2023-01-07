@@ -37,14 +37,17 @@ export type DrawObject<Type extends string> = {
   dynamic: boolean;
 };
 
-export type DrawBoxOptions<Prepared extends boolean = false> = Prepared extends true ? DrawObject<"box"> : {
-  style: Style;
-  rectangle: Rectangle;
-  omitCells?: [number, number][];
-  omitCellsPointer?: number;
-  zIndex?: number;
-  dynamic?: boolean;
-};
+export type DrawBoxOptions<Prepared extends boolean = false> = Prepared extends true
+  ? DrawObject<"box"> & { filler: string }
+  : {
+    style: Style;
+    rectangle: Rectangle;
+    omitCells?: [number, number][];
+    omitCellsPointer?: number;
+    zIndex?: number;
+    dynamic?: boolean;
+    filler?: string;
+  };
 
 export type DrawTextOptions<Prepared extends boolean = false> = Prepared extends true ? DrawObject<"text"> & {
     value: string;
@@ -142,6 +145,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     const preparedText = text as DrawTextOptions<true>;
 
     preparedText.type = "text";
+
     text.omitCells ??= [];
     text.zIndex ??= 0;
     text.dynamic ??= false;
@@ -156,6 +160,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     const preparedBox = box as DrawBoxOptions<true>;
 
     preparedBox.type = "box";
+
+    box.filler ??= " ";
     box.omitCells ??= [];
     box.zIndex ??= 0;
     box.dynamic ??= false;
@@ -266,9 +272,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       object.rendered = true;
 
-      if (renderPartially) {
+      // TODO: Partial rendering of text
+      if (renderPartially && object.type === "box") {
         // Rerender part of object
-        const { rerenderCells } = object;
+        const { rerenderCells, filler } = object;
 
         for (let i = 0; i < rerenderCells.length; i += 2) {
           const row = rerenderCells[i];
@@ -280,7 +287,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
             continue;
           }
 
-          this.frameBuffer[row][column] = object.style(" ");
+          this.frameBuffer[row][column] = object.style(filler);
           pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
         }
 
@@ -312,6 +319,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
           }
         } while (index !== -1);
       } else {
+        const { style, filler } = object;
         // Render box
         for (let row = object.rectangle.row; row < object.rectangle.row + object.rectangle.height; ++row) {
           const rowBuffer = this.frameBuffer[row];
@@ -328,7 +336,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
               continue;
             }
 
-            rowBuffer[column] = object.style(" ");
+            rowBuffer[column] = style(filler);
             pushToPointedArray(this.#rerenderQueue, rendererQueueIndex++, row, column);
           }
         }
