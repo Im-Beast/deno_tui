@@ -31,6 +31,18 @@ export class Box<EventMap extends EventRecord = Record<never, never>> extends Pl
     }
   }
 
+  remove(): void {
+    super.remove();
+
+    const { box } = this.drawnObjects;
+    const { canvas } = this.tui;
+
+    if (box) {
+      canvas.drawnObjects.remove(box);
+      delete this.drawnObjects.box;
+    }
+  }
+
   draw(): void {
     super.draw();
 

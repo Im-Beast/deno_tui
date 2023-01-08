@@ -6,6 +6,7 @@ import { textWidth } from "../utils/strings.ts";
 
 import type { Rectangle } from "../types.ts";
 import type { EventRecord } from "../event_emitter.ts";
+import { DrawTextOptions } from "../canvas.ts";
 
 /** Interface describing positioning of label when given boundaries using `rectangle` */
 export interface LabelTextAlign {
@@ -37,6 +38,10 @@ export class Label<
   value: string;
   align: LabelTextAlign;
 
+  drawnObjects: {
+    labelParts: DrawTextOptions<true>[];
+  };
+
   constructor(options: LabelOptions) {
     super(options);
 
@@ -44,6 +49,9 @@ export class Label<
     this.align = options.align;
     this.#rectangle = options.rectangle;
     this.rectangle = options.rectangle;
+    this.drawnObjects = {
+      labelParts: [],
+    };
   }
 
   get rectangle(): Rectangle {
@@ -64,11 +72,29 @@ export class Label<
     }
   }
 
+  update(): void {
+    super.update();
+
+    const { drawnObjects } = this;
+
+    if (this.refresh && drawnObjects.labelParts.length > 0) {
+      for (const label of drawnObjects.labelParts) {
+        label.style = this.style;
+        label.zIndex = this.zIndex;
+        label.dynamic = this.forceDynamicDrawing;
+      }
+    }
+  }
+
   draw(): void {
     super.draw();
 
-    const { style, align, value, rectangle, zIndex } = this;
+    const { drawnObjects, style, align, value, rectangle, zIndex } = this;
     const { canvas } = this.tui;
+
+    if (drawnObjects.labelParts.length > 0) {
+      canvas.drawnObjects.remove(...drawnObjects.labelParts.values());
+    }
 
     const { column, row, width, height } = rectangle;
 
@@ -99,7 +125,7 @@ export class Label<
           break;
       }
 
-      canvas.drawText({
+      drawnObjects.labelParts.push(canvas.drawText({
         rectangle: {
           column: c,
           row: r,
@@ -107,7 +133,8 @@ export class Label<
         style,
         value: line,
         zIndex,
-      });
+        dynamic: this.forceDynamicDrawing,
+      }));
     }
   }
 }

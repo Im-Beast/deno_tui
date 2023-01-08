@@ -52,6 +52,18 @@ export class Button<
     }
   }
 
+  remove(): void {
+    super.remove();
+
+    const { label } = this.drawnObjects;
+    const { canvas } = this.tui;
+
+    if (label) {
+      canvas.drawnObjects.remove(label);
+      delete this.drawnObjects.label;
+    }
+  }
+
   draw(): void {
     super.draw();
 
@@ -73,6 +85,7 @@ export class Button<
         value: label,
         style,
         zIndex,
+        dynamic: this.forceDynamicDrawing,
       });
     }
   }

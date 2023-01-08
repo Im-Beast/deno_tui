@@ -10,7 +10,7 @@ import { rectangleIntersection } from "./utils/numbers.ts";
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 import type { EventRecord } from "./event_emitter.ts";
 import { rectangleEquals } from "../mod.ts";
-import { Canvas, DrawObject } from "./canvas.ts";
+import { DrawObject } from "./canvas.ts";
 
 /** Type defining any {Component}, even inherited ones */
 // deno-lint-ignore no-explicit-any
@@ -50,7 +50,7 @@ export interface ComponentPrivate {
   zIndex: number;
   children: Component[];
   parent: Tui | Component;
-  drawnObjects?: Record<string, DrawObject<string>>;
+  drawnObjects?: Record<string, DrawObject<string> | DrawObject<string>[]>;
   forceDynamicDrawing: boolean;
 }
 
@@ -96,7 +96,7 @@ export class Component<
   parent: Tui | Component;
   children: Component[];
   visible: boolean;
-  drawnObjects?: Record<string, DrawObject<string>>;
+  drawnObjects?: Record<string, DrawObject<string> | DrawObject<string>[]>;
 
   forceDynamicDrawing: boolean;
   lastTickData?: ComponentLastTickData;
@@ -260,15 +260,6 @@ export class Component<
 
   /** Remove component from `tui` and dispatch `removeComponent` event   */
   remove(): void {
-    const { drawnObjects } = this;
-    const { canvas } = this.tui;
-    if (drawnObjects) {
-      for (const index in drawnObjects) {
-        canvas.drawnObjects.remove(drawnObjects[index] as Canvas["drawnObjects"][number]);
-        delete drawnObjects[index];
-      }
-    }
-
     this.off();
     this.emit("remove", this);
     this.tui.components.remove(this);

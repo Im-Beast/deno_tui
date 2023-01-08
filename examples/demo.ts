@@ -13,7 +13,7 @@ import { Combobox } from "../src/components/combobox.ts";
 import { Frame } from "../src/components/frame.ts";
 import { ProgressBar } from "../src/components/progress_bar.ts";
 import { Slider } from "../src/components/slider.ts";
-// import { Textbox } from "../src/components/textbox.ts";
+import { Textbox } from "../src/components/textbox.ts";
 import { Theme } from "../src/theme.ts";
 import { Label } from "../src/components/label.ts";
 // import { Table } from "../src/components/table.ts";

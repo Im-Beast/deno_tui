@@ -1,6 +1,6 @@
 import { Style } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
-import { CLEAR_SCREEN, moveCursor } from "./utils/ansi_codes.ts";
+import { moveCursor } from "./utils/ansi_codes.ts";
 
 import { sleep } from "./utils/async.ts";
 import { Deffered } from "./utils/deffered.ts";
@@ -156,6 +156,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     return preparedText;
   }
 
+  // TODO: Add a way to create and draw custom shapes
+
   drawBox(box: DrawBoxOptions<false>): DrawBoxOptions<true> {
     const preparedBox = box as DrawBoxOptions<true>;
 
@@ -236,8 +238,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   }
 
   rerender(): void {
-    Deno.writeSync(this.stdout.rid, textEncoder.encode(CLEAR_SCREEN));
-
     for (const object of this.drawnObjects) {
       this.updateIntersections(object);
       object.rendered = false;
@@ -245,6 +245,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.render();
   }
 
+  // TODO: check for removed drawnObjects and rerender dead parts
   render(): void {
     this.fps = 1000 / (performance.now() - this.lastRender);
     this.emit("render");

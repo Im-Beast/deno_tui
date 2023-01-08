@@ -52,14 +52,6 @@ export class Combobox<
     this.option = options.label ? undefined : this.options[0];
   }
 
-  update(): void {
-    super.update();
-  }
-
-  draw(): void {
-    super.draw();
-  }
-
   interact(): void {
     const now = Date.now();
     const interactionDelay = now - this.#lastInteraction;
@@ -99,6 +91,8 @@ export class Combobox<
         component.remove();
       }
       this.children.length = 0;
+      // FIXME: workaround for canvas not re-rendering dead space after component gets removed
+      this.tui.canvas.rerender();
     }
 
     this.#lastInteraction = now;

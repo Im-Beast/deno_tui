@@ -10,6 +10,7 @@ import { clamp } from "../utils/numbers.ts";
 import type { EventRecord } from "../event_emitter.ts";
 import { emptyStyle, hierarchizeTheme, Style, Theme } from "../theme.ts";
 import type { DeepPartial, KeyPress } from "../types.ts";
+import { DrawBoxOptions } from "../canvas.ts";
 
 export interface TextboxTheme extends Theme {
   /** Style for numbers counting textbox rows */
@@ -172,6 +173,10 @@ export class Textbox<
   lineNumbering: boolean;
   placeholder?: string;
 
+  drawnObjects: {
+    box?: DrawBoxOptions<true>;
+  };
+
   constructor(options: TextboxOptions) {
     super(options);
     this.multiline = options.multiline ?? false;
@@ -180,6 +185,8 @@ export class Textbox<
     this.hidden = options.hidden ?? false;
     this.value = options.value ?? "";
     this.cursorPosition = { x: this.rawValue.at(-1)?.length ?? 0, y: this.rawValue.length - 1 ?? 0 };
+    this.drawnObjects = {};
+
     this.placeholder = options.placeholder;
     if (this.placeholder) {
       this.#placeholder = this.placeholder.split("\n");
@@ -203,6 +210,7 @@ export class Textbox<
 
   draw(): void {
     super.draw();
+    // TODO: rewrite this to better suit new canvas possibilities
 
     const { canvas } = this.tui;
 
@@ -238,42 +246,58 @@ export class Textbox<
       lineText = this.hidden ? "*".repeat(lineText.length) : lineText;
 
       if (this.lineHighlighting && i === y && highlightedLineStyle !== emptyStyle) {
-        lineText = highlightedLineStyle(lineText);
-        canvas.draw(column, row + i - offsetY, highlightedLineStyle(" ".repeat(width)), this);
+        canvas.drawBox({
+          rectangle: {
+            column,
+            row: row + i - offsetY,
+            width,
+            height: 1,
+          },
+          style: highlightedLineStyle,
+          dynamic: this.forceDynamicDrawing,
+          zIndex: this.zIndex,
+        });
       }
 
-      lineText = textStyle(lineText);
-
-      canvas.draw(
-        column,
-        row + i - offsetY,
-        lineText,
-        this,
-      );
+      canvas.drawText({
+        rectangle: {
+          column,
+          row: row + i - offsetY,
+        },
+        value: lineText,
+        style: textStyle,
+        zIndex: this.zIndex,
+      });
 
       if (!this.lineNumbering) continue;
 
       const rowNumber = `${i + 1}`;
-      const rowNumberText = lineNumbersStyle(
-        this.lineNumbering ? (rowNumber + " ".repeat(textLineOffset - rowNumber.length)) : "",
-      );
+      const rowNumberText = this.lineNumbering ? (rowNumber + " ".repeat(textLineOffset - rowNumber.length)) : "";
 
-      canvas.draw(
-        column - textLineOffset,
-        row + i - offsetY,
-        rowNumberText,
-        this,
-      );
+      canvas.drawText({
+        rectangle: {
+          column: column - textLineOffset,
+          row: row + i - offsetY,
+        },
+        value: rowNumberText,
+        style: lineNumbersStyle,
+        dynamic: this.forceDynamicDrawing,
+        zIndex: this.zIndex,
+      });
     }
 
     if (this.state === "base") return;
 
-    canvas.draw(
-      column + Math.min(x, width - 1),
-      row + Math.min(y, height - 1),
-      textStyle("\x1b[7m" + (textArray[y][x] ?? " ") + "\x1b[0m"),
-      this,
-    );
+    canvas.drawText({
+      rectangle: {
+        column: column + Math.min(x, width - 1),
+        row: row + Math.min(y, height - 1),
+      },
+      style: textStyle,
+      value: "\x1b[7m" + (textArray[y][x] ?? " ") + "\x1b[0m",
+      dynamic: this.forceDynamicDrawing,
+      zIndex: this.zIndex,
+    });
   }
 
   interact(): void {

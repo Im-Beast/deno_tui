@@ -1,4 +1,5 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// TODO: Rewrite this
 
 import { Component, ComponentOptions } from "../component.ts";
 

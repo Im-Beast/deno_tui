@@ -1,5 +1,6 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 
+import { DrawBoxOptions } from "../canvas.ts";
 import { Component, ComponentOptions, ComponentState } from "../component.ts";
 
 import type { EventRecord } from "../event_emitter.ts";
@@ -66,6 +67,17 @@ export class Frame<
 
   framePieces: "sharp" | "rounded" | FramePieceType;
 
+  drawnObjects: {
+    topHorizontal?: DrawBoxOptions<true>;
+    bottomHorizontal?: DrawBoxOptions<true>;
+    leftVertical?: DrawBoxOptions<true>;
+    rightVertical?: DrawBoxOptions<true>;
+    topLeft?: DrawBoxOptions<true>;
+    topRight?: DrawBoxOptions<true>;
+    bottomLeft?: DrawBoxOptions<true>;
+    bottomRight?: DrawBoxOptions<true>;
+  };
+
   constructor(options: FrameOptions) {
     super({
       tui: options.tui,
@@ -75,13 +87,14 @@ export class Frame<
       zIndex: options.zIndex ?? options.component?.zIndex,
     });
 
+    this.drawnObjects = {};
+
     this.component = options.component;
     if (!this.#component) {
       this.rectangle = options.rectangle!;
     }
 
     this.view ??= this.component?.view;
-
     this.framePieces = options.framePieces ?? "sharp";
 
     if (!this.#rectangle) {
@@ -133,8 +146,14 @@ export class Frame<
   draw(): void {
     super.draw();
 
-    const { style, framePieces, zIndex } = this;
+    const { drawnObjects, framePieces, zIndex, style } = this;
     const { canvas } = this.component?.tui ?? this.tui;
+
+    if (drawnObjects.topLeft) {
+      canvas.drawnObjects.remove(
+        ...Object.values(drawnObjects),
+      );
+    }
 
     const { column, row, width, height } = this.rectangle;
 
@@ -144,10 +163,7 @@ export class Frame<
       ? roundedFramePieces
       : framePieces;
 
-    // canvas.draw(column, row, style(pieces.topLeft), this);
-    // canvas.draw(column + width - 1, row, style(pieces.topRight), this);
-
-    canvas.drawBox({
+    drawnObjects.topHorizontal = canvas.drawBox({
       rectangle: {
         column,
         row,
@@ -159,7 +175,7 @@ export class Frame<
       filler: pieces.horizontal,
     });
 
-    canvas.drawBox({
+    drawnObjects.bottomHorizontal = canvas.drawBox({
       rectangle: {
         column,
         row: row + height - 1,
@@ -171,7 +187,7 @@ export class Frame<
       filler: pieces.horizontal,
     });
 
-    canvas.drawBox({
+    drawnObjects.leftVertical = canvas.drawBox({
       rectangle: {
         column,
         row,
@@ -183,7 +199,7 @@ export class Frame<
       filler: pieces.vertical,
     });
 
-    canvas.drawBox({
+    drawnObjects.rightVertical = canvas.drawBox({
       rectangle: {
         column: column + width - 1,
         row,
@@ -195,7 +211,7 @@ export class Frame<
       filler: pieces.vertical,
     });
 
-    canvas.drawBox({
+    drawnObjects.topLeft = canvas.drawBox({
       rectangle: {
         column,
         row,
@@ -207,7 +223,7 @@ export class Frame<
       filler: pieces.topLeft,
     });
 
-    canvas.drawBox({
+    drawnObjects.topRight = canvas.drawBox({
       rectangle: {
         column: column + width - 1,
         row,
@@ -219,7 +235,7 @@ export class Frame<
       filler: pieces.topRight,
     });
 
-    canvas.drawBox({
+    drawnObjects.bottomLeft = canvas.drawBox({
       rectangle: {
         column,
         row: row + height - 1,
@@ -231,7 +247,7 @@ export class Frame<
       filler: pieces.bottomLeft,
     });
 
-    canvas.drawBox({
+    drawnObjects.bottomRight = canvas.drawBox({
       rectangle: {
         column: column + width - 1,
         row: row + height - 1,

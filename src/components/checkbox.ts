@@ -49,10 +49,6 @@ export class Checkbox<
     this.#value = value;
   }
 
-  draw(): void {
-    super.draw();
-  }
-
   interact(_method?: "mouse" | "keyboard"): void {
     this.state = this.state === "focused" || this.state === "active" ? "active" : "focused";
     if (this.state === "active") this.value = !this.value;

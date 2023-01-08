@@ -10,6 +10,7 @@ import { clamp, normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
 import type { EventRecord } from "../event_emitter.ts";
+import { DrawBoxOptions } from "../canvas.ts";
 
 /** Theme used by {Slider} to style itself */
 export interface SliderTheme extends Theme {
@@ -54,6 +55,11 @@ export class Slider<
   #value: number;
   adjustThumbSize: boolean;
 
+  drawnObjects: {
+    box?: DrawBoxOptions<true>;
+    thumb?: DrawBoxOptions<true>;
+  };
+
   constructor(options: SliderOptions) {
     super(options);
 
@@ -64,6 +70,7 @@ export class Slider<
     this.step = options.step;
     this.theme.thumb = hierarchizeTheme(options.theme?.thumb);
     this.adjustThumbSize = options.adjustThumbSize ?? false;
+    this.drawnObjects = {};
 
     const lastMove = { x: -1, y: -1, time: 0 };
     this.on("keyPress", ({ key, ctrl, meta, shift }) => {
@@ -115,15 +122,63 @@ export class Slider<
     this.#value = clamp(value, this.min, this.max);
 
     if (this.#value !== prev) {
+      this.forceRefresh = true;
       this.emit("valueChange", this);
+    }
+  }
+
+  update(): void {
+    super.update();
+
+    const { thumb } = this.drawnObjects;
+
+    if (this.refresh && thumb) {
+      const { theme, state, value, min, max, direction } = this;
+      const { column, row, width, height } = this.rectangle;
+
+      const normalizedValue = normalize(value, min, max);
+
+      thumb.style = theme.thumb[state];
+      thumb.dynamic = this.forceDynamicDrawing;
+      thumb.zIndex = this.zIndex;
+
+      switch (direction) {
+        case "horizontal":
+          {
+            const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
+
+            thumb.rectangle.column = Math.round(column + normalizedValue * (width - thumbWidth));
+            thumb.rectangle.width = thumbWidth;
+            thumb.rectangle.row = row;
+            thumb.rectangle.height = height;
+          }
+          break;
+        case "vertical":
+          {
+            const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
+
+            thumb.rectangle.row = Math.round(row + normalizedValue * (row - thumbHeight));
+            thumb.rectangle.height = thumbHeight;
+            thumb.rectangle.column = column;
+            thumb.rectangle.width = width;
+          }
+          break;
+      }
+
+      thumb.rendered = false;
     }
   }
 
   draw(): void {
     super.draw();
 
-    const { theme, state, value, min, max, direction } = this;
+    const { drawnObjects, theme, state, value, min, max, direction } = this;
     const { canvas } = this.tui;
+
+    if (drawnObjects.thumb) {
+      canvas.drawnObjects.remove(drawnObjects.thumb);
+    }
+
     const { column, row, width, height } = this.rectangle;
 
     const normalizedValue = normalize(value, min, max);
@@ -135,13 +190,15 @@ export class Slider<
         {
           const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
 
-          canvas.drawText({
+          drawnObjects.thumb = canvas.drawBox({
             rectangle: {
               column: Math.round(column + normalizedValue * (width - thumbWidth)),
               row,
+              height,
+              width: thumbWidth,
             },
             style: thumbStyle,
-            value: (" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height),
+            dynamic: this.forceDynamicDrawing,
           });
         }
         break;
@@ -149,13 +206,15 @@ export class Slider<
         {
           const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
 
-          canvas.drawText({
+          drawnObjects.thumb = canvas.drawBox({
             rectangle: {
               column,
-              row: Math.round(row + normalizedValue * (height - thumbHeight)),
+              row: Math.round(row + normalizedValue * (row - thumbHeight)),
+              height: thumbHeight,
+              width,
             },
             style: thumbStyle,
-            value: (" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1)),
+            dynamic: this.forceDynamicDrawing,
           });
         }
         break;
