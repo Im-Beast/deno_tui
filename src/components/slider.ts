@@ -157,7 +157,7 @@ export class Slider<
           {
             const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
 
-            thumb.rectangle.row = Math.round(row + normalizedValue * (row - thumbHeight));
+            thumb.rectangle.row = Math.round(row + normalizedValue * (height - thumbHeight));
             thumb.rectangle.height = thumbHeight;
             thumb.rectangle.column = column;
             thumb.rectangle.width = width;
@@ -209,7 +209,7 @@ export class Slider<
           drawnObjects.thumb = canvas.drawBox({
             rectangle: {
               column,
-              row: Math.round(row + normalizedValue * (row - thumbHeight)),
+              row: Math.round(row + normalizedValue * (height - thumbHeight)),
               height: thumbHeight,
               width,
             },
