@@ -27,7 +27,7 @@ export function textWidth(text: string): number {
   let width = 0;
   const strippedString = stripStyles(text);
   for (let i = 0; i < strippedString.length; i++) {
-    width += isFullWidth(strippedString[i]) ? 2 : 1;
+    width += characterWidth(strippedString[i]);
   }
 
   return width;
@@ -38,10 +38,10 @@ export function textWidth(text: string): number {
  *
  * Originally created by sindresorhus: https://github.com/sindresorhus/is-fullwidth-code-point/blob/main/index.js
  */
-export function isFullWidth(character: string): boolean {
+export function characterWidth(character: string): number {
   const codePoint = character.charCodeAt(0);
 
-  return (
+  if (
     codePoint >= 0x1100 &&
     (codePoint <= 0x115f ||
       codePoint === 0x2329 ||
@@ -59,5 +59,9 @@ export function isFullWidth(character: string): boolean {
       (0x1b000 <= codePoint && codePoint <= 0x1b001) ||
       (0x1f200 <= codePoint && codePoint <= 0x1f251) ||
       (0x20000 <= codePoint && codePoint <= 0x3fffd))
-  );
+  ) {
+    return 2;
+  }
+
+  return 1;
 }
