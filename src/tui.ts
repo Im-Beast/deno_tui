@@ -108,6 +108,10 @@ export class Tui extends EventEmitter<{
 
     clearTimeout(this.#nextUpdateTimeout);
 
+    try {
+      this.stdin.setRaw(false);
+    } catch { /**/ }
+
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_PRIMARY_BUFFER + SHOW_CURSOR));
 
     for (const component of this.components) {
