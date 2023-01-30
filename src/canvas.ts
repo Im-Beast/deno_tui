@@ -1,3 +1,5 @@
+// TODO: Refactor this, currently it's a mess
+
 import { Style } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { moveCursor } from "./utils/ansi_codes.ts";
@@ -22,7 +24,9 @@ export type CanvasEventMap = {
   render: EmitterEvent<[]>;
 };
 
-export type DrawObject<Type extends string = string> = {
+export type DrawableObject<Prepared extends boolean = false> = DrawTextOptions<Prepared> | DrawBoxOptions<Prepared>;
+
+export interface DrawObject<Type extends string = string> {
   type: Type;
 
   objectsUnder: DrawObject[];
@@ -41,7 +45,7 @@ export type DrawObject<Type extends string = string> = {
   style: Style;
   zIndex: number;
   dynamic: boolean;
-};
+}
 
 export type DrawBoxOptions<Prepared extends boolean = false> = Prepared extends true
   ? DrawObject<"box"> & { filler: string }
@@ -186,8 +190,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     return preparedBox;
   }
 
-  eraseObject(this: Canvas, object: typeof this["drawnObjects"][number]): void {
-    this.drawnObjects.remove(object);
+  eraseObjects(...objects: this["drawnObjects"][number][]): void {
+    this.drawnObjects.remove(...objects);
   }
 
   updateIntersections(this: Canvas, object: typeof this["drawnObjects"][number]): void {
