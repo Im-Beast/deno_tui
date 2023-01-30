@@ -21,9 +21,9 @@ export class SortedArray<T = unknown> extends Array<T> {
   }
 
   remove(...items: T[]): number {
-    const filtered = this.filter((item) => !items.includes(item));
-    this.length = 0;
-    this.push(...filtered);
+    for (const item of items) {
+      this.splice(this.indexOf(item), 1);
+    }
     return this.length;
   }
 }
