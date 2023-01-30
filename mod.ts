@@ -8,4 +8,5 @@ export * from "./src/theme.ts";
 export * from "./src/tui.ts";
 export * from "./src/types.ts";
 export * from "./src/utils/mod.ts";
+export * from "./src/view.ts";
 export * from "./src/controls.ts";
