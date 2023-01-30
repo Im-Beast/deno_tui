@@ -1,20 +1,19 @@
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "../tui.ts";
 import { Component } from "../component.ts";
-import { View } from "../view.ts";
+
+export function isInteractable(component: Component): boolean {
+  return component.interact !== Component.prototype.interact;
+}
 
 /** Returns component that's the closest to top left corner of tui's canvas */
-export function getComponentClosestToTopLeftCorner(tui: Tui, filterFn?: (component: Component) => boolean): Component;
-export function getComponentClosestToTopLeftCorner(view: View, filterFn?: (component: Component) => boolean): Component;
-export function getComponentClosestToTopLeftCorner(
-  instance: Tui | View,
-  filterFn?: (component: Component) => boolean,
-): Component {
-  let closestToTLCorner!: [number, Component];
+export function getComponentClosestToTopLeftCorner(tui: Tui, filterFn?: (component: Component) => boolean): Component {
+  let closestDistance!: number;
+  let closestComponent!: Component;
 
-  for (const component of instance.components) {
+  for (const component of tui.components) {
     const { rectangle, zIndex } = component;
-    if (!rectangle || !filterFn?.(component)) {
+    if (filterFn && !filterFn(component)) {
       continue;
     }
 
@@ -23,9 +22,12 @@ export function getComponentClosestToTopLeftCorner(
       (0 - rectangle.column) ** 2
     ) ** 0.5;
 
-    if (!closestToTLCorner || (distance < closestToTLCorner[0] && zIndex > closestToTLCorner[1].zIndex)) {
-      closestToTLCorner = [distance, component];
+    if (!closestComponent || (distance < closestDistance && zIndex > closestComponent.zIndex)) {
+      closestDistance = distance;
+      closestComponent = component;
+      if (distance === 0) break;
     }
   }
-  return closestToTLCorner[1];
+
+  return closestComponent;
 }
