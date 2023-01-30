@@ -15,8 +15,8 @@ export function fits(number: number, min: number, max: number): boolean {
 /** Check whether {column} and {row} fit in {rectangle} boundaries */
 export function fitsInRectangle(column: number, row: number, rectangle?: Rectangle): boolean {
   if (!rectangle) return true;
-  return fits(column, rectangle.column, rectangle.column + rectangle.width) &&
-    fits(row, rectangle.row, rectangle.row + rectangle.height);
+  return fits(column, rectangle.column, rectangle.column + rectangle.width - 1) &&
+    fits(row, rectangle.row, rectangle.row + rectangle.height - 1);
 }
 
 /** Check whether rectangle {a} is the same as rectangle {b} */
