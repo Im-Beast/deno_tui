@@ -83,6 +83,23 @@ const button3 = new Button({
   forceDynamicRendering: true,
 });
 
+const fpsCounter = new Text({
+  parent: tui,
+  rectangle: {
+    column: 0,
+    row: 0,
+  },
+  theme: {
+    base: crayon.bgBlack.green,
+    focused: crayon.bgBlack.green,
+    active: crayon.bgBlack.green,
+    disabled: crayon.bgBlack.green,
+  },
+  value: "0 FPS",
+  forceDynamicRendering: true,
+  zIndex: 0,
+});
+
 const text = new Text({
   parent: tui,
   rectangle: {
@@ -95,9 +112,14 @@ const text = new Text({
     active: crayon.bgBlack.yellow,
     disabled: crayon.bgBlack.lightBlack,
   },
-  value: "woosh",
+  value: "hello",
   forceDynamicRendering: true,
   zIndex: 0,
 });
 
-tui.addChildren(box, button, button2, button3, text);
+tui.canvas.on("render", () => {
+  fpsCounter.value = `${tui.canvas.fps.toFixed(2)} FPS`;
+  text.value = `hello ${(Math.random() * 100).toFixed(5)}`;
+});
+
+tui.addChildren(box, button, button2, button3, text, fpsCounter);

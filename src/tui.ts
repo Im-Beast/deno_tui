@@ -1,4 +1,4 @@
-import { Canvas, DrawBoxOptions } from "./canvas.ts";
+import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { Style } from "./theme.ts";
@@ -26,7 +26,7 @@ export class Tui extends EventEmitter<{
   style?: Style;
   children: Component[];
   readonly components: Component[];
-  drawnObjects: [background?: DrawBoxOptions<true>];
+  drawnObjects: [background?: BoxObject];
 
   #nextUpdateTimeout?: number;
 
@@ -80,7 +80,7 @@ export class Tui extends EventEmitter<{
 
       const { columns, rows } = canvas.size;
 
-      this.drawnObjects[0] = canvas.drawBox({
+      const box = new BoxObject({
         rectangle: {
           column: 0,
           row: 0,
@@ -90,6 +90,9 @@ export class Tui extends EventEmitter<{
         style,
         zIndex: -1,
       });
+
+      this.drawnObjects[0] = box;
+      this.canvas.drawObject(box);
     }
 
     Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));

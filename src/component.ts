@@ -1,8 +1,10 @@
-import { DrawableObject } from "./canvas.ts";
-import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
-import { Style, Theme } from "./theme.ts";
 import { Tui } from "./tui.ts";
-import { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
+import { Style, Theme } from "./theme.ts";
+import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
+
+import { DrawableObject } from "./canvas/mod.ts";
+
+import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 
 export interface ComponentOptions {
   theme: Theme;
@@ -34,7 +36,7 @@ export class Component extends EventEmitter<{
   rectangle: Rectangle;
   children: Component[];
   state: ComponentState;
-  drawnObjects: DrawableObject<true>[];
+  drawnObjects: DrawableObject[];
   lastInteraction: Interaction;
   forceDynamicRendering: boolean;
 

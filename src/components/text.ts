@@ -1,4 +1,4 @@
-import { DrawTextOptions } from "../canvas.ts";
+import { TextObject } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
 import { Rectangle } from "../types.ts";
 
@@ -8,7 +8,7 @@ export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
 }
 
 export class Text extends Component {
-  declare drawnObjects: [text: DrawTextOptions<true>];
+  declare drawnObjects: [text: TextObject];
   value: string;
 
   constructor(options: TextOptions) {
@@ -21,7 +21,7 @@ export class Text extends Component {
   }
 
   update(): void {
-    const text = this.drawnObjects[0];
+    const [text] = this.drawnObjects;
 
     text.value = this.value;
     text.style = this.style;
@@ -31,12 +31,15 @@ export class Text extends Component {
   }
 
   draw(): void {
-    this.drawnObjects[0] = this.tui.canvas.drawText({
+    const text = new TextObject({
       value: this.value,
       rectangle: this.rectangle,
       style: this.style,
       dynamic: this.forceDynamicRendering,
       zIndex: this.zIndex,
     });
+
+    this.drawnObjects[0] = text;
+    this.tui.canvas.drawObject(text);
   }
 }

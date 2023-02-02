@@ -1,8 +1,8 @@
-import { DrawBoxOptions } from "../canvas.ts";
+import { BoxObject } from "../canvas/box.ts";
 import { Component } from "../component.ts";
 
 export class Box extends Component {
-  declare drawnObjects: [box: DrawBoxOptions<true>];
+  declare drawnObjects: [box: BoxObject];
 
   update(): void {
     const [box] = this.drawnObjects;
@@ -14,11 +14,14 @@ export class Box extends Component {
   }
 
   draw(): void {
-    this.drawnObjects[0] = this.tui.canvas.drawBox({
+    const box = new BoxObject({
       rectangle: this.rectangle,
       style: this.style,
       dynamic: this.forceDynamicRendering,
       zIndex: this.zIndex,
     });
+
+    this.drawnObjects[0] = box;
+    this.tui.canvas.drawObject(box);
   }
 }
