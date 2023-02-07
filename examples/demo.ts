@@ -117,6 +117,13 @@ const text = new Text({
   zIndex: 0,
 });
 
+tui.on("mousePress", (mousePress) => {
+  if (!mousePress.drag) return;
+
+  button.rectangle.column = mousePress.x;
+  button.rectangle.row = mousePress.y;
+});
+
 tui.canvas.on("render", () => {
   fpsCounter.value = `${tui.canvas.fps.toFixed(2)} FPS`;
   text.value = `hello ${(Math.random() * 100).toFixed(5)}`;
