@@ -8,6 +8,7 @@ import { moveCursor } from "../utils/ansi_codes.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 
 import type { ConsoleSize, Rectangle, Stdout } from "../types.ts";
+import { fitsInRectangle, rectangleIntersection } from "../utils/numbers.ts";
 
 export type DrawableObject = BoxObject | TextObject;
 
@@ -27,8 +28,6 @@ export type CanvasEventMap = {
 };
 
 export interface DrawObjectOptions<Type extends string = string> {
-  rectangle: Rectangle;
-
   omitCells?: number[];
   omitCellsPointer?: number;
 
@@ -40,15 +39,14 @@ export interface DrawObjectOptions<Type extends string = string> {
 export class DrawObject<Type extends string = string> {
   type: Type;
 
-  objectsUnder: DrawObject[];
-
-  rectangle: Rectangle;
+  rectangle!: Rectangle;
   previousRectangle?: Rectangle;
 
-  omitCells: number[];
-  omitCellsPointer: number;
-  rerenderCells: number[];
-  rerenderCellsPointer: number;
+  objectsUnder: DrawObject[];
+  objectsUnderPointer: number;
+
+  omitCells: Set<number>[];
+  rerenderCells: Set<number>[];
 
   style: Style;
   zIndex: number;
@@ -59,46 +57,37 @@ export class DrawObject<Type extends string = string> {
     this.type = type;
     this.rendered = false;
     this.style = options.style;
-    this.rectangle = options.rectangle;
 
     this.rerenderCells = [];
-    this.rerenderCellsPointer = 0;
-
     this.omitCells = [];
-    this.omitCellsPointer = 0;
 
+    this.objectsUnderPointer = 0;
     this.objectsUnder = [];
 
     this.zIndex = options.zIndex ?? 0;
     this.dynamic = options.dynamic ?? false;
   }
 
-  render(_canvas: Canvas): void {}
-  rerender(_canvas: Canvas): void {}
-}
-
-export function compareOmitCellRange(
-  row: number,
-  column: number,
-  omitCells: number[],
-  omitCellsPointer: number,
-): boolean {
-  for (let i = 0; i < omitCellsPointer; i += 2) {
-    if (row === omitCells[i] && column === omitCells[i + 1]) {
-      return true;
+  updatePreviousRectangle(): void {
+    const { rectangle, previousRectangle } = this;
+    if (!previousRectangle) {
+      this.previousRectangle = {
+        column: rectangle.column,
+        row: rectangle.row,
+        width: rectangle.width,
+        height: rectangle.height,
+      };
+    } else {
+      previousRectangle.column = rectangle.column;
+      previousRectangle.row = rectangle.row;
+      previousRectangle.height = rectangle.height;
+      previousRectangle.width = rectangle.width;
     }
   }
-  return false;
-}
 
-export function pushToPointedArray(array: [number, number][], index: number, row: number, column: number): void {
-  if (array.length === index) {
-    array.push([row, column]);
-  } else {
-    const entry = array[index];
-    entry[0] = row;
-    entry[1] = column;
-  }
+  update(): void {}
+  render(_canvas: Canvas): void {}
+  rerender(_canvas: Canvas): void {}
 }
 
 export class Canvas extends EventEmitter<CanvasEventMap> {
@@ -112,8 +101,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   drawnObjects: SortedArray<DrawableObject>;
   frameBuffer: string[][];
 
-  rerenderQueue: [number, number][];
-  rerenderQueuePointer: number;
+  rerenderQueue: Set<number>[];
 
   constructor(options: CanvasOptions) {
     super();
@@ -123,7 +111,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.lastRender = 0;
 
     this.rerenderQueue = [];
-    this.rerenderQueuePointer = 0;
 
     this.stdout = options.stdout;
     this.size = Deno.consoleSize();
@@ -145,7 +132,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       Deno.addSignalListener("SIGWINCH", updateCanvasSize);
     }
 
-    this.updateFrameBufferBoundaries();
+    this.fillFrameBuffer();
   }
 
   drawObject(object: DrawableObject): void {
@@ -157,57 +144,37 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.drawnObjects.remove(...objects);
   }
 
-  // TODO: Move intersection logic to individual objects
   updateIntersections(this: Canvas, object: DrawableObject): void {
+    object.update();
+
     const { columns, rows } = this.size;
+    const { omitCells, objectsUnder, zIndex, rectangle, previousRectangle } = object;
 
-    const { omitCells, objectsUnder } = object;
-
-    if (object.type === "text") {
-      // FIXME: Because each text line can occupy different amount of characters widths should be stored for each line
-      object.updateRectangle();
-    }
-
-    const { column: c1, row: r1, width: w1, height: h1 } = object.rectangle;
-
-    let omitCellsPointer = 0;
     let objectsUnderPointer = 0;
 
     for (const object2 of this.drawnObjects) {
       if (object === object2) continue;
-      const { column: c2, height: h2, width: w2, row: r2 } = object2.rectangle;
 
-      if (
-        !(c1 < c2 + w2 &&
-          c1 + w1 > c2 &&
-          r1 < r2 + h2 &&
-          r1 + h1 > r2)
-      ) continue;
+      const intersection = rectangleIntersection(rectangle, object2.rectangle, true);
 
-      if (object.zIndex >= object2.zIndex) {
-        objectsUnder[++objectsUnderPointer] = object2;
+      if (!intersection) continue;
+
+      if (zIndex > object2.zIndex) {
+        objectsUnder[objectsUnderPointer++] = object2;
         continue;
       }
 
-      const colWidth = Math.min(c1 + w1, c2 + w2);
-      const rowHeight = Math.min(r1 + h1, r2 + h2);
-
-      const width = Math.max(0, colWidth - Math.max(c1, c2));
-      const height = Math.max(0, rowHeight - Math.max(r1, r2));
-
-      const column = colWidth - width;
-      const row = rowHeight - height;
-
-      for (let r = row; r < row + height; ++r) {
+      for (let r = intersection.row; r < intersection.row + intersection.height; ++r) {
         if (r < 0) continue;
         else if (r > rows) break;
 
-        for (let c = column; c < column + width; ++c) {
+        omitCells[r] ??= new Set();
+
+        for (let c = intersection.column; c < intersection.column + intersection.width; ++c) {
           if (c < 0) continue;
           else if (c > columns) break;
 
-          omitCells[omitCellsPointer++] = r;
-          omitCells[omitCellsPointer++] = c;
+          omitCells[r].add(c);
         }
       }
     }
@@ -215,68 +182,53 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     if (objectsUnder.length !== objectsUnderPointer) {
       objectsUnder.splice(objectsUnderPointer + 1);
     }
-    object.omitCellsPointer = omitCellsPointer;
 
     // Rerender cells that changed because objects position changed
-    if (object.previousRectangle && objectsUnder) {
-      const { column: pc1, row: pr1, width: pw1, height: ph1 } = object.previousRectangle;
+    // FIXME: Moving objects are kinda junky
+    if (previousRectangle && objectsUnder.length > 0) {
+      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
 
-      const colWidth = Math.min(c1 + w1, pc1 + pw1);
-      const rowHeight = Math.min(r1 + h1, pr1 + ph1);
+      for (let r = previousRectangle.row; r < previousRectangle.row + previousRectangle.height; ++r) {
+        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
+          if (intersection && fitsInRectangle(c, r, intersection)) continue;
 
-      const width = Math.max(0, colWidth - Math.max(c1, pc1));
-      const height = Math.max(0, rowHeight - Math.max(r1, pr1));
-
-      const column = colWidth - width;
-      const row = rowHeight - height;
-
-      for (let r = pr1; r < pr1 + ph1; ++r) {
-        for (let c = pc1; c < pc1 + pw1; ++c) {
-          if (c > column && r >= row && c < column + width - 1 && r < row + height - 1) continue;
-
-          objectsUnder.forEach((o) => {
-            o.rerenderCells[o.rerenderCellsPointer++] = r;
-            o.rerenderCells[o.rerenderCellsPointer++] = c;
-          });
+          for (const { rerenderCells } of objectsUnder) {
+            (rerenderCells[r] ??= new Set()).add(c);
+          }
         }
       }
 
-      for (let r = r1; r < r1 + h1; ++r) {
-        for (let c = c1; c < c1 + w1; ++c) {
-          if (c > column && r > row && c < column + width - 1 && r < row + height - 1) continue;
+      for (let r = rectangle.row; r < rectangle.row + rectangle.height; ++r) {
+        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
+          if (intersection && fitsInRectangle(c, r, intersection)) continue;
 
-          objectsUnder.forEach((o) => {
-            o.rerenderCells[o.rerenderCellsPointer++] = r;
-            o.rerenderCells[o.rerenderCellsPointer++] = c;
-          });
+          for (const { rerenderCells } of objectsUnder) {
+            (rerenderCells[r] ??= new Set()).add(c);
+          }
         }
       }
     }
 
-    object.previousRectangle = {
-      column: c1,
-      row: r1,
-      width: w1,
-      height: h1,
-    };
+    object.updatePreviousRectangle();
   }
 
   rerender(): void {
+    this.fillFrameBuffer();
+
     for (const object of this.drawnObjects) {
       this.updateIntersections(object);
       object.rendered = false;
     }
 
-    this.updateFrameBufferBoundaries();
     this.render();
   }
 
-  // TODO: rename
-  updateFrameBufferBoundaries(): void {
+  fillFrameBuffer(): void {
     const { frameBuffer } = this;
+    const { rows } = this.size;
 
-    if (frameBuffer.length < this.size.rows) {
-      for (let r = 0; r < this.size.rows; ++r) {
+    if (frameBuffer.length < rows) {
+      for (let r = 0; r < rows; ++r) {
         frameBuffer[r] ??= [];
       }
     }
@@ -286,8 +238,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fps = 1000 / (performance.now() - this.lastRender);
     this.emit("render");
 
-    const { rerenderQueue } = this;
-    this.rerenderQueuePointer = 0;
+    const { rerenderQueue, frameBuffer } = this;
 
     for (const object of this.drawnObjects) {
       this.updateIntersections(object);
@@ -296,9 +247,9 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       if (object.rendered && !object.dynamic) {
         if (object.rerenderCells.length === 0) {
           continue;
-        } else {
-          renderPartially = true;
         }
+
+        renderPartially = true;
       }
 
       object.rendered = true;
@@ -310,38 +261,38 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       }
     }
 
-    if (this.rerenderQueuePointer === 0) return;
-
-    rerenderQueue.length = this.rerenderQueuePointer;
-
-    rerenderQueue.sort(
-      ([r1, c1], [r2, c2]) => r1 - r2 || c1 - c2,
-    );
+    const { rid } = this.stdout;
 
     let drawSequence = "";
     let sequenceColumn = -1;
     let sequenceRow = -1;
+
     const flushDrawSequence = () => {
       if (!drawSequence) return;
-      Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
+      Deno.writeSync(rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
       drawSequence = "";
     };
 
-    let lastRow = -1;
     let lastColumn = -1;
-    for (const [row, column] of rerenderQueue) {
-      if (row === lastRow && column === lastColumn) continue;
+    for (const [row, columnSet] of rerenderQueue.entries()) {
+      if (columnSet.size === 0) continue;
 
-      if (row !== lastRow || column !== lastColumn + 1) {
-        flushDrawSequence();
-        sequenceRow = row;
-        sequenceColumn = column;
+      flushDrawSequence();
+      sequenceRow = row;
+
+      const rowBuffer = frameBuffer[row];
+
+      for (const column of columnSet) {
+        if (column !== lastColumn + 1) {
+          flushDrawSequence();
+          sequenceColumn = column;
+        }
+
+        drawSequence += rowBuffer[column];
+        lastColumn = column;
       }
 
-      drawSequence += this.frameBuffer[row][column];
-
-      lastRow = row;
-      lastColumn = column;
+      columnSet.clear();
     }
 
     // Complete final loop draw sequence

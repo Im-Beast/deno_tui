@@ -1,7 +1,9 @@
+import { Rectangle } from "../types.ts";
 import { fitsInRectangle } from "../utils/numbers.ts";
-import { Canvas, compareOmitCellRange, DrawObject, DrawObjectOptions, pushToPointedArray } from "./canvas.ts";
+import { Canvas, DrawObject, DrawObjectOptions } from "./canvas.ts";
 
 export interface DrawBoxOptions extends DrawObjectOptions<"box"> {
+  rectangle: Rectangle;
   filler?: string;
 }
 
@@ -10,11 +12,12 @@ export class BoxObject extends DrawObject<"box"> {
 
   constructor(options: DrawBoxOptions) {
     super("box", options);
+    this.rectangle = options.rectangle;
     this.filler = options.filler ?? " ";
   }
 
   render(canvas: Canvas): void {
-    const { rectangle, style, filler, omitCells, omitCellsPointer } = this;
+    const { rectangle, style, filler, omitCells } = this;
     const { columns, rows } = canvas.size;
     const { frameBuffer, rerenderQueue } = canvas;
 
@@ -24,6 +27,8 @@ export class BoxObject extends DrawObject<"box"> {
       else if (row >= rows) break;
 
       const rowBuffer = frameBuffer[row];
+      const omitColumnSet = omitCells[row];
+      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       for (
         let column = rectangle.column;
@@ -33,38 +38,47 @@ export class BoxObject extends DrawObject<"box"> {
         if (column < 0) continue;
         else if (column >= columns) break;
 
-        if (compareOmitCellRange(row, column, omitCells, omitCellsPointer)) {
+        if (omitColumnSet?.has(column)) {
           continue;
         }
 
         rowBuffer[column] = style(filler);
-        pushToPointedArray(rerenderQueue, canvas.rerenderQueuePointer++, row, column);
+
+        rerenderQueueRow.add(column);
       }
+
+      omitColumnSet?.clear();
     }
   }
 
   rerender(canvas: Canvas): void {
-    const { rerenderCells, rerenderCellsPointer, style, filler, rectangle, omitCells, omitCellsPointer } = this;
+    const { rerenderCells, style, filler, rectangle, omitCells } = this;
     const { columns, rows } = canvas.size;
     const { frameBuffer, rerenderQueue } = canvas;
 
-    for (let i = 0; i < rerenderCellsPointer; i += 2) {
-      const row = rerenderCells[i];
+    for (const key in rerenderCells) {
+      const row = +key;
       if (row < 0 || row >= rows) continue;
 
-      const column = rerenderCells[i + 1];
+      const rerenderColumns = rerenderCells[key];
+      const omitColumns = omitCells[row];
+      const rowBuffer = frameBuffer[row];
+      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
-      if (
-        column < 0 || column >= columns || !fitsInRectangle(column, row, rectangle) ||
-        compareOmitCellRange(row, column, omitCells, omitCellsPointer)
-      ) {
-        continue;
+      for (const column of rerenderColumns) {
+        if (
+          column < 0 || column >= columns ||
+          !fitsInRectangle(column, row, rectangle) || omitColumns?.has(column)
+        ) {
+          continue;
+        }
+
+        rowBuffer[column] = style(filler);
+        rerenderQueueRow.add(column);
       }
 
-      frameBuffer[row][column] = style(filler);
-      pushToPointedArray(rerenderQueue, canvas.rerenderQueuePointer++, row, column);
+      rerenderColumns.clear();
+      omitColumns?.clear();
     }
-
-    this.rerenderCellsPointer = 0;
   }
 }
