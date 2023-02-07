@@ -30,10 +30,10 @@ export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: boolean
   const { column: c2, height: h2, width: w2, row: r2 } = b;
 
   if (
-    !(c1 < c2 + w2 &&
-      c1 + w1 > c2 &&
-      r1 < r2 + h2 &&
-      r1 + h1 > r2)
+    c1 >= c2 + w2 ||
+    c2 >= c1 + w1 ||
+    r1 >= r2 + h2 ||
+    r2 >= r1 + h1
   ) return false;
 
   if (!data) return true;
