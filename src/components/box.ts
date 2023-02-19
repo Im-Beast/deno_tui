@@ -8,7 +8,6 @@ export class Box extends Component {
     const [box] = this.drawnObjects;
 
     box.style = this.style;
-    box.dynamic = this.forceDynamicRendering;
     box.rectangle = this.rectangle;
     box.zIndex = this.zIndex;
   }
@@ -17,7 +16,6 @@ export class Box extends Component {
     const box = new BoxObject({
       rectangle: this.rectangle,
       style: this.style,
-      dynamic: this.forceDynamicRendering,
       zIndex: this.zIndex,
     });
 

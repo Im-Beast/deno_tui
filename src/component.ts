@@ -12,7 +12,6 @@ export interface ComponentOptions {
   rectangle: Rectangle;
   tui?: Tui;
   zIndex?: number;
-  forceDynamicRendering?: boolean;
 }
 
 export interface Interaction {
@@ -38,7 +37,6 @@ export class Component extends EventEmitter<{
   state: ComponentState;
   drawnObjects: DrawableObject[];
   lastInteraction: Interaction;
-  forceDynamicRendering: boolean;
 
   constructor(options: ComponentOptions) {
     super();
@@ -46,7 +44,6 @@ export class Component extends EventEmitter<{
     this.parent = options.parent;
     this.rectangle = options.rectangle;
     this.theme = options.theme;
-    this.forceDynamicRendering = options.forceDynamicRendering ?? false;
     this.zIndex = options.zIndex ?? 0;
 
     const { parent } = this;

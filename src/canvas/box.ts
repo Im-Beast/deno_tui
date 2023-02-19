@@ -27,27 +27,28 @@ export class BoxObject extends DrawObject<"box"> {
       else if (row >= rows) break;
 
       const rowBuffer = frameBuffer[row];
-      const omitColumnSet = omitCells[row];
+      const omitColumns = omitCells[row];
       const rerenderQueueRow = rerenderQueue[row] ??= new Set();
+
+      if (omitColumns?.size === rectangle.width) {
+        omitColumns?.clear();
+        continue;
+      }
 
       for (
         let column = rectangle.column;
         column < rectangle.column + rectangle.width;
         ++column
       ) {
-        if (column < 0) continue;
+        if (column < 0 || omitColumns?.has(column)) continue;
         else if (column >= columns) break;
-
-        if (omitColumnSet?.has(column)) {
-          continue;
-        }
 
         rowBuffer[column] = style(filler);
 
         rerenderQueueRow.add(column);
       }
 
-      omitColumnSet?.clear();
+      omitColumns?.clear();
     }
   }
 
@@ -64,6 +65,11 @@ export class BoxObject extends DrawObject<"box"> {
       const omitColumns = omitCells[row];
       const rowBuffer = frameBuffer[row];
       const rerenderQueueRow = rerenderQueue[row] ??= new Set();
+
+      if (omitColumns?.size === rectangle.width) {
+        omitColumns?.clear();
+        continue;
+      }
 
       for (const column of rerenderColumns) {
         if (

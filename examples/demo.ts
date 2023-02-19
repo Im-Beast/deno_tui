@@ -30,6 +30,7 @@ const box = new Box({
     active: crayon.bgYellow,
     disabled: crayon.bgLightBlack,
   },
+  zIndex: 1,
 });
 
 const button = new Button({
@@ -46,7 +47,7 @@ const button = new Button({
     active: crayon.bgYellow,
     disabled: crayon.bgLightBlack,
   },
-  forceDynamicRendering: true,
+  zIndex: 10,
 });
 
 const button2 = new Button({
@@ -63,7 +64,7 @@ const button2 = new Button({
     active: crayon.bgCyan,
     disabled: crayon.bgLightBlack,
   },
-  forceDynamicRendering: true,
+  zIndex: 2,
 });
 
 const button3 = new Button({
@@ -80,7 +81,7 @@ const button3 = new Button({
     active: crayon.bgLightYellow,
     disabled: crayon.bgLightBlack,
   },
-  forceDynamicRendering: true,
+  zIndex: 3,
 });
 
 const fpsCounter = new Text({
@@ -96,7 +97,6 @@ const fpsCounter = new Text({
     disabled: crayon.bgBlack.green,
   },
   value: "0 FPS",
-  forceDynamicRendering: true,
   zIndex: 0,
 });
 
@@ -113,12 +113,11 @@ const text = new Text({
     disabled: crayon.bgBlack.lightBlack,
   },
   value: "hello",
-  forceDynamicRendering: true,
   zIndex: 0,
 });
 
 tui.on("mousePress", (mousePress) => {
-  if (!mousePress.drag) return;
+  if (!mousePress.drag || button.state === "base") return;
 
   button.rectangle.column = mousePress.x;
   button.rectangle.row = mousePress.y;

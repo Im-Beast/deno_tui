@@ -25,7 +25,6 @@ export class Text extends Component {
 
     text.value = this.value;
     text.style = this.style;
-    text.dynamic = this.forceDynamicRendering;
     text.rectangle = this.rectangle;
     text.zIndex = this.zIndex;
   }
@@ -35,7 +34,6 @@ export class Text extends Component {
       value: this.value,
       rectangle: this.rectangle,
       style: this.style,
-      dynamic: this.forceDynamicRendering,
       zIndex: this.zIndex,
     });
 

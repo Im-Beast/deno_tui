@@ -8,7 +8,7 @@ import { moveCursor } from "../utils/ansi_codes.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 
 import type { ConsoleSize, Rectangle, Stdout } from "../types.ts";
-import { fitsInRectangle, rectangleIntersection } from "../utils/numbers.ts";
+import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 export type DrawableObject = BoxObject | TextObject;
 
@@ -33,11 +33,13 @@ export interface DrawObjectOptions<Type extends string = string> {
 
   style: Style;
   zIndex?: number;
-  dynamic?: boolean;
 }
 
 export class DrawObject<Type extends string = string> {
   type: Type;
+
+  style: Style;
+  previousStyle?: Style;
 
   rectangle!: Rectangle;
   previousRectangle?: Rectangle;
@@ -48,9 +50,7 @@ export class DrawObject<Type extends string = string> {
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
-  style: Style;
   zIndex: number;
-  dynamic: boolean;
   rendered: boolean;
 
   constructor(type: Type, options: DrawObjectOptions) {
@@ -65,11 +65,15 @@ export class DrawObject<Type extends string = string> {
     this.objectsUnder = [];
 
     this.zIndex = options.zIndex ?? 0;
-    this.dynamic = options.dynamic ?? false;
+  }
+
+  queueRerender(row: number, column: number): void {
+    (this.rerenderCells[row] ??= new Set()).add(column);
   }
 
   updatePreviousRectangle(): void {
     const { rectangle, previousRectangle } = this;
+
     if (!previousRectangle) {
       this.previousRectangle = {
         column: rectangle.column,
@@ -85,7 +89,54 @@ export class DrawObject<Type extends string = string> {
     }
   }
 
-  update(): void {}
+  updateMovement(): void {
+    const { rectangle, previousRectangle, objectsUnder } = this;
+
+    // Rerender cells that changed because objects position changed
+    if (previousRectangle && !rectangleEquals(rectangle, previousRectangle)) {
+      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
+
+      for (let r = previousRectangle.row; r < previousRectangle.row + previousRectangle.height; ++r) {
+        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
+          if (intersection && fitsInRectangle(c, r, intersection)) {
+            continue;
+          }
+
+          for (const objectUnder of objectsUnder) {
+            // FIXME: I shouldn't need to delete omitCells data here
+            // This is a workaround to make first move rerender correctly
+            objectUnder.omitCells[r]?.delete(c);
+            objectUnder.queueRerender(r, c);
+          }
+        }
+      }
+
+      for (let r = rectangle.row; r < rectangle.row + rectangle.height; ++r) {
+        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
+          if (intersection && fitsInRectangle(c, r, intersection)) {
+            continue;
+          }
+
+          for (const objectUnder of objectsUnder) {
+            objectUnder.queueRerender(r, c);
+          }
+
+          this.queueRerender(r, c);
+        }
+      }
+    }
+  }
+
+  update(): void {
+    const { style } = this;
+
+    if (style !== this.previousStyle) {
+      this.rendered = false;
+    }
+
+    this.previousStyle = style;
+  }
+
   render(_canvas: Canvas): void {}
   rerender(_canvas: Canvas): void {}
 }
@@ -115,7 +166,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.stdout = options.stdout;
     this.size = Deno.consoleSize();
 
-    this.drawnObjects = new SortedArray();
+    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex);
     this.frameBuffer = [];
 
     const updateCanvasSize = () => {
@@ -144,11 +195,9 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.drawnObjects.remove(...objects);
   }
 
-  updateIntersections(this: Canvas, object: DrawableObject): void {
-    object.update();
-
+  updateIntersections(object: DrawableObject): void {
     const { columns, rows } = this.size;
-    const { omitCells, objectsUnder, zIndex, rectangle, previousRectangle } = object;
+    const { omitCells, objectsUnder, zIndex, rectangle } = object;
 
     let objectsUnderPointer = 0;
 
@@ -159,7 +208,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       if (!intersection) continue;
 
-      if (zIndex > object2.zIndex) {
+      if (object2.zIndex < zIndex) {
         objectsUnder[objectsUnderPointer++] = object2;
         continue;
       }
@@ -180,36 +229,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     if (objectsUnder.length !== objectsUnderPointer) {
-      objectsUnder.splice(objectsUnderPointer + 1);
+      objectsUnder.splice(objectsUnderPointer);
     }
-
-    // Rerender cells that changed because objects position changed
-    // FIXME: Moving objects are kinda junky
-    if (previousRectangle && objectsUnder.length > 0) {
-      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
-
-      for (let r = previousRectangle.row; r < previousRectangle.row + previousRectangle.height; ++r) {
-        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
-          if (intersection && fitsInRectangle(c, r, intersection)) continue;
-
-          for (const { rerenderCells } of objectsUnder) {
-            (rerenderCells[r] ??= new Set()).add(c);
-          }
-        }
-      }
-
-      for (let r = rectangle.row; r < rectangle.row + rectangle.height; ++r) {
-        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
-          if (intersection && fitsInRectangle(c, r, intersection)) continue;
-
-          for (const { rerenderCells } of objectsUnder) {
-            (rerenderCells[r] ??= new Set()).add(c);
-          }
-        }
-      }
-    }
-
-    object.updatePreviousRectangle();
   }
 
   rerender(): void {
@@ -241,58 +262,57 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     const { rerenderQueue, frameBuffer } = this;
 
     for (const object of this.drawnObjects) {
+      object.update();
+      object.updateMovement();
       this.updateIntersections(object);
+      object.updatePreviousRectangle();
+    }
 
-      let renderPartially = false;
-      if (object.rendered && !object.dynamic) {
-        if (object.rerenderCells.length === 0) {
-          continue;
-        }
-
-        renderPartially = true;
+    for (const object of this.drawnObjects) {
+      if (object.rendered && object.rerenderCells.length === 0) {
+        continue;
       }
 
-      object.rendered = true;
-
-      if (renderPartially) {
+      if (object.rendered) {
         object.rerender(this);
       } else {
         object.render(this);
+        object.rendered = true;
       }
     }
-
-    const { rid } = this.stdout;
 
     let drawSequence = "";
     let sequenceColumn = -1;
     let sequenceRow = -1;
-
     const flushDrawSequence = () => {
       if (!drawSequence) return;
-      Deno.writeSync(rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
+      Deno.writeSync(this.stdout.rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
       drawSequence = "";
     };
 
+    let lastRow = -1;
     let lastColumn = -1;
-    for (const [row, columnSet] of rerenderQueue.entries()) {
-      if (columnSet.size === 0) continue;
+    for (const key in rerenderQueue) {
+      const columns = rerenderQueue[key];
+      if (columns.size === 0) continue;
+      const row = +key;
 
-      flushDrawSequence();
-      sequenceRow = row;
+      const rowBuffer = frameBuffer[key];
 
-      const rowBuffer = frameBuffer[row];
-
-      for (const column of columnSet) {
-        if (column !== lastColumn + 1) {
+      for (const column of columns) {
+        if (row !== lastRow || column !== lastColumn + 1) {
           flushDrawSequence();
+          sequenceRow = row;
           sequenceColumn = column;
         }
 
         drawSequence += rowBuffer[column];
+
+        lastRow = row;
         lastColumn = column;
       }
 
-      columnSet.clear();
+      columns.clear();
     }
 
     // Complete final loop draw sequence

@@ -2,7 +2,6 @@ import { Canvas, DrawObject, DrawObjectOptions } from "./canvas.ts";
 
 import { textWidth } from "../utils/strings.ts";
 import { Rectangle } from "../types.ts";
-import { fitsInRectangle } from "../utils/numbers.ts";
 
 export interface DrawTextOptions extends DrawObjectOptions<"text"> {
   value: string;
@@ -25,9 +24,29 @@ export class TextObject extends DrawObject<"text"> {
   }
 
   update(): void {
-    if (this.value === this.previousValue) return;
+    super.update();
 
-    const { rectangle, value } = this;
+    const { value, previousValue } = this;
+    if (value === previousValue) return;
+
+    const { rectangle } = this;
+
+    if (this.rendered) {
+      for (let i = 0; i < value.length; ++i) {
+        if (value[i] !== previousValue[i]) {
+          this.queueRerender(rectangle.row, rectangle.column + i);
+        }
+      }
+
+      if (value.length < previousValue.length) {
+        for (let i = value.length; i < previousValue.length; ++i) {
+          for (const objectUnder of this.objectsUnder) {
+            objectUnder.queueRerender(rectangle.row, rectangle.column + i);
+          }
+        }
+      }
+    }
+
     rectangle.width = textWidth(value);
     rectangle.height = 1;
     this.previousValue = value;
@@ -80,15 +99,17 @@ export class TextObject extends DrawObject<"text"> {
     for (const column of rerenderColumns) {
       if (
         column < 0 || column >= columns ||
-        !fitsInRectangle(column, row, rectangle) || omitColumns?.has(column)
+        column < rectangle.column || column >= rectangle.column + rectangle.width ||
+        omitColumns?.has(column)
       ) {
         continue;
       }
 
-      rowBuffer[column] = style(value[column]);
+      rowBuffer[column] = style(value[column - rectangle.column]);
       rerenderQueueRow.add(column);
     }
 
     rerenderColumns.clear();
+    omitColumns?.clear();
   }
 }
