@@ -1,7 +1,9 @@
-import { Canvas, DrawObject, DrawObjectOptions } from "./canvas.ts";
+import { Canvas } from "./canvas.ts";
+import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth } from "../utils/strings.ts";
-import { Rectangle } from "../types.ts";
+
+import type { Rectangle } from "../types.ts";
 
 export interface DrawTextOptions extends DrawObjectOptions<"text"> {
   value: string;

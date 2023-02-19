@@ -1,6 +1,9 @@
-import { Rectangle } from "../types.ts";
+import { Canvas } from "./canvas.ts";
+import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
+
 import { fitsInRectangle } from "../utils/numbers.ts";
-import { Canvas, DrawObject, DrawObjectOptions } from "./canvas.ts";
+
+import type { Rectangle } from "../types.ts";
 
 export interface DrawBoxOptions extends DrawObjectOptions<"box"> {
   rectangle: Rectangle;
