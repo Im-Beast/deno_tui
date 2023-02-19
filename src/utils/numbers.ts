@@ -14,8 +14,11 @@ export function fits(number: number, min: number, max: number): boolean {
 
 /** Check whether {column} and {row} fit in {rectangle} boundaries */
 export function fitsInRectangle(column: number, row: number, rectangle: Rectangle): boolean {
-  return fits(column, rectangle.column, rectangle.column + rectangle.width - 1) &&
-    fits(row, rectangle.row, rectangle.row + rectangle.height - 1);
+  return (
+    rectangle.width !== 0 && rectangle.height !== 0 &&
+    column >= rectangle.column && column < rectangle.column + rectangle.width &&
+    row >= rectangle.row && row < rectangle.row + rectangle.height
+  );
 }
 
 /** Check whether rectangle {a} is the same as rectangle {b} */
