@@ -35,7 +35,9 @@ export class Component extends EventEmitter<{
   rectangle: Rectangle;
   children: Component[];
   state: ComponentState;
-  drawnObjects: DrawableObject[];
+  drawnObjects: Record<string, DrawableObject>;
+  subComponents: Record<string, Component>;
+  subComponentOf?: Component;
   lastInteraction: Interaction;
 
   constructor(options: ComponentOptions) {
@@ -51,12 +53,17 @@ export class Component extends EventEmitter<{
 
     this.state = "base";
     this.children = [];
-    this.drawnObjects = [];
+    this.drawnObjects = {};
+    this.subComponents = {};
 
     this.lastInteraction = {
       time: -1,
       method: undefined,
     };
+
+    queueMicrotask(() => {
+      this.tui.addChildren(this);
+    });
   }
 
   addChildren(...children: Component[]): void {
@@ -77,16 +84,23 @@ export class Component extends EventEmitter<{
     this.lastInteraction.method = method;
   }
 
-  remove(): void {
-    this.tui.canvas.eraseObjects(...this.drawnObjects);
-
-    for (const drawnObject of this.drawnObjects) {
-      drawnObject;
+  clearDrawnObjects() {
+    const { drawnObjects } = this;
+    const { canvas } = this.tui;
+    for (const [key, drawnObject] of Object.entries(drawnObjects)) {
+      canvas.eraseObjects(drawnObject);
+      delete drawnObjects[key];
     }
+  }
+
+  remove(): void {
+    this.clearDrawnObjects();
     this.off();
   }
 
-  update(): void {}
+  draw(): void {
+    this.clearDrawnObjects();
+  }
 
-  draw(): void {}
+  update(): void {}
 }

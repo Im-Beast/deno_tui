@@ -26,7 +26,7 @@ export class Tui extends EventEmitter<{
   style?: Style;
   children: Component[];
   readonly components: Component[];
-  drawnObjects: [background?: BoxObject];
+  drawnObjects: { background?: BoxObject };
 
   #nextUpdateTimeout?: number;
 
@@ -42,14 +42,14 @@ export class Tui extends EventEmitter<{
 
     this.style = options.style;
 
-    this.drawnObjects = [];
+    this.drawnObjects = {};
     this.components = [];
     this.children = [];
 
     Deno.addSignalListener("SIGWINCH", () => {
       const { columns, rows } = this.canvas.size = Deno.consoleSize();
 
-      const [background] = this.drawnObjects;
+      const { background } = this.drawnObjects;
       if (background) {
         background.rectangle.width = columns;
         background.rectangle.height = rows;
@@ -72,7 +72,7 @@ export class Tui extends EventEmitter<{
     const { style, canvas, stdout } = this;
 
     if (style) {
-      const [background] = this.drawnObjects;
+      const { background } = this.drawnObjects;
 
       if (background) {
         canvas.eraseObjects(background);
@@ -91,11 +91,12 @@ export class Tui extends EventEmitter<{
         zIndex: -1,
       });
 
-      this.drawnObjects[0] = box;
+      this.drawnObjects.background = box;
       this.canvas.drawObject(box);
     }
 
     Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
+
     const updateStep = () => {
       for (const component of this.components) {
         component.update();
