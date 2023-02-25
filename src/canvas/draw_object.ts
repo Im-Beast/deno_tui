@@ -4,7 +4,7 @@ import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Rectangle } from "../types.ts";
 
-export interface DrawObjectOptions<Type extends string = string> {
+export interface DrawObjectOptions {
   omitCells?: number[];
   omitCellsPointer?: number;
 

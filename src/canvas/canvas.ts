@@ -7,7 +7,7 @@ import { moveCursor } from "../utils/ansi_codes.ts";
 import { SortedArray } from "../utils/sorted_array.ts";
 import { rectangleIntersection } from "../utils/numbers.ts";
 
-import type { ConsoleSize, Rectangle, Stdout } from "../types.ts";
+import type { ConsoleSize, Stdout } from "../types.ts";
 
 export type DrawableObject = BoxObject | TextObject;
 

@@ -5,7 +5,7 @@ import { fitsInRectangle } from "../utils/numbers.ts";
 
 import type { Rectangle } from "../types.ts";
 
-export interface DrawBoxOptions extends DrawObjectOptions<"box"> {
+export interface DrawBoxOptions extends DrawObjectOptions {
   rectangle: Rectangle;
   filler?: string;
 }
