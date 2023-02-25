@@ -29,14 +29,15 @@ export class BoxObject extends DrawObject<"box"> {
       if (row < 0) continue;
       else if (row >= rows) break;
 
-      const rowBuffer = frameBuffer[row];
       const omitColumns = omitCells[row];
-      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       if (omitColumns?.size === rectangle.width) {
         omitColumns?.clear();
         continue;
       }
+
+      const rowBuffer = frameBuffer[row];
+      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       for (
         let column = rectangle.column;
@@ -65,14 +66,17 @@ export class BoxObject extends DrawObject<"box"> {
       if (row < 0 || row >= rows) continue;
 
       const rerenderColumns = rerenderCells[key];
+      if (!rerenderColumns) continue;
+
       const omitColumns = omitCells[row];
-      const rowBuffer = frameBuffer[row];
-      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       if (omitColumns?.size === rectangle.width) {
         omitColumns?.clear();
         continue;
       }
+
+      const rowBuffer = frameBuffer[row];
+      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       for (const column of rerenderColumns) {
         if (

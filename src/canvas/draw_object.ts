@@ -80,9 +80,6 @@ export class DrawObject<Type extends string = string> {
           }
 
           for (const objectUnder of objectsUnder) {
-            // FIXME: I shouldn't need to delete omitCells data here
-            // This is a workaround to make first move rerender correctly
-            objectUnder.omitCells[r]?.delete(c);
             objectUnder.queueRerender(r, c);
           }
         }
