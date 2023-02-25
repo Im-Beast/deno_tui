@@ -4,6 +4,7 @@ import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 import { textWidth } from "../utils/strings.ts";
 
 import type { Rectangle } from "../types.ts";
+import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 export interface DrawTextOptions extends DrawObjectOptions<"text"> {
   value: string;
@@ -25,6 +26,43 @@ export class TextObject extends DrawObject<"text"> {
     this.update();
   }
 
+  updateMovement(): void {
+    const { rectangle, previousRectangle, objectsUnder } = this;
+
+    // Rerender cells that changed because objects position changed
+    if (previousRectangle && !rectangleEquals(rectangle, previousRectangle)) {
+      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
+      {
+        const r = previousRectangle.row;
+        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
+          if (intersection && fitsInRectangle(c, r, intersection)) {
+            continue;
+          }
+
+          for (const objectUnder of objectsUnder) {
+            objectUnder.queueRerender(r, c);
+          }
+        }
+      }
+
+      {
+        const r = rectangle.row;
+        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
+          // When text moves it needs to be rerendered completely because of text continuity
+          this.queueRerender(r, c);
+
+          if (intersection && fitsInRectangle(c, r, intersection)) {
+            continue;
+          }
+
+          for (const objectUnder of objectsUnder) {
+            objectUnder.queueRerender(r, c);
+          }
+        }
+      }
+    }
+  }
+
   update(): void {
     super.update();
 
@@ -37,14 +75,6 @@ export class TextObject extends DrawObject<"text"> {
       for (let i = 0; i < value.length; ++i) {
         if (value[i] !== previousValue[i]) {
           this.queueRerender(rectangle.row, rectangle.column + i);
-        }
-      }
-
-      if (value.length < previousValue.length) {
-        for (let i = value.length; i < previousValue.length; ++i) {
-          for (const objectUnder of this.objectsUnder) {
-            objectUnder.queueRerender(rectangle.row, rectangle.column + i);
-          }
         }
       }
     }
@@ -62,8 +92,14 @@ export class TextObject extends DrawObject<"text"> {
     const { row, column: startColumn } = rectangle;
     if (row < 0 || row >= rows) return;
 
-    const rowBuffer = frameBuffer[row];
     const omitColumns = omitCells[row];
+
+    if (omitColumns?.size === rectangle.width) {
+      omitColumns?.clear();
+      return;
+    }
+
+    const rowBuffer = frameBuffer[row];
     const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
     for (let c = 0; c < value.length; ++c) {
@@ -91,7 +127,14 @@ export class TextObject extends DrawObject<"text"> {
     const { row } = rectangle;
 
     const rerenderColumns = rerenderCells[row];
+    if (!rerenderColumns) return;
+
     const omitColumns = omitCells[row];
+
+    if (omitColumns?.size === rectangle.width) {
+      omitColumns?.clear();
+      return;
+    }
 
     if (row < 0 || row >= rows) return;
 
