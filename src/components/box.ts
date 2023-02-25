@@ -2,10 +2,10 @@ import { BoxObject } from "../canvas/box.ts";
 import { Component } from "../component.ts";
 
 export class Box extends Component {
-  declare drawnObjects: [box: BoxObject];
+  declare drawnObjects: { box: BoxObject };
 
   update(): void {
-    const [box] = this.drawnObjects;
+    const { box } = this.drawnObjects;
 
     box.style = this.style;
     box.rectangle = this.rectangle;
@@ -19,7 +19,7 @@ export class Box extends Component {
       zIndex: this.zIndex,
     });
 
-    this.drawnObjects[0] = box;
+    this.drawnObjects.box = box;
     this.tui.canvas.drawObject(box);
   }
 }

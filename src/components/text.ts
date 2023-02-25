@@ -4,24 +4,22 @@ import { Rectangle } from "../types.ts";
 
 export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
   value: string;
-  rectangle: Omit<Rectangle, "width" | "height">;
+  rectangle: Omit<Rectangle, "width" | "height"> & {
+    width?: number;
+  };
 }
 
 export class Text extends Component {
-  declare drawnObjects: [text: TextObject];
+  declare drawnObjects: { text: TextObject };
   value: string;
 
   constructor(options: TextOptions) {
-    Object.assign(options.rectangle, {
-      width: 0,
-      height: 0,
-    });
     super(options as unknown as ComponentOptions);
     this.value = options.value;
   }
 
   update(): void {
-    const [text] = this.drawnObjects;
+    const { text } = this.drawnObjects;
 
     text.value = this.value;
     text.style = this.style;
@@ -37,7 +35,7 @@ export class Text extends Component {
       zIndex: this.zIndex,
     });
 
-    this.drawnObjects[0] = text;
+    this.drawnObjects.text = text;
     this.tui.canvas.drawObject(text);
   }
 }
