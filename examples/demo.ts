@@ -2,9 +2,11 @@ import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
 import { Box } from "../src/components/box.ts";
 import { Button } from "../src/components/button.ts";
 import { Text } from "../src/components/text.ts";
+import { Label } from "../src/components/label.ts";
 import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts";
 import { handleInput } from "../src/input.ts";
 import { Tui } from "../src/tui.ts";
+import { Checkbox } from "../src/components/checkbox.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -16,7 +18,7 @@ handleMouseControls(tui);
 tui.dispatch();
 tui.run();
 
-const box = new Box({
+new Box({
   parent: tui,
   rectangle: {
     column: 2,
@@ -47,10 +49,13 @@ const button = new Button({
     active: crayon.bgYellow,
     disabled: crayon.bgLightBlack,
   },
-  zIndex: 10,
+  label: {
+    value: "hello\nworld\nthis is\nbutton\ntoo long line",
+  },
+  zIndex: 11,
 });
 
-const button2 = new Button({
+new Button({
   parent: tui,
   rectangle: {
     column: 62,
@@ -64,10 +69,17 @@ const button2 = new Button({
     active: crayon.bgCyan,
     disabled: crayon.bgLightBlack,
   },
+  label: {
+    value: "to the\nbottom\nright",
+    align: {
+      horizontal: "right",
+      vertical: "bottom",
+    },
+  },
   zIndex: 2,
 });
 
-const button3 = new Button({
+new Button({
   parent: tui,
   rectangle: {
     column: 62,
@@ -80,6 +92,13 @@ const button3 = new Button({
     focused: crayon.bgLightGreen,
     active: crayon.bgLightYellow,
     disabled: crayon.bgLightBlack,
+  },
+  label: {
+    value: "to the\ncenter\nleft",
+    align: {
+      vertical: "center",
+      horizontal: "left",
+    },
   },
   zIndex: 3,
 });
@@ -116,6 +135,38 @@ const text = new Text({
   zIndex: 0,
 });
 
+const label = new Label({
+  parent: tui,
+  rectangle: {
+    column: 20,
+    row: 5,
+  },
+  theme: {
+    base: crayon.bgBlack.lightBlue,
+    focused: crayon.bgBlack.yellow,
+    active: crayon.lightYellow,
+    disabled: crayon.bgLightBlack,
+  },
+  value: `hello\nworld!\nhow are you?\n`,
+});
+
+new Checkbox({
+  parent: tui,
+  value: false,
+  rectangle: {
+    column: 20,
+    row: 1,
+    width: 1,
+    height: 1,
+  },
+  theme: {
+    base: crayon.bgMagenta.white,
+    focused: crayon.bgBlue.white,
+    active: crayon.bgGreen.white,
+    disabled: crayon.bgLightBlack.white,
+  },
+});
+
 tui.on("mousePress", (mousePress) => {
   if (!mousePress.drag || button.state === "base") return;
 
@@ -128,4 +179,9 @@ tui.canvas.on("render", () => {
   text.value = `hello ${(Math.random() * 100).toFixed(5)}`;
 });
 
-tui.addChildren(box, button, button2, button3, text, fpsCounter);
+let i = 0;
+
+setInterval(() => {
+  label.value = `hello\nworld!\nhow are you?\n${`${i % 10} lines\n`.repeat(i++ % 10)}`;
+  text.rectangle.column++;
+}, 100);
