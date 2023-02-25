@@ -43,7 +43,10 @@ export function handleKeyboardControls(tui: Tui): void {
     let bestCandidateDistance;
 
     for (const component of tui.components) {
-      if (component === lastSelectedComponent || !isInteractable(component)) continue;
+      if (component === lastSelectedComponent || "subComponentOf" in component.parent || !isInteractable(component)) {
+        continue;
+      }
+
       const { rectangle } = component;
       if (
         !(
@@ -63,8 +66,7 @@ export function handleKeyboardControls(tui: Tui): void {
       ) ** 0.5;
 
       if (
-        !bestCandidateDistance ||
-        distance < bestCandidateDistance ||
+        !bestCandidateDistance || distance < bestCandidateDistance ||
         (bestCandidate && distance <= bestCandidateDistance && component.zIndex > bestCandidate.zIndex)
       ) {
         bestCandidate = component;
@@ -94,15 +96,16 @@ export function handleMouseControls(tui: Tui): void {
 
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {
-      const { rectangle } = component;
-      if (!fitsInRectangle(x, y, rectangle)) continue;
+      if ("subComponentOf" in component.parent || !fitsInRectangle(x, y, component.rectangle)) continue;
 
       if (!bestCandidate) {
         bestCandidate = component;
         continue;
       }
 
-      bestCandidate = bestCandidate.zIndex > component.zIndex ? bestCandidate : component;
+      if (bestCandidate.zIndex > component.zIndex) continue;
+
+      bestCandidate = component;
     }
 
     if (!bestCandidate) {
