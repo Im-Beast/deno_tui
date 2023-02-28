@@ -12,7 +12,10 @@ export function handleKeyboardControls(tui: Tui): void {
   tui.on("keyPress", ({ key, ctrl, shift, meta }) => {
     if ((!ctrl && key !== "return") || shift || meta) return;
 
-    lastSelectedComponent ??= getComponentClosestToTopLeftCorner(tui, isInteractable);
+    lastSelectedComponent ??= getComponentClosestToTopLeftCorner(
+      tui,
+      (object) => isInteractable(object) && object.visible,
+    );
 
     let vectorX = 0;
     let vectorY = 0;
@@ -43,7 +46,10 @@ export function handleKeyboardControls(tui: Tui): void {
     let bestCandidateDistance;
 
     for (const component of tui.components) {
-      if (component === lastSelectedComponent || "subComponentOf" in component.parent || !isInteractable(component)) {
+      if (
+        component === lastSelectedComponent || !component.visible || component.subComponentOf ||
+        !isInteractable(component)
+      ) {
         continue;
       }
 
@@ -90,13 +96,16 @@ export function handleMouseControls(tui: Tui): void {
   });
 
   tui.on("mousePress", ({ x, y, drag, scroll, shift, meta, ctrl, release, button }) => {
-    lastSelectedComponent ??= getComponentClosestToTopLeftCorner(tui, isInteractable);
+    lastSelectedComponent ??= getComponentClosestToTopLeftCorner(
+      tui,
+      (object) => isInteractable(object) && object.visible,
+    );
 
     if (shift || meta || ctrl || button !== 0 || scroll !== 0 || drag) return;
 
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {
-      if ("subComponentOf" in component.parent || !fitsInRectangle(x, y, component.rectangle)) continue;
+      if (component.subComponentOf || !component.visible || !fitsInRectangle(x, y, component.rectangle)) continue;
 
       if (!bestCandidate) {
         bestCandidate = component;
