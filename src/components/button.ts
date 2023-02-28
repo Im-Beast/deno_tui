@@ -34,7 +34,6 @@ export class Button extends Box {
     } else if (label) {
       if (!this.label) {
         label.remove();
-        delete this.subComponents.label;
         return;
       }
 
@@ -66,7 +65,8 @@ export class Button extends Box {
         },
       });
 
-      // label.subComponentOf = this;
+      label.subComponentOf = this;
+
       this.subComponents.label = label;
       this.children.push(label);
     }
