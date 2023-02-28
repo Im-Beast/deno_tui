@@ -1,13 +1,14 @@
 import { Tui } from "./tui.ts";
-import { Style, Theme } from "./theme.ts";
+import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
 import { DrawableObject } from "./canvas/mod.ts";
 
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
 
 export interface ComponentOptions {
-  theme: Theme;
+  theme: Partial<Theme>;
   parent: Component | Tui;
   rectangle: Rectangle;
   tui?: Tui;
@@ -22,22 +23,27 @@ export interface Interaction {
 export type ComponentState = keyof Theme;
 
 export class Component extends EventEmitter<{
-  stateChange: EmitterEvent<[Component]>;
   remove: EmitterEvent<[Component]>;
+  stateChange: EmitterEvent<[Component]>;
+  valueChange: EmitterEvent<[Component]>;
   keyPress: EmitterEvent<[KeyPress]>;
-  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
   mousePress: EmitterEvent<[MousePress]>;
+  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
 }> {
+  declare subComponentOf?: Component;
+
+  #visible: boolean;
+  #lastState?: ComponentState;
+
   tui: Tui;
   theme: Theme;
   zIndex: number;
   parent: Component | Tui;
   rectangle: Rectangle;
-  children: Component[];
+  children: SortedArray<Component>;
   state: ComponentState;
   drawnObjects: Record<string, DrawableObject>;
   subComponents: Record<string, Component>;
-  subComponentOf?: Component;
   lastInteraction: Interaction;
 
   constructor(options: ComponentOptions) {
@@ -45,14 +51,15 @@ export class Component extends EventEmitter<{
 
     this.parent = options.parent;
     this.rectangle = options.rectangle;
-    this.theme = options.theme;
+    this.theme = hierarchizeTheme(options.theme);
     this.zIndex = options.zIndex ?? 0;
 
     const { parent } = this;
     this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
 
+    this.children = new SortedArray();
     this.state = "base";
-    this.children = [];
+    this.#visible = true;
     this.drawnObjects = {};
     this.subComponents = {};
 
@@ -75,6 +82,31 @@ export class Component extends EventEmitter<{
     this.tui.components.push(...children);
   }
 
+  get visible() {
+    return this.#visible;
+  }
+
+  set visible(value) {
+    if (value === this.#visible) return;
+    this.#visible = value;
+
+    const { canvas } = this.tui;
+
+    if (!value) {
+      canvas.eraseObjects(...Object.values(this.drawnObjects));
+
+      for (const children of this.children) {
+        children.visible = value;
+      }
+    } else {
+      canvas.drawObjects(...Object.values(this.drawnObjects));
+
+      for (const children of this.children) {
+        children.visible = value;
+      }
+    }
+  }
+
   get style(): Style {
     return this.theme[this.state];
   }
@@ -94,13 +126,25 @@ export class Component extends EventEmitter<{
   }
 
   remove(): void {
-    this.clearDrawnObjects();
     this.off();
+    this.clearDrawnObjects();
+    this.parent.children.remove(this);
+
+    const subComponents = this.subComponentOf?.subComponents;
+    if (!subComponents) return;
+
+    for (const index in subComponents) {
+      if (subComponents[index] === this) delete subComponents[index];
+    }
   }
 
   draw(): void {
     this.clearDrawnObjects();
   }
 
-  update(): void {}
+  update(): void {
+    if (this.state !== this.#lastState) {
+      this.emit("stateChange", this);
+    }
+  }
 }
