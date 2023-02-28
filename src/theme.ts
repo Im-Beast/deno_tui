@@ -15,14 +15,18 @@ export function replaceEmptyStyle(style: Style, replacement: Style): Style {
 
 /** Applies default values to properties (lower one hierarchy or `emptyStyle`) that aren't set */
 export function hierarchizeTheme(input: Partial<Theme> = {}): Theme {
-  let { base, active, focused, disabled } = input;
+  input.base ??= emptyStyle;
+  input.disabled ??= input.base;
+  input.focused ??= input.base;
+  input.active ??= input.focused;
 
-  base ??= emptyStyle;
-  disabled ??= base;
-  focused ??= base;
-  active ??= focused ?? base;
+  const output = input as Theme & Record<string, Theme>;
+  for (const key in output) {
+    if (key === "base" || key === "focused" || key === "active" || key === "disabled") continue;
+    output[key] ??= hierarchizeTheme(output[key]);
+  }
 
-  return { base, focused, active, disabled };
+  return output;
 }
 
 /** Base theme used to style components, can be expanded upon */
