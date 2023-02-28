@@ -6,7 +6,7 @@ import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../util
 
 import type { Rectangle } from "../types.ts";
 
-export interface DrawTextOptions extends DrawObjectOptions {
+export interface TextObjectOptions extends DrawObjectOptions {
   value: string;
   rectangle: {
     column: number;
@@ -18,7 +18,7 @@ export class TextObject extends DrawObject<"text"> {
   value: string;
   previousValue!: string;
 
-  constructor(options: DrawTextOptions) {
+  constructor(options: TextObjectOptions) {
     super("text", options);
     this.value = options.value;
     // This gets filled with width and height in `update()`
