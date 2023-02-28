@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "demo": "deno run --watch --unstable -A ./examples/demo.ts"
+    "demo": "deno run --watch --allow-hrtime ./examples/demo.ts"
   },
   "fmt": {
     "options": {
