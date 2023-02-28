@@ -6,15 +6,15 @@ export enum Mark {
   Cross = "✗",
 }
 
-export interface CheckboxOptions extends ComponentOptions {
+export interface CheckBoxOptions extends ComponentOptions {
   value: boolean;
 }
 
-export class Checkbox extends Button {
+export class CheckBox extends Button {
   value: boolean;
-  label: { value: string };
+  label: { value: Mark };
 
-  constructor(options: CheckboxOptions) {
+  constructor(options: CheckBoxOptions) {
     super(options);
     this.value = options.value;
     this.label = { value: this.value ? Mark.Check : Mark.Cross };
