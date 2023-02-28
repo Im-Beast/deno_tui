@@ -4,6 +4,7 @@ import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { Style } from "./theme.ts";
 import { KeyPress, MousePress, MultiKeyPress, Stdin, Stdout } from "./types.ts";
 import { HIDE_CURSOR, SHOW_CURSOR, USE_PRIMARY_BUFFER, USE_SECONDARY_BUFFER } from "./utils/ansi_codes.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -24,7 +25,7 @@ export class Tui extends EventEmitter<{
   stdout: Stdout;
   canvas: Canvas;
   style?: Style;
-  children: Component[];
+  children: SortedArray<Component>;
   readonly components: Component[];
   drawnObjects: { background?: BoxObject };
 
@@ -44,7 +45,7 @@ export class Tui extends EventEmitter<{
 
     this.drawnObjects = {};
     this.components = [];
-    this.children = [];
+    this.children = new SortedArray();
 
     Deno.addSignalListener("SIGWINCH", () => {
       const { columns, rows } = this.canvas.size = Deno.consoleSize();
@@ -92,13 +93,14 @@ export class Tui extends EventEmitter<{
       });
 
       this.drawnObjects.background = box;
-      this.canvas.drawObject(box);
+      this.canvas.drawObjects(box);
     }
 
     Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
 
     const updateStep = () => {
       for (const component of this.components) {
+        if (!component.visible) continue;
         component.update();
       }
       canvas.render();
