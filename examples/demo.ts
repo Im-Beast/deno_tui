@@ -6,7 +6,8 @@ import { Label } from "../src/components/label.ts";
 import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts";
 import { handleInput } from "../src/input.ts";
 import { Tui } from "../src/tui.ts";
-import { Checkbox } from "../src/components/checkbox.ts";
+import { CheckBox } from "../src/components/checkbox.ts";
+import { ComboBox } from "../src/components/combobox.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -150,7 +151,7 @@ const label = new Label({
   value: `hello\nworld!\nhow are you?\n`,
 });
 
-new Checkbox({
+new CheckBox({
   parent: tui,
   value: false,
   rectangle: {
@@ -165,6 +166,24 @@ new Checkbox({
     active: crayon.bgGreen.white,
     disabled: crayon.bgLightBlack.white,
   },
+});
+
+new ComboBox({
+  parent: tui,
+  items: ["uno", "dos", "tres", "quatro", "cinque", "otto"],
+  rectangle: {
+    column: 35,
+    row: 1,
+    height: 1,
+    width: 10,
+  },
+  theme: {
+    base: crayon.bgMagenta.white,
+    focused: crayon.bgBlue.white,
+    active: crayon.bgGreen.white,
+    disabled: crayon.bgLightBlack.white,
+  },
+  zIndex: 5,
 });
 
 tui.on("mousePress", (mousePress) => {
