@@ -36,6 +36,6 @@ export class Text extends Component {
     });
 
     this.drawnObjects.text = text;
-    this.tui.canvas.drawObject(text);
+    this.tui.canvas.drawObjects(text);
   }
 }

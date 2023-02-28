@@ -105,7 +105,7 @@ export class Label extends Component {
       });
 
       drawnObjects[i++] = text;
-      canvas.drawObject(text);
+      canvas.drawObjects(text);
     }
   }
 }
