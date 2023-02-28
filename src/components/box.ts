@@ -5,6 +5,8 @@ export class Box extends Component {
   declare drawnObjects: { box: BoxObject };
 
   update(): void {
+    super.update();
+
     const { box } = this.drawnObjects;
 
     box.style = this.style;
@@ -13,6 +15,8 @@ export class Box extends Component {
   }
 
   draw(): void {
+    super.draw();
+
     const box = new BoxObject({
       rectangle: this.rectangle,
       style: this.style,
@@ -20,6 +24,6 @@ export class Box extends Component {
     });
 
     this.drawnObjects.box = box;
-    this.tui.canvas.drawObject(box);
+    this.tui.canvas.drawObjects(box);
   }
 }
