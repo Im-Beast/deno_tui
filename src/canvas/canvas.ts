@@ -71,9 +71,11 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fillFrameBuffer();
   }
 
-  drawObject(object: DrawableObject): void {
-    this.drawnObjects.push(object);
-    this.updateIntersections(object);
+  drawObjects(...objects: DrawableObject[]): void {
+    for (const object of objects) {
+      object.rendered = false;
+      this.drawnObjects.push(object);
+    }
   }
 
   eraseObjects(...objects: DrawableObject[]): void {
