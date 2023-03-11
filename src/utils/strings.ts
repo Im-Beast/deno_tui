@@ -41,6 +41,11 @@ export function textWidth(text: string): number {
 export function characterWidth(character: string): number {
   const codePoint = character.charCodeAt(0);
 
+  // TODO: Check for other zero-width codepoints
+  if (codePoint === 0xD83E || codePoint === 0x200B) {
+    return 0;
+  }
+
   if (
     codePoint >= 0x1100 &&
     (codePoint <= 0x115f ||
