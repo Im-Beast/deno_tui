@@ -23,7 +23,7 @@ export function hierarchizeTheme(input: Partial<Theme> = {}): Theme {
   const output = input as Theme & Record<string, Theme>;
   for (const key in output) {
     if (key === "base" || key === "focused" || key === "active" || key === "disabled") continue;
-    output[key] ??= hierarchizeTheme(output[key]);
+    output[key] = hierarchizeTheme(output[key]);
   }
 
   return output;
