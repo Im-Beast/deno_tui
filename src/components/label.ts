@@ -17,6 +17,7 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
     height?: number;
   };
   align?: LabelAlign;
+  multiCodePointSupport?: boolean;
 }
 
 export class Label extends Component {
@@ -27,6 +28,7 @@ export class Label extends Component {
 
   value: string;
   align: LabelAlign;
+  multiCodePointSupport: boolean;
 
   constructor(options: LabelOptions) {
     super(options as unknown as ComponentOptions);
@@ -35,10 +37,11 @@ export class Label extends Component {
       vertical: "top",
       horizontal: "left",
     };
+    this.multiCodePointSupport = options.multiCodePointSupport ?? false;
   }
 
   update(): void {
-    const { rectangle, style, zIndex, drawnObjects } = this;
+    const { rectangle, style, zIndex, drawnObjects, multiCodePointSupport } = this;
 
     if (this.value !== this.#lastValue) {
       const lastValueLines = this.#valueLines;
@@ -83,6 +86,7 @@ export class Label extends Component {
       text.value = value;
       text.style = style;
       text.zIndex = zIndex;
+      text.multiCodePointSupport = multiCodePointSupport;
     }
   }
 
@@ -97,7 +101,7 @@ export class Label extends Component {
       throw "#fillDrawObjects has been used before #valueLines has been set";
     }
 
-    const { rectangle, style, zIndex, drawnObjects } = this;
+    const { rectangle, style, zIndex, drawnObjects, multiCodePointSupport } = this;
     const { canvas } = this.tui;
 
     for (let i = Math.max(0, Object.keys(this.drawnObjects).length); i < this.#valueLines.length; ++i) {
@@ -113,6 +117,7 @@ export class Label extends Component {
           column: rectangle.column,
           row: rectangle.row + i,
         },
+        multiCodePointSupport,
       });
 
       drawnObjects[i] = text;

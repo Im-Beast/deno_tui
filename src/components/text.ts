@@ -7,15 +7,19 @@ export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
   rectangle: Omit<Rectangle, "width" | "height"> & {
     width?: number;
   };
+  multiCodePointSupport?: boolean;
 }
 
 export class Text extends Component {
   declare drawnObjects: { text: TextObject };
+
   value: string;
+  multiCodePointSupport: boolean;
 
   constructor(options: TextOptions) {
     super(options as unknown as ComponentOptions);
     this.value = options.value;
+    this.multiCodePointSupport = options.multiCodePointSupport ?? false;
   }
 
   update(): void {
@@ -23,16 +27,18 @@ export class Text extends Component {
 
     text.value = this.value;
     text.style = this.style;
-    text.rectangle = this.rectangle;
     text.zIndex = this.zIndex;
+    text.rectangle = this.rectangle;
+    text.multiCodePointSupport = this.multiCodePointSupport;
   }
 
   draw(): void {
     const text = new TextObject({
       value: this.value,
-      rectangle: this.rectangle,
       style: this.style,
       zIndex: this.zIndex,
+      rectangle: this.rectangle,
+      multiCodePointSupport: this.multiCodePointSupport,
     });
 
     this.drawnObjects.text = text;
