@@ -1,7 +1,7 @@
 import { Canvas } from "./canvas.ts";
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
-import { textWidth } from "../utils/strings.ts";
+import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 import type { Rectangle } from "../types.ts";
@@ -12,15 +12,22 @@ export interface TextObjectOptions extends DrawObjectOptions {
     column: number;
     row: number;
   };
+  multiCodePointSupport?: boolean;
 }
 
 export class TextObject extends DrawObject<"text"> {
   value: string;
+  valueChars: string[];
   previousValue!: string;
+  previousValueChars!: string[];
+  multiCodePointSupport: boolean;
 
   constructor(options: TextObjectOptions) {
     super("text", options);
     this.value = options.value;
+    this.multiCodePointSupport = options.multiCodePointSupport ?? false;
+    this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
+
     // This gets filled with width and height in `update()`
     this.rectangle = options.rectangle as Rectangle;
     this.update();
@@ -66,14 +73,16 @@ export class TextObject extends DrawObject<"text"> {
   update(): void {
     super.update();
 
-    const { value, previousValue } = this;
+    const { value, previousValue, valueChars, previousValueChars } = this;
     if (value === previousValue) return;
+
+    this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
 
     const { rectangle } = this;
 
     if (this.rendered) {
-      for (let i = 0; i < value.length; ++i) {
-        if (value[i] !== previousValue[i]) {
+      for (let i = 0; i < valueChars.length; ++i) {
+        if (valueChars[i] !== previousValueChars[i]) {
           this.queueRerender(rectangle.row, rectangle.column + i);
         }
       }
@@ -81,11 +90,13 @@ export class TextObject extends DrawObject<"text"> {
 
     rectangle.width = textWidth(value);
     rectangle.height = 1;
+
     this.previousValue = value;
+    this.previousValueChars = valueChars;
   }
 
   render(canvas: Canvas): void {
-    const { style, value, rectangle, omitCells } = this;
+    const { style, valueChars, rectangle, omitCells } = this;
     const { columns, rows } = canvas.size;
     const { frameBuffer, rerenderQueue } = canvas;
 
@@ -102,7 +113,7 @@ export class TextObject extends DrawObject<"text"> {
     const rowBuffer = frameBuffer[row];
     const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
-    for (let c = 0; c < value.length; ++c) {
+    for (let c = 0; c < valueChars.length; ++c) {
       const column = startColumn + c;
 
       if (column < 0) continue;
@@ -112,7 +123,7 @@ export class TextObject extends DrawObject<"text"> {
         continue;
       }
 
-      rowBuffer[column] = style(value[c]);
+      rowBuffer[column] = style(valueChars[c]);
       rerenderQueueRow.add(column);
     }
 
@@ -120,7 +131,7 @@ export class TextObject extends DrawObject<"text"> {
   }
 
   rerender(canvas: Canvas): void {
-    const { style, value, rectangle, omitCells, rerenderCells } = this;
+    const { style, valueChars, rectangle, omitCells, rerenderCells } = this;
     const { columns, rows } = canvas.size;
     const { frameBuffer, rerenderQueue } = canvas;
 
@@ -150,7 +161,7 @@ export class TextObject extends DrawObject<"text"> {
         continue;
       }
 
-      rowBuffer[column] = style(value[column - rectangle.column]);
+      rowBuffer[column] = style(valueChars[column - rectangle.column]);
       rerenderQueueRow.add(column);
     }
 
