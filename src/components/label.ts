@@ -1,7 +1,9 @@
 import { TextObject } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { Rectangle } from "../types.ts";
+
 import { textWidth } from "../utils/strings.ts";
+
+import type { Rectangle } from "../types.ts";
 
 export interface LabelAlign {
   vertical: "top" | "center" | "bottom";
@@ -42,8 +44,10 @@ export class Label extends Component {
       const lastValueLines = this.#valueLines;
       this.#valueLines = this.value.split("\n");
 
-      if (this.#valueLines.length !== lastValueLines!.length) {
-        this.draw();
+      if (this.#valueLines.length > lastValueLines!.length) {
+        this.#fillDrawObjects();
+      } else if (this.#valueLines.length < lastValueLines!.length) {
+        this.#popUnusedDrawObjects();
       }
 
       this.#lastValue = this.value;
@@ -84,15 +88,22 @@ export class Label extends Component {
 
   draw(): void {
     super.draw();
-
     this.#valueLines = this.value.split("\n");
+    this.#fillDrawObjects();
+  }
+
+  #fillDrawObjects(): void {
+    if (!this.#valueLines) {
+      throw "#fillDrawObjects has been used before #valueLines has been set";
+    }
 
     const { rectangle, style, zIndex, drawnObjects } = this;
     const { canvas } = this.tui;
 
-    let i = 0;
-    for (const value of this.#valueLines) {
+    for (let i = Math.max(0, Object.keys(this.drawnObjects).length); i < this.#valueLines.length; ++i) {
       if (i > rectangle.height) break;
+
+      const value = this.#valueLines[i];
 
       const text = new TextObject({
         value: textWidth(value) > rectangle.width ? value.slice(0, rectangle.width) : value,
@@ -104,8 +115,25 @@ export class Label extends Component {
         },
       });
 
-      drawnObjects[i++] = text;
+      drawnObjects[i] = text;
       canvas.drawObjects(text);
+    }
+  }
+
+  #popUnusedDrawObjects(): void {
+    if (!this.#valueLines) {
+      throw "#popUnusedDrawObjects has been used before #valueLines has been set";
+    }
+
+    const { drawnObjects } = this;
+    const { canvas } = this.tui;
+
+    for (const [key, text] of Object.entries(drawnObjects)) {
+      const index = +key;
+      if (index < this.#valueLines.length) continue;
+
+      canvas.eraseObjects(text);
+      delete drawnObjects[index];
     }
   }
 }
