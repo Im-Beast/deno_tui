@@ -9,6 +9,8 @@ import { Tui } from "../src/tui.ts";
 import { CheckBox } from "../src/components/checkbox.ts";
 import { ComboBox } from "../src/components/combobox.ts";
 import { ProgressBar } from "../src/components/progressbar.ts";
+import { Slider } from "../src/components/slider.ts";
+import { Frame } from "../src/components/frame.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -152,7 +154,7 @@ const label = new Label({
   value: `hello\nworld!\nhow are you?\n`,
 });
 
-new CheckBox({
+const checkbox = new CheckBox({
   parent: tui,
   value: false,
   rectangle: {
@@ -363,11 +365,80 @@ const progressBar8 = new ProgressBar({
   },
 });
 
-tui.on("mousePress", (mousePress) => {
-  if (!mousePress.drag || button.state === "base") return;
+new Slider({
+  parent: tui,
+  orientation: "horizontal",
+  rectangle: {
+    column: 2,
+    row: 10,
+    height: 2,
+    width: 12,
+  },
+  smooth: true,
+  min: 0,
+  max: 1,
+  step: 1 / 11,
+  value: 0.5,
+  theme: {
+    base: crayon.bgYellow.green,
+    focused: crayon.bgMagenta.green,
+    thumb: {
+      base: crayon.bgBlue.green,
+    },
+  },
+});
 
-  button.rectangle.column = mousePress.x;
-  button.rectangle.row = mousePress.y;
+new Slider({
+  parent: tui,
+  orientation: "vertical",
+  rectangle: {
+    column: 2,
+    row: 13,
+    height: 8,
+    width: 2,
+  },
+  smooth: true,
+  min: 0,
+  max: 1,
+  step: 0.1,
+  value: 0.5,
+  theme: {
+    base: crayon.bgYellow.green,
+    focused: crayon.bgMagenta.green,
+    thumb: {
+      base: crayon.bgBlue.green,
+    },
+  },
+});
+
+new Frame({
+  parent: tui,
+  rectangle: {
+    column: 10,
+    row: 12,
+    width: 10,
+    height: 5,
+  },
+  theme: {
+    base: crayon.bgBlack.bold.white,
+  },
+  charMap: "rounded",
+});
+
+new Frame({
+  parent: tui,
+  component: checkbox,
+  theme: {
+    base: crayon.bgBlack.bold.white,
+  },
+  charMap: "rounded",
+});
+
+button.on("mousePress", ({ drag, movementX, movementY }) => {
+  if (!drag) return;
+
+  button.rectangle.column += movementX;
+  button.rectangle.row += movementY;
 });
 
 tui.canvas.on("render", () => {
@@ -379,7 +450,7 @@ let i = 0;
 let dir = 0.025;
 
 setInterval(() => {
-  label.value = `hello\nworld!\nhow are you?\n${`${i % 10} lines\n`.repeat(i++ % 10)}`;
+  label.value = `hello\nworld!\nhow are you?\n${`${i % 5} lines\n`.repeat(i++ % 5)}`;
   text.rectangle.column++;
 
   progressBar8.value += dir;
