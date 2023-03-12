@@ -51,7 +51,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.stdout = options.stdout;
     this.size = Deno.consoleSize();
 
-    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex);
+    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex || a.id - b.id);
     this.frameBuffer = [];
 
     const updateCanvasSize = () => {
@@ -102,7 +102,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       if (!intersection) continue;
 
-      if (object2.zIndex <= zIndex) {
+      if (object2.zIndex < zIndex || (object2.zIndex === zIndex && object2.id < object.id)) {
         objectsUnder[objectsUnderPointer++] = object2;
         continue;
       }

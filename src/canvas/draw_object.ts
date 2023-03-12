@@ -12,7 +12,9 @@ export interface DrawObjectOptions {
   zIndex?: number;
 }
 
+let id = 0;
 export class DrawObject<Type extends string = string> {
+  id: number;
   type: Type;
 
   style: Style;
@@ -31,6 +33,8 @@ export class DrawObject<Type extends string = string> {
   rendered: boolean;
 
   constructor(type: Type, options: DrawObjectOptions) {
+    this.id = id++;
+
     this.type = type;
     this.rendered = false;
     this.style = options.style;
