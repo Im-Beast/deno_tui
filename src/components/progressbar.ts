@@ -1,6 +1,6 @@
 import { Box } from "./box.ts";
-import { ComponentOptions } from "../component.ts";
 import { Theme } from "../theme.ts";
+import { ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
 import { TextObject } from "../canvas/text.ts";
