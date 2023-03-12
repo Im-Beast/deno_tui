@@ -1,14 +1,22 @@
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 import { Theme } from "../theme.ts";
-import { DeepPartial } from "../types.ts";
-import { normalize } from "../utils/numbers.ts";
-import { Box } from "./box.ts";
 
-export const ProgressBarUnicodeCharacters = {
-  vertical: ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"] as const,
-  horizontal: ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"] as const,
+import { BoxObject } from "../canvas/box.ts";
+import { TextObject } from "../canvas/text.ts";
+
+import { normalize } from "../utils/numbers.ts";
+
+import type { DeepPartial } from "../types.ts";
+
+export type ProgressBarCharMapType = {
+  vertical: string[];
+  horizontal: string[];
+};
+
+export const progressBarCharMap: ProgressBarCharMapType = {
+  vertical: ["█", "🮆", "🮅", "🮄", "🮃", "🮂", "▔"],
+  horizontal: ["█", "▉", "▉", "▊", "▋", "▍", "▎", "▏"],
 };
 
 export type ProgressBarOrientation = "vertical" | "horizontal";
@@ -26,6 +34,7 @@ export interface ProgressBarOptions extends ComponentOptions {
   direction: ProgressBarDirection;
   orientation: ProgressBarOrientation;
   theme: DeepPartial<ProgressBarTheme>;
+  charMap?: ProgressBarCharMapType;
 }
 
 export class ProgressBar extends Box {
@@ -38,6 +47,7 @@ export class ProgressBar extends Box {
   smooth: boolean;
   direction: ProgressBarDirection;
   orientation: ProgressBarOrientation;
+  charMap: ProgressBarCharMapType;
 
   constructor(options: ProgressBarOptions) {
     super(options);
@@ -47,6 +57,7 @@ export class ProgressBar extends Box {
     this.value = options.value ?? 0;
     this.direction = options.direction;
     this.orientation = options.orientation;
+    this.charMap = options.charMap ?? progressBarCharMap;
   }
 
   update(): void {
@@ -63,7 +74,7 @@ export class ProgressBar extends Box {
 
     if (Array.isArray(progress)) {
       const { column, row, width, height } = this.rectangle;
-      const charMap = ProgressBarUnicodeCharacters[this.orientation];
+      const charMap = this.charMap[this.orientation];
       const step = 1 / (charMap.length);
 
       if (horizontal) {
@@ -139,7 +150,7 @@ export class ProgressBar extends Box {
           },
           style: this.theme.progress[this.state],
           zIndex: this.zIndex,
-          value: ProgressBarUnicodeCharacters.horizontal[0].repeat(10),
+          value: "",
         });
 
         this.drawnObjects.progress.push(progressLine);
