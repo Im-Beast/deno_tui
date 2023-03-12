@@ -81,9 +81,19 @@ export class TextObject extends DrawObject<"text"> {
     const { rectangle } = this;
 
     if (this.rendered) {
+      const { column, row } = rectangle;
       for (let i = 0; i < valueChars.length; ++i) {
         if (valueChars[i] !== previousValueChars[i]) {
-          this.queueRerender(rectangle.row, rectangle.column + i);
+          this.queueRerender(row, column + i);
+        }
+      }
+
+      if (valueChars.length < previousValueChars.length) {
+        const { objectsUnder } = this;
+        for (let i = valueChars.length; i < previousValueChars.length; ++i) {
+          for (const objectUnder of objectsUnder) {
+            objectUnder.queueRerender(row, column + i);
+          }
         }
       }
     }
