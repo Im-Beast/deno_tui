@@ -42,7 +42,7 @@ export class Component extends EventEmitter<{
   rectangle: Rectangle;
   children: SortedArray<Component>;
   state: ComponentState;
-  drawnObjects: Record<string, DrawableObject>;
+  drawnObjects: Record<string, DrawableObject | DrawableObject[]>;
   subComponents: Record<string, Component>;
   lastInteraction: Interaction;
 
@@ -71,6 +71,16 @@ export class Component extends EventEmitter<{
     queueMicrotask(() => {
       this.tui.addChildren(this);
     });
+
+    // FIXME: types
+    for (const event of ["keyPress", "multiKeyPress", "mousePress"] as const) {
+      this.tui.on(event, (arg) => {
+        if (this.state === "focused" || this.state === "active") {
+          // @ts-expect-error welp
+          this.emit(event, arg);
+        }
+      });
+    }
   }
 
   addChildren(...children: Component[]): void {
@@ -93,13 +103,13 @@ export class Component extends EventEmitter<{
     const { canvas } = this.tui;
 
     if (!value) {
-      canvas.eraseObjects(...Object.values(this.drawnObjects));
+      canvas.eraseObjects(...Object.values(this.drawnObjects).flat());
 
       for (const children of this.children) {
         children.visible = value;
       }
     } else {
-      canvas.drawObjects(...Object.values(this.drawnObjects));
+      canvas.drawObjects(...Object.values(this.drawnObjects).flat());
 
       for (const children of this.children) {
         children.visible = value;
@@ -119,10 +129,10 @@ export class Component extends EventEmitter<{
   clearDrawnObjects() {
     const { drawnObjects } = this;
     const { canvas } = this.tui;
-    for (const [key, drawnObject] of Object.entries(drawnObjects)) {
-      canvas.eraseObjects(drawnObject);
+    for (const key in drawnObjects) {
       delete drawnObjects[key];
     }
+    canvas.eraseObjects(...Object.values(drawnObjects).flat());
   }
 
   remove(): void {
