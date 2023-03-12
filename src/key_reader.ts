@@ -200,6 +200,8 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
   return keyPress;
 }
 
+let lastMousePress: MousePress;
+
 /**
  * Decode SGR mouse mode code sequence to {MousePress} object.
  * If it can't convert specified {code} to {MousePress} it returns undefined.
@@ -213,9 +215,12 @@ export function decodeMouseSGR(buffer: Uint8Array, code: string): MousePress | u
 
   const release = action === "m";
 
-  let [modifiers, x, y] = code.slice(2, -1).split(";").map((x) => +x);
+  let [modifiers, x, y] = code.slice(2, -1).split(";").map(Number);
   x -= 1;
   y -= 1;
+
+  const movementX = lastMousePress ? x - lastMousePress.x : 0;
+  const movementY = lastMousePress ? y - lastMousePress.y : 0;
 
   let scroll: MousePress["scroll"] = 0;
   if (modifiers >= 64) {
@@ -252,7 +257,7 @@ export function decodeMouseSGR(buffer: Uint8Array, code: string): MousePress | u
     button = modifiers as MousePress["button"];
   }
 
-  return {
+  const mousePress: MousePress = {
     key: "mouse",
     buffer,
     release,
@@ -261,10 +266,16 @@ export function decodeMouseSGR(buffer: Uint8Array, code: string): MousePress | u
     meta,
     button,
     drag,
+    movementX,
+    movementY,
     scroll,
     x,
     y,
   };
+
+  lastMousePress = mousePress;
+
+  return mousePress;
 }
 
 /**
@@ -278,6 +289,9 @@ export function decodeMouseVT_UTF8(buffer: Uint8Array, code: string): MousePress
 
   x -= 0o41;
   y -= 0o41;
+
+  const movementX = lastMousePress ? x - lastMousePress.x : 0;
+  const movementY = lastMousePress ? y - lastMousePress.y : 0;
 
   const buttonInfo = modifiers & 3;
   let button: MousePress["button"] = undefined;
@@ -297,7 +311,7 @@ export function decodeMouseVT_UTF8(buffer: Uint8Array, code: string): MousePress
 
   const drag = !scroll && !!(modifiers & 64);
 
-  return {
+  const mousePress: MousePress = {
     key: "mouse",
     buffer,
     release,
@@ -306,8 +320,14 @@ export function decodeMouseVT_UTF8(buffer: Uint8Array, code: string): MousePress
     meta,
     button,
     drag,
+    movementX,
+    movementY,
     scroll,
     x,
     y,
   };
+
+  lastMousePress = mousePress;
+
+  return mousePress;
 }

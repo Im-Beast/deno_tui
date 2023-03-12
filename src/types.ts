@@ -114,6 +114,10 @@ export interface MousePress extends Omit<KeyPress, "key"> {
   x: number;
   /** Row on which mouse was when action was taken */
   y: number;
+  /** Column relative to last mousePress */
+  movementX: number;
+  /** Row relative to last mousePress */
+  movementY: number;
   /**
    *  Mouse button that has been used
    *  - 0 - Left
