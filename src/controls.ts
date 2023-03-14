@@ -47,7 +47,9 @@ export function handleKeyboardControls(tui: Tui): void {
 
     for (const component of tui.components) {
       if (
-        component === lastSelectedComponent || !component.visible || component.subComponentOf ||
+        component === lastSelectedComponent ||
+        !component.visible ||
+        component.subComponentOf ||
         !isInteractable(component)
       ) {
         continue;
@@ -105,7 +107,12 @@ export function handleMouseControls(tui: Tui): void {
 
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {
-      if (component.subComponentOf || !component.visible || !fitsInRectangle(x, y, component.rectangle)) continue;
+      if (
+        !component.visible ||
+        component.subComponentOf ||
+        !isInteractable(component) ||
+        !fitsInRectangle(x, y, component.rectangle)
+      ) continue;
 
       if (!bestCandidate) {
         bestCandidate = component;
