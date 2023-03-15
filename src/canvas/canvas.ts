@@ -157,7 +157,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     for (const object of this.drawnObjects) {
       object.update();
       object.updateMovement();
-      this.updateIntersections(object);
       object.updatePreviousRectangle();
     }
 
@@ -165,6 +164,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       if (object.rendered && object.rerenderCells.length === 0) {
         continue;
       }
+
+      this.updateIntersections(object);
 
       if (object.rendered) {
         object.rerender(this);
