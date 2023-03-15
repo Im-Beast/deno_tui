@@ -28,44 +28,43 @@ export class TextObject extends DrawObject<"text"> {
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
     this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
 
-    // This gets filled with width and height in `update()`
     this.rectangle = options.rectangle as Rectangle;
-    this.update();
+    this.rectangle.width = textWidth(this.value);
+    this.rectangle.height = 1;
   }
 
   updateMovement(): void {
     const { rectangle, previousRectangle, objectsUnder } = this;
 
     // Rerender cells that changed because objects position changed
-    if (previousRectangle && !rectangleEquals(rectangle, previousRectangle)) {
-      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
-      {
-        const r = previousRectangle.row;
-        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
-          if (intersection && fitsInRectangle(c, r, intersection)) {
-            continue;
-          }
+    if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
 
-          for (const objectUnder of objectsUnder) {
-            objectUnder.queueRerender(r, c);
-          }
-        }
+    const intersection = rectangleIntersection(rectangle, previousRectangle, true);
+
+    const previousRow = previousRectangle.row;
+    for (let column = previousRectangle.column; column < previousRectangle.column + previousRectangle.width; ++column) {
+      if (intersection && fitsInRectangle(column, previousRow, intersection)) {
+        continue;
       }
 
-      {
-        const r = rectangle.row;
-        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
-          // When text moves it needs to be rerendered completely because of text continuity
-          this.queueRerender(r, c);
+      for (const objectUnder of objectsUnder) {
+        objectUnder.queueRerender(previousRow, column);
+      }
+    }
 
-          if (intersection && fitsInRectangle(c, r, intersection)) {
-            continue;
-          }
+    const hasOriginMoved = rectangle.column !== previousRectangle.column || rectangle.row !== previousRectangle.row;
 
-          for (const objectUnder of objectsUnder) {
-            objectUnder.queueRerender(r, c);
-          }
-        }
+    const row = rectangle.row;
+    for (let column = rectangle.column; column < rectangle.column + rectangle.width; ++column) {
+      // When text moves it needs to be rerendered completely because of text continuity
+      if (hasOriginMoved) this.queueRerender(row, column);
+
+      if (intersection && fitsInRectangle(column, row, intersection)) {
+        continue;
+      }
+
+      for (const objectUnder of objectsUnder) {
+        objectUnder.queueRerender(row, column);
       }
     }
   }
@@ -73,27 +72,21 @@ export class TextObject extends DrawObject<"text"> {
   update(): void {
     super.update();
 
-    const { value, previousValue, valueChars, previousValueChars } = this;
+    const { value, previousValue } = this;
     if (value === previousValue) return;
 
-    this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
+    const { rectangle, valueChars: oldValueChars } = this;
 
-    const { rectangle } = this;
+    const valueChars = this.valueChars = this.multiCodePointSupport
+      ? this.value.match(UNICODE_CHAR_REGEXP) ?? []
+      : this.value.split("");
 
-    if (this.rendered) {
+    const { previousValueChars } = this;
+    if (previousValueChars) {
       const { column, row } = rectangle;
       for (let i = 0; i < valueChars.length; ++i) {
         if (valueChars[i] !== previousValueChars[i]) {
           this.queueRerender(row, column + i);
-        }
-      }
-
-      if (valueChars.length < previousValueChars.length) {
-        const { objectsUnder } = this;
-        for (let i = valueChars.length; i < previousValueChars.length; ++i) {
-          for (const objectUnder of objectsUnder) {
-            objectUnder.queueRerender(row, column + i);
-          }
         }
       }
     }
@@ -102,7 +95,7 @@ export class TextObject extends DrawObject<"text"> {
     rectangle.height = 1;
 
     this.previousValue = value;
-    this.previousValueChars = valueChars;
+    this.previousValueChars = oldValueChars;
   }
 
   render(canvas: Canvas): void {
