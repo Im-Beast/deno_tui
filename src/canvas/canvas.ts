@@ -54,20 +54,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex || a.id - b.id);
     this.frameBuffer = [];
 
-    const updateCanvasSize = () => {
-      const size = Deno.consoleSize();
-      if (this.size.columns !== size.columns || this.size.rows !== size.rows) {
-        this.size = size;
-        this.rerender();
-      }
-    };
-
-    if (Deno.build.os === "windows") {
-      this.on("render", updateCanvasSize);
-    } else {
-      Deno.addSignalListener("SIGWINCH", updateCanvasSize);
-    }
-
     this.fillFrameBuffer();
   }
 

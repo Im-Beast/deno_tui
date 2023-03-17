@@ -107,6 +107,20 @@ export class Tui extends EventEmitter<{
       this.#nextUpdateTimeout = setTimeout(updateStep, canvas.refreshRate);
     };
     updateStep();
+
+    const updateCanvasSize = () => {
+      const size = Deno.consoleSize();
+      if (canvas.size.columns !== size.columns || canvas.size.rows !== size.rows) {
+        canvas.size = size;
+        canvas.rerender();
+      }
+    };
+
+    if (Deno.build.os === "windows") {
+      canvas.on("render", updateCanvasSize);
+    } else {
+      Deno.addSignalListener("SIGWINCH", updateCanvasSize);
+    }
   }
 
   destroy(): void {
