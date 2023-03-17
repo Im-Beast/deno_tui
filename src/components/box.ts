@@ -18,12 +18,13 @@ export class Box extends Component {
     super.draw();
 
     const box = new BoxObject({
+      canvas: this.tui.canvas,
       rectangle: this.rectangle,
       style: this.style,
       zIndex: this.zIndex,
     });
 
     this.drawnObjects.box = box;
-    this.tui.canvas.drawObjects(box);
+    box.draw();
   }
 }

@@ -9,7 +9,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
   // declare drawnObjects: { box: BoxObject };
   declare subComponents: { [button: number]: Button };
 
-  #visibleItems: boolean;
+  expanded: boolean;
 
   items: Items;
   value?: Items[number];
@@ -17,7 +17,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
 
   constructor(options: ComboBoxOptions<Items>) {
     super(options);
-    this.#visibleItems = false;
+    this.expanded = false;
     this.value = options.value;
     this.items = options.items;
     this.label = options.label ?? {
@@ -37,7 +37,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
         subComponent.label!.value = item;
         subComponent.theme = this.theme;
         subComponent.zIndex = this.zIndex;
-        subComponent.visible = this.#visibleItems;
+        subComponent.visible = this.expanded;
 
         subComponent.rectangle.column = column;
         subComponent.rectangle.row = row + (i + 1) * height;
@@ -67,7 +67,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
           if (button.state !== "active") return;
           this.value = item;
           this.label.value = item;
-          this.#visibleItems = false;
+          this.expanded = false;
           this.emit("valueChange", this);
         });
 
@@ -80,7 +80,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
     super.interact(method);
 
     if (this.state === "active") {
-      this.#visibleItems = !this.#visibleItems;
+      this.expanded = !this.expanded;
     }
   }
 }

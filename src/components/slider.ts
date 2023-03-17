@@ -100,6 +100,7 @@ export class Slider extends Box {
     const { column, row, width, height } = this.rectangle;
 
     const thumb = new BoxObject({
+      canvas: this.tui.canvas,
       rectangle: {
         column,
         row,
@@ -111,7 +112,7 @@ export class Slider extends Box {
     });
 
     this.drawnObjects.thumb = thumb;
-    this.tui.canvas.drawObjects(thumb);
+    thumb.draw();
   }
 
   interact(method: "keyboard" | "mouse"): void {

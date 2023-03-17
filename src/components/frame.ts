@@ -112,8 +112,10 @@ export class Frame extends Component {
 
     const { charMap, drawnObjects } = this;
     const { column, row, width, height } = this.rectangle;
+    const { canvas } = this.tui;
 
     const top = new TextObject({
+      canvas,
       rectangle: {
         column,
         row,
@@ -124,6 +126,7 @@ export class Frame extends Component {
     });
 
     const bottom = new TextObject({
+      canvas,
       rectangle: {
         column,
         row: row + height - 1,
@@ -134,6 +137,7 @@ export class Frame extends Component {
     });
 
     const left = new BoxObject({
+      canvas,
       rectangle: {
         column,
         row: row + 1,
@@ -146,6 +150,7 @@ export class Frame extends Component {
     });
 
     const right = new BoxObject({
+      canvas,
       rectangle: {
         column: column + width - 1,
         row: row + 1,
@@ -162,7 +167,10 @@ export class Frame extends Component {
     drawnObjects.left = left;
     drawnObjects.right = right;
 
-    this.tui.canvas.drawObjects(top, bottom, left, right);
+    top.draw();
+    bottom.draw();
+    left.draw();
+    right.draw();
   }
 
   #updateRelativeRectangle(): void {

@@ -34,6 +34,7 @@ export class Text extends Component {
 
   draw(): void {
     const text = new TextObject({
+      canvas: this.tui.canvas,
       value: this.value,
       style: this.style,
       zIndex: this.zIndex,
@@ -42,6 +43,6 @@ export class Text extends Component {
     });
 
     this.drawnObjects.text = text;
-    this.tui.canvas.drawObjects(text);
+    text.draw();
   }
 }

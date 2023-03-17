@@ -144,6 +144,7 @@ export class ProgressBar extends Box {
       this.drawnObjects.progress = [];
       for (let r = row; r < row + height; ++r) {
         const progressLine = new TextObject({
+          canvas: this.tui.canvas,
           rectangle: {
             column,
             row: r,
@@ -154,10 +155,11 @@ export class ProgressBar extends Box {
         });
 
         this.drawnObjects.progress.push(progressLine);
-        this.tui.canvas.drawObjects(progressLine);
+        progressLine.draw();
       }
     } else {
       const progress = new BoxObject({
+        canvas: this.tui.canvas,
         rectangle: {
           column,
           row,
@@ -169,7 +171,7 @@ export class ProgressBar extends Box {
       });
 
       this.drawnObjects.progress = progress;
-      this.tui.canvas.drawObjects(progress);
+      progress.draw();
     }
   }
 

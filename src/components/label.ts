@@ -21,7 +21,7 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
 }
 
 export class Label extends Component {
-  declare drawnObjects: { [text: number]: TextObject };
+  declare drawnObjects: { texts: TextObject[] };
 
   #valueLines?: string[];
   #lastValue?: string;
@@ -58,8 +58,7 @@ export class Label extends Component {
 
     const { vertical, horizontal } = this.align;
 
-    for (const [key, text] of Object.entries(drawnObjects)) {
-      const index = +key;
+    for (const [index, text] of drawnObjects.texts.entries()) {
       let value = this.#valueLines![index];
       value = textWidth(value) > rectangle.width ? value.slice(0, rectangle.width) : value;
 
@@ -92,6 +91,7 @@ export class Label extends Component {
 
   draw(): void {
     super.draw();
+    this.drawnObjects.texts = [];
     this.#valueLines = this.value.split("\n");
     this.#fillDrawObjects();
   }
@@ -102,14 +102,14 @@ export class Label extends Component {
     }
 
     const { rectangle, style, zIndex, drawnObjects, multiCodePointSupport } = this;
-    const { canvas } = this.tui;
 
-    for (let i = Math.max(0, Object.keys(this.drawnObjects).length); i < this.#valueLines.length; ++i) {
+    for (let i = drawnObjects.texts.length; i < this.#valueLines.length; ++i) {
       if (i > rectangle.height) break;
 
       const value = this.#valueLines[i];
 
       const text = new TextObject({
+        canvas: this.tui.canvas,
         value: textWidth(value) > rectangle.width ? value.slice(0, rectangle.width) : value,
         style: style,
         zIndex: zIndex,
@@ -120,8 +120,8 @@ export class Label extends Component {
         multiCodePointSupport,
       });
 
-      drawnObjects[i] = text;
-      canvas.drawObjects(text);
+      drawnObjects.texts[i] = text;
+      text.draw();
     }
   }
 
@@ -130,15 +130,8 @@ export class Label extends Component {
       throw "#popUnusedDrawObjects has been used before #valueLines has been set";
     }
 
-    const { drawnObjects } = this;
-    const { canvas } = this.tui;
-
-    for (const [key, text] of Object.entries(drawnObjects)) {
-      const index = +key;
-      if (index < this.#valueLines.length) continue;
-
-      canvas.eraseObjects(text);
-      delete drawnObjects[index];
+    for (const text of this.drawnObjects.texts.splice(this.#valueLines.length)) {
+      text.erase();
     }
   }
 }
