@@ -2,10 +2,9 @@ import { Tui } from "./tui.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
-import { DrawableObject } from "./canvas/mod.ts";
-
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
+import { DrawObject } from "./canvas/draw_object.ts";
 
 export interface ComponentOptions {
   theme: Partial<Theme>;
@@ -42,7 +41,7 @@ export class Component extends EventEmitter<{
   rectangle: Rectangle;
   children: SortedArray<Component>;
   state: ComponentState;
-  drawnObjects: Record<string, DrawableObject | DrawableObject[]>;
+  drawnObjects: Record<string, DrawObject | DrawObject[]>;
   subComponents: Record<string, Component>;
   lastInteraction: Interaction;
 
@@ -100,16 +99,14 @@ export class Component extends EventEmitter<{
     if (value === this.#visible) return;
     this.#visible = value;
 
-    const { canvas } = this.tui;
-
     if (!value) {
-      canvas.eraseObjects(...Object.values(this.drawnObjects).flat());
+      this.eraseDrawnObjects(false);
 
       for (const children of this.children) {
         children.visible = value;
       }
     } else {
-      canvas.drawObjects(...Object.values(this.drawnObjects).flat());
+      this.redrawDrawnObjects();
 
       for (const children of this.children) {
         children.visible = value;
@@ -126,18 +123,37 @@ export class Component extends EventEmitter<{
     this.lastInteraction.method = method;
   }
 
-  clearDrawnObjects() {
+  redrawDrawnObjects() {
     const { drawnObjects } = this;
-    const { canvas } = this.tui;
-    for (const key in drawnObjects) {
-      delete drawnObjects[key];
+    for (const value of Object.values(drawnObjects)) {
+      if (Array.isArray(value)) {
+        for (const object of value) {
+          object.draw();
+        }
+      } else {
+        value.draw();
+      }
     }
-    canvas.eraseObjects(...Object.values(drawnObjects).flat());
+  }
+
+  eraseDrawnObjects(remove: boolean) {
+    const { drawnObjects } = this;
+    for (const [key, value] of Object.entries(drawnObjects)) {
+      if (Array.isArray(value)) {
+        for (const object of value) {
+          object.erase();
+        }
+      } else {
+        value.erase();
+      }
+
+      if (remove) delete drawnObjects[key];
+    }
   }
 
   remove(): void {
     this.off();
-    this.clearDrawnObjects();
+    this.eraseDrawnObjects(true);
     this.parent.children.remove(this);
 
     const subComponents = this.subComponentOf?.subComponents;
@@ -149,7 +165,7 @@ export class Component extends EventEmitter<{
   }
 
   draw(): void {
-    this.clearDrawnObjects();
+    this.eraseDrawnObjects(true);
   }
 
   update(): void {
