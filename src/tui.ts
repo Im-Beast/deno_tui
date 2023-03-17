@@ -70,18 +70,17 @@ export class Tui extends EventEmitter<{
   }
 
   run(): void {
-    const { style, canvas, stdout } = this;
+    const { style, canvas, stdout, drawnObjects } = this;
 
     if (style) {
-      const { background } = this.drawnObjects;
+      const { background } = drawnObjects;
 
-      if (background) {
-        canvas.eraseObjects(background);
-      }
+      background?.erase();
 
       const { columns, rows } = canvas.size;
 
       const box = new BoxObject({
+        canvas,
         rectangle: {
           column: 0,
           row: 0,
@@ -92,8 +91,8 @@ export class Tui extends EventEmitter<{
         zIndex: -1,
       });
 
-      this.drawnObjects.background = box;
-      this.canvas.drawObjects(box);
+      drawnObjects.background = box;
+      box.draw();
     }
 
     Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
