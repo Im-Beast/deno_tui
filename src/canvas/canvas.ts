@@ -1,6 +1,3 @@
-import { BoxObject } from "./box.ts";
-import { TextObject } from "./text.ts";
-
 import { EmitterEvent, EventEmitter } from "../event_emitter.ts";
 
 import { moveCursor } from "../utils/ansi_codes.ts";
@@ -8,8 +5,7 @@ import { SortedArray } from "../utils/sorted_array.ts";
 import { rectangleIntersection } from "../utils/numbers.ts";
 
 import type { ConsoleSize, Stdout } from "../types.ts";
-
-export type DrawableObject = BoxObject | TextObject;
+import { DrawObject } from "./draw_object.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -34,7 +30,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   refreshRate: number;
   stdout: Stdout;
 
-  drawnObjects: SortedArray<DrawableObject>;
+  drawnObjects: SortedArray<DrawObject>;
   frameBuffer: string[][];
 
   rerenderQueue: Set<number>[];
@@ -57,26 +53,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fillFrameBuffer();
   }
 
-  drawObjects(...objects: DrawableObject[]): void {
-    for (const object of objects) {
-      object.rendered = false;
-      this.drawnObjects.push(object);
-    }
-  }
-
-  eraseObjects(...objects: DrawableObject[]): void {
-    this.drawnObjects.remove(...objects);
-
-    // Rerender cells that object previously occupied
-    // TODO: Check performance of this
-    for (const object of objects) {
-      object.rectangle.width = 0;
-      object.updateMovement();
-    }
-  }
-
-  updateIntersections(object: DrawableObject): void {
-    const { columns, rows } = this.size;
+  updateIntersections(object: DrawObject): void {
     const { omitCells, rerenderCells, objectsUnder, zIndex, rectangle } = object;
 
     let objectsUnderPointer = 0;
@@ -94,16 +71,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       }
 
       for (let row = intersection.row; row < intersection.row + intersection.height; ++row) {
-        if (row < 0) continue;
-        else if (row > rows) break;
-
         omitCells[row] ??= new Set();
         rerenderCells[row] ??= new Set();
 
         for (let column = intersection.column; column < intersection.column + intersection.width; ++column) {
-          if (column < 0) continue;
-          else if (column > columns) break;
-
           omitCells[row].add(column);
         }
       }
@@ -139,21 +110,22 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     for (const object of this.drawnObjects) {
       object.update();
+      if (object.outOfBounds) continue;
       object.updateMovement();
       object.updatePreviousRectangle();
     }
 
     for (const object of this.drawnObjects) {
-      if (object.rendered && object.rerenderCells.length === 0) {
+      if (object.outOfBounds || (object.rendered && object.rerenderCells.length === 0)) {
         continue;
       }
 
       this.updateIntersections(object);
 
       if (object.rendered) {
-        object.rerender(this);
+        object.rerender();
       } else {
-        object.render(this);
+        object.render();
         object.rendered = true;
       }
     }

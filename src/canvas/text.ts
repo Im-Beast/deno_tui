@@ -1,4 +1,3 @@
-import { Canvas } from "./canvas.ts";
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
@@ -98,14 +97,11 @@ export class TextObject extends DrawObject<"text"> {
     this.previousValueChars = oldValueChars;
   }
 
-  render(canvas: Canvas): void {
-    const { style, valueChars, rectangle, omitCells } = this;
-    const { columns, rows } = canvas.size;
+  render(): void {
+    const { canvas, style, valueChars, rectangle, omitCells } = this;
     const { frameBuffer, rerenderQueue } = canvas;
 
     const { row, column: startColumn } = rectangle;
-    if (row < 0 || row >= rows) return;
-
     const omitColumns = omitCells[row];
 
     if (omitColumns?.size === rectangle.width) {
@@ -114,17 +110,12 @@ export class TextObject extends DrawObject<"text"> {
     }
 
     const rowBuffer = frameBuffer[row];
+    if (!rowBuffer) return;
     const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
     for (let c = 0; c < valueChars.length; ++c) {
       const column = startColumn + c;
-
-      if (column < 0) continue;
-      else if (column >= columns) break;
-
-      if (omitColumns?.has(column)) {
-        continue;
-      }
+      if (omitColumns?.has(column)) continue;
 
       rowBuffer[column] = style(valueChars[c]);
       rerenderQueueRow.add(column);
@@ -133,9 +124,8 @@ export class TextObject extends DrawObject<"text"> {
     omitColumns?.clear();
   }
 
-  rerender(canvas: Canvas): void {
-    const { style, valueChars, rectangle, omitCells, rerenderCells } = this;
-    const { columns, rows } = canvas.size;
+  rerender(): void {
+    const { canvas, style, valueChars, rectangle, omitCells, rerenderCells } = this;
     const { frameBuffer, rerenderQueue } = canvas;
 
     const { row } = rectangle;
@@ -150,15 +140,13 @@ export class TextObject extends DrawObject<"text"> {
       return;
     }
 
-    if (row < 0 || row >= rows) return;
-
     const rowBuffer = frameBuffer[row];
     const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
     for (const column of rerenderColumns) {
       if (
-        column < 0 || column >= columns ||
-        column < rectangle.column || column >= rectangle.column + rectangle.width ||
+        column >= rectangle.column + rectangle.width ||
+        column < rectangle.column ||
         omitColumns?.has(column)
       ) {
         continue;

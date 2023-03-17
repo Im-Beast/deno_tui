@@ -10,12 +10,16 @@ export interface DrawObjectOptions {
 
   style: Style;
   zIndex?: number;
+
+  canvas: Canvas;
 }
 
 let id = 0;
 export class DrawObject<Type extends string = string> {
   id: number;
   type: Type;
+
+  canvas: Canvas;
 
   style: Style;
   previousStyle?: Style;
@@ -31,12 +35,14 @@ export class DrawObject<Type extends string = string> {
 
   zIndex: number;
   rendered: boolean;
+  outOfBounds: boolean;
 
   constructor(type: Type, options: DrawObjectOptions) {
     this.id = id++;
-
     this.type = type;
-    this.rendered = false;
+
+    this.canvas = options.canvas;
+
     this.style = options.style;
 
     this.rerenderCells = [];
@@ -46,27 +52,48 @@ export class DrawObject<Type extends string = string> {
     this.objectsUnder = [];
 
     this.zIndex = options.zIndex ?? 0;
+    this.rendered = false;
+    this.outOfBounds = false;
+  }
+
+  draw() {
+    this.rendered = false;
+    this.canvas.drawnObjects.push(this);
+  }
+
+  erase() {
+    this.canvas.drawnObjects.remove(this);
+
+    const { objectsUnder } = this;
+    const { column, row, width, height } = this.rectangle;
+    for (let r = row; r < row + height; ++r) {
+      for (let c = column; c < column + width; ++c) {
+        for (const objectUnder of objectsUnder) {
+          objectUnder.queueRerender(r, c);
+        }
+      }
+    }
   }
 
   queueRerender(row: number, column: number): void {
+    if (row < 0 || column < 0) return;
+    const { columns, rows } = this.canvas.size;
+    if (row >= rows || column >= columns) return;
+
     (this.rerenderCells[row] ??= new Set()).add(column);
   }
 
   updatePreviousRectangle(): void {
-    const { rectangle, previousRectangle } = this;
+    const { previousRectangle } = this;
+    const { column, row, width, height } = this.rectangle;
 
     if (!previousRectangle) {
-      this.previousRectangle = {
-        column: rectangle.column,
-        row: rectangle.row,
-        width: rectangle.width,
-        height: rectangle.height,
-      };
+      this.previousRectangle = { column, row, width, height };
     } else {
-      previousRectangle.column = rectangle.column;
-      previousRectangle.row = rectangle.row;
-      previousRectangle.height = rectangle.height;
-      previousRectangle.width = rectangle.width;
+      previousRectangle.column = column;
+      previousRectangle.row = row;
+      previousRectangle.width = width;
+      previousRectangle.height = height;
     }
   }
 
@@ -111,10 +138,13 @@ export class DrawObject<Type extends string = string> {
     if (style !== this.previousStyle) {
       this.rendered = false;
     }
-
     this.previousStyle = style;
+
+    const { column, row, width, height } = this.rectangle;
+    const { columns, rows } = this.canvas.size;
+    this.outOfBounds = column + width < 0 || row + height < 0 || column > columns || row > rows;
   }
 
-  render(_canvas: Canvas): void {}
-  rerender(_canvas: Canvas): void {}
+  render(): void {}
+  rerender(): void {}
 }

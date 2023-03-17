@@ -1,4 +1,3 @@
-import { Canvas } from "./canvas.ts";
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { fitsInRectangle } from "../utils/numbers.ts";
@@ -19,16 +18,13 @@ export class BoxObject extends DrawObject<"box"> {
     this.filler = options.filler ?? " ";
   }
 
-  render(canvas: Canvas): void {
-    const { rectangle, style, filler, omitCells } = this;
-    const { columns, rows } = canvas.size;
+  render(): void {
+    const { canvas, rectangle, style, filler, omitCells } = this;
     const { frameBuffer, rerenderQueue } = canvas;
+    const { columns } = canvas.size;
 
     // Render box
     for (let row = rectangle.row; row < rectangle.row + rectangle.height; ++row) {
-      if (row < 0) continue;
-      else if (row >= rows) break;
-
       const omitColumns = omitCells[row];
 
       if (omitColumns?.size === rectangle.width) {
@@ -37,6 +33,7 @@ export class BoxObject extends DrawObject<"box"> {
       }
 
       const rowBuffer = frameBuffer[row];
+      if (!rowBuffer) break;
       const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       for (
@@ -44,11 +41,9 @@ export class BoxObject extends DrawObject<"box"> {
         column < rectangle.column + rectangle.width;
         ++column
       ) {
-        if (column < 0 || omitColumns?.has(column)) continue;
-        else if (column >= columns) break;
+        if (column >= columns || omitColumns?.has(column)) continue;
 
         rowBuffer[column] = style(filler);
-
         rerenderQueueRow.add(column);
       }
 
@@ -56,17 +51,16 @@ export class BoxObject extends DrawObject<"box"> {
     }
   }
 
-  rerender(canvas: Canvas): void {
-    const { rerenderCells, style, filler, rectangle, omitCells } = this;
-    const { columns, rows } = canvas.size;
+  rerender(): void {
+    const { canvas, rerenderCells, style, filler, rectangle, omitCells } = this;
     const { frameBuffer, rerenderQueue } = canvas;
+    const { columns } = canvas.size;
 
     for (const key in rerenderCells) {
       const row = +key;
-      if (row < 0 || row >= rows) continue;
 
       const rerenderColumns = rerenderCells[key];
-      if (!rerenderColumns) continue;
+      if (!rerenderColumns) break;
 
       const omitColumns = omitCells[row];
 
@@ -80,8 +74,9 @@ export class BoxObject extends DrawObject<"box"> {
 
       for (const column of rerenderColumns) {
         if (
-          column < 0 || column >= columns ||
-          !fitsInRectangle(column, row, rectangle) || omitColumns?.has(column)
+          !fitsInRectangle(column, row, rectangle) ||
+          omitColumns?.has(column) ||
+          column >= columns
         ) {
           continue;
         }
