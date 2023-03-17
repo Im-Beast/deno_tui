@@ -118,11 +118,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.fillFrameBuffer();
 
     for (const object of this.drawnObjects) {
-      this.updateIntersections(object);
       object.rendered = false;
     }
-
-    this.render();
   }
 
   fillFrameBuffer(): void {
