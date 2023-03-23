@@ -28,7 +28,7 @@ export class BoxObject extends DrawObject<"box"> {
       const omitColumns = omitCells[row];
 
       if (omitColumns?.size === rectangle.width) {
-        omitColumns?.clear();
+        omitColumns.clear();
         continue;
       }
 

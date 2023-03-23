@@ -136,7 +136,7 @@ export class TextObject extends DrawObject<"text"> {
     const omitColumns = omitCells[row];
 
     if (omitColumns?.size === rectangle.width) {
-      omitColumns?.clear();
+      omitColumns.clear();
       return;
     }
 
