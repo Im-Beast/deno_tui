@@ -11,6 +11,7 @@ export interface TextObjectOptions extends DrawObjectOptions {
     column: number;
     row: number;
   };
+  overwriteWidth?: boolean;
   multiCodePointSupport?: boolean;
 }
 
@@ -18,18 +19,20 @@ export class TextObject extends DrawObject<"text"> {
   value: string;
   valueChars: string[];
   previousValue!: string;
+  overwriteWidth?: boolean;
   previousValueChars!: string[];
   multiCodePointSupport: boolean;
 
   constructor(options: TextObjectOptions) {
     super("text", options);
     this.value = options.value;
+    this.overwriteWidth = options.overwriteWidth ?? false;
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
     this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
 
     this.rectangle = options.rectangle as Rectangle;
-    this.rectangle.width = textWidth(this.value);
     this.rectangle.height = 1;
+    if (!this.overwriteWidth) this.rectangle.width = textWidth(this.value);
   }
 
   updateMovement(): void {
@@ -83,14 +86,15 @@ export class TextObject extends DrawObject<"text"> {
     const { previousValueChars } = this;
     if (previousValueChars) {
       const { column, row } = rectangle;
+
       for (let i = 0; i < valueChars.length; ++i) {
-        if (valueChars[i] !== previousValueChars[i]) {
-          this.queueRerender(row, column + i);
-        }
+        this.queueRerender(row, column + i);
       }
     }
 
-    rectangle.width = textWidth(value);
+    if (!this.overwriteWidth) {
+      rectangle.width = textWidth(value);
+    }
     rectangle.height = 1;
 
     this.previousValue = value;
