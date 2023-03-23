@@ -11,6 +11,7 @@ import { ComboBox } from "../src/components/combobox.ts";
 import { ProgressBar } from "../src/components/progressbar.ts";
 import { Slider } from "../src/components/slider.ts";
 import { Frame } from "../src/components/frame.ts";
+import { Input } from "../src/components/input.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -432,6 +433,54 @@ new Frame({
     base: crayon.bgBlack.bold.white,
   },
   charMap: "rounded",
+});
+
+new Input({
+  parent: tui,
+  rectangle: {
+    column: 60,
+    row: 1,
+    width: 10,
+    height: 1,
+  },
+  value: "Hello",
+  theme: {
+    base: crayon.bgYellow.green,
+    focused: crayon.bgMagenta.green,
+    value: {
+      base: crayon.bgGreen.red,
+      focused: crayon.bgCyan.magenta,
+      active: crayon.bgRed,
+    },
+    cursor: {
+      base: crayon.bgWhite.black.bold,
+    },
+  },
+});
+
+new Input({
+  parent: tui,
+  rectangle: {
+    column: 60,
+    row: 3,
+
+    width: 10,
+    height: 1,
+  },
+  value: "",
+  theme: {
+    base: crayon.bgYellow.green,
+    focused: crayon.bgMagenta.green,
+    value: {
+      base: crayon.bgGreen.red,
+      focused: crayon.bgCyan.magenta,
+      active: crayon.bgRed,
+    },
+    cursor: {
+      base: crayon.bgWhite.black.bold,
+    },
+  },
+  validator: /\d/,
 });
 
 button.on("mousePress", ({ drag, movementX, movementY }) => {
