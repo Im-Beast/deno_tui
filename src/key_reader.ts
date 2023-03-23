@@ -79,7 +79,11 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
       break;
     default:
       {
-        if (buffer[0] !== 27) {
+        if (code.length === 1) {
+          keyPress.shift = code !== code.toLowerCase();
+          keyPress.meta = buffer[0] === 27;
+          break;
+        } else if (buffer[0] !== 27) {
           const offset96 = String.fromCharCode(buffer[0] + 96);
           if (/[a-z]/.test(offset96)) {
             keyPress.key = offset96 as Alphabet;
@@ -88,14 +92,6 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
           }
         } else if (buffer.length === 1) {
           keyPress.key = "escape";
-          break;
-        }
-
-        if (code.length === 1 && /[a-zA-Z]/.test(code)) {
-          const lowerCase = code.toLowerCase();
-          keyPress.key = lowerCase as Key;
-          keyPress.shift = code !== lowerCase;
-          keyPress.meta = buffer[0] === 27;
           break;
         }
 
