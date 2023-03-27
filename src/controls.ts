@@ -6,7 +6,7 @@ import { fitsInRectangle } from "./utils/numbers.ts";
 
 const textEncoder = new TextEncoder();
 
-let lastSelectedComponent!: Component;
+let lastSelectedComponent: Component;
 
 export function handleKeyboardControls(tui: Tui): void {
   tui.on("keyPress", ({ key, ctrl, shift, meta }) => {
@@ -16,6 +16,8 @@ export function handleKeyboardControls(tui: Tui): void {
       tui,
       (object) => isInteractable(object) && object.visible,
     );
+
+    if (!lastSelectedComponent) return;
 
     let vectorX = 0;
     let vectorY = 0;
@@ -103,7 +105,7 @@ export function handleMouseControls(tui: Tui): void {
       (object) => isInteractable(object) && object.visible,
     );
 
-    if (shift || meta || ctrl || button !== 0 || scroll !== 0 || drag) return;
+    if (!lastSelectedComponent || shift || meta || ctrl || button !== 0 || scroll !== 0 || drag) return;
 
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {
