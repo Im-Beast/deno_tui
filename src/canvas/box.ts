@@ -1,21 +1,35 @@
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
+import { Dynamic, isDynamic, PossibleDynamic } from "../utils/dynamic.ts";
 
 import { fitsInRectangle } from "../utils/numbers.ts";
 
 import type { Rectangle } from "../types.ts";
 
 export interface BoxObjectOptions extends DrawObjectOptions {
-  rectangle: Rectangle;
-  filler?: string;
+  rectangle: PossibleDynamic<Rectangle>;
+  filler?: PossibleDynamic<string>;
 }
 
 export class BoxObject extends DrawObject<"box"> {
   filler: string;
+  dynamicFiller?: Dynamic<string>;
 
   constructor(options: BoxObjectOptions) {
     super("box", options);
-    this.rectangle = options.rectangle;
-    this.filler = options.filler ?? " ";
+
+    if (isDynamic(options.filler)) {
+      this.filler = options.filler();
+      this.dynamicFiller = options.filler;
+    } else {
+      this.filler = options.filler ?? " ";
+    }
+
+    if (isDynamic(options.rectangle)) {
+      this.rectangle = options.rectangle();
+      this.dynamicRectangle = options.rectangle;
+    } else {
+      this.rectangle = options.rectangle;
+    }
   }
 
   render(): void {
@@ -88,5 +102,10 @@ export class BoxObject extends DrawObject<"box"> {
       rerenderColumns.clear();
       omitColumns?.clear();
     }
+  }
+
+  update(): void {
+    super.update();
+    if (this.dynamicFiller) this.filler = this.dynamicFiller();
   }
 }

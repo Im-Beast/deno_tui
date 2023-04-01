@@ -1,18 +1,16 @@
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
+import { Dynamic, isDynamic, PossibleDynamic } from "../utils/dynamic.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 import type { Rectangle } from "../types.ts";
 
 export interface TextObjectOptions extends DrawObjectOptions {
-  value: string;
-  rectangle: {
-    column: number;
-    row: number;
-  };
-  overwriteWidth?: boolean;
-  multiCodePointSupport?: boolean;
+  value: PossibleDynamic<string>;
+  overwriteWidth?: PossibleDynamic<boolean>;
+  multiCodePointSupport?: PossibleDynamic<boolean>;
+  rectangle: PossibleDynamic<{ column: number; row: number }>;
 }
 
 export class TextObject extends DrawObject<"text"> {
@@ -23,15 +21,43 @@ export class TextObject extends DrawObject<"text"> {
   previousValueChars!: string[];
   multiCodePointSupport: boolean;
 
+  dynamicValue?: Dynamic<string>;
+  dynamicOverwriteWidth?: Dynamic<boolean>;
+  dynamicMultiCodePointSupport?: Dynamic<boolean>;
+
   constructor(options: TextObjectOptions) {
     super("text", options);
-    this.value = options.value;
-    this.overwriteWidth = options.overwriteWidth ?? false;
-    this.multiCodePointSupport = options.multiCodePointSupport ?? false;
+    if (isDynamic(options.overwriteWidth)) {
+      this.overwriteWidth = options.overwriteWidth();
+      this.dynamicOverwriteWidth = options.overwriteWidth;
+    } else {
+      this.overwriteWidth = options.overwriteWidth ?? false;
+    }
+
+    if (isDynamic(options.multiCodePointSupport)) {
+      this.multiCodePointSupport = options.multiCodePointSupport();
+      this.dynamicMultiCodePointSupport = options.multiCodePointSupport;
+    } else {
+      this.multiCodePointSupport = options.multiCodePointSupport ?? false;
+    }
+
+    if (isDynamic(options.value)) {
+      this.value = options.value();
+      this.dynamicValue = options.value;
+    } else {
+      this.value = options.value;
+    }
+
     this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
 
-    this.rectangle = options.rectangle as Rectangle;
+    if (isDynamic(options.rectangle)) {
+      this.rectangle = options.rectangle() as Rectangle;
+      this.dynamicRectangle = options.rectangle as Dynamic<Rectangle>;
+    } else {
+      this.rectangle = options.rectangle as Rectangle;
+    }
     this.rectangle.height = 1;
+
     if (!this.overwriteWidth) this.rectangle.width = textWidth(this.value);
   }
 
@@ -73,6 +99,9 @@ export class TextObject extends DrawObject<"text"> {
 
   update(): void {
     super.update();
+    if (this.dynamicValue) this.value = this.dynamicValue();
+    if (this.dynamicMultiCodePointSupport) this.multiCodePointSupport = this.dynamicMultiCodePointSupport();
+    if (this.dynamicOverwriteWidth) this.overwriteWidth = this.dynamicOverwriteWidth();
 
     const { value, previousValue } = this;
     if (value === previousValue) return;

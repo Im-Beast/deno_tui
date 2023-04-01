@@ -1,3 +1,4 @@
+import { Dynamic, isDynamic, PossibleDynamic } from "../utils/dynamic.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 import type { Style } from "../theme.ts";
@@ -5,13 +6,13 @@ import type { Canvas } from "./canvas.ts";
 import type { Rectangle } from "../types.ts";
 
 export interface DrawObjectOptions {
+  canvas: Canvas;
+
   omitCells?: number[];
   omitCellsPointer?: number;
 
-  style: Style;
-  zIndex?: number;
-
-  canvas: Canvas;
+  style: PossibleDynamic<Style>;
+  zIndex?: PossibleDynamic<number>;
 }
 
 let id = 0;
@@ -37,13 +38,29 @@ export class DrawObject<Type extends string = string> {
   rendered: boolean;
   outOfBounds: boolean;
 
+  dynamicZIndex?: Dynamic<number>;
+  dynamicStyle?: Dynamic<Style>;
+  dynamicRectangle?: Dynamic<Rectangle>;
+
   constructor(type: Type, options: DrawObjectOptions) {
     this.id = id++;
     this.type = type;
 
     this.canvas = options.canvas;
 
-    this.style = options.style;
+    if (isDynamic(options.style)) {
+      this.style = options.style();
+      this.dynamicStyle = options.style;
+    } else {
+      this.style = options.style;
+    }
+
+    if (isDynamic(options.zIndex)) {
+      this.zIndex = options.zIndex();
+      this.dynamicZIndex = options.zIndex;
+    } else {
+      this.zIndex = options.zIndex ?? 0;
+    }
 
     this.rerenderCells = [];
     this.omitCells = [];
@@ -51,7 +68,6 @@ export class DrawObject<Type extends string = string> {
     this.objectsUnderPointer = 0;
     this.objectsUnder = [];
 
-    this.zIndex = options.zIndex ?? 0;
     this.rendered = false;
     this.outOfBounds = false;
   }
@@ -133,11 +149,13 @@ export class DrawObject<Type extends string = string> {
   }
 
   update(): void {
+    if (this.dynamicRectangle) this.rectangle = this.dynamicRectangle();
+    if (this.dynamicStyle) this.style = this.dynamicStyle();
+    if (this.dynamicZIndex) this.zIndex = this.dynamicZIndex();
+
     const { style } = this;
 
-    if (style !== this.previousStyle) {
-      this.rendered = false;
-    }
+    if (style !== this.previousStyle) this.rendered = false;
     this.previousStyle = style;
 
     const { column, row, width, height } = this.rectangle;
