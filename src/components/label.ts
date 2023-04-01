@@ -91,7 +91,7 @@ export class Label extends Component {
           const { vertical, horizontal } = this.align;
           switch (horizontal) {
             case "center":
-              textRectangle.column += Math.round((width - textWidth(value)) / 2);
+              textRectangle.column += ~~((width - textWidth(value)) / 2);
               break;
             case "right":
               textRectangle.column += width - textWidth(value);
@@ -101,7 +101,7 @@ export class Label extends Component {
           textRectangle.row = row + offset;
           switch (vertical) {
             case "center":
-              textRectangle.row += Math.round(height / 2 - this.#valueLines!.length / 2);
+              textRectangle.row += ~~(height / 2 - this.#valueLines!.length / 2);
               break;
             case "bottom":
               textRectangle.row += height - this.#valueLines!.length;
