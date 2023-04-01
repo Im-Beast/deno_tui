@@ -41,52 +41,19 @@ export class Label extends Component {
   }
 
   update(): void {
-    const { rectangle, style, zIndex, drawnObjects, multiCodePointSupport } = this;
+    super.update();
 
-    if (this.value !== this.#lastValue) {
-      const lastValueLines = this.#valueLines;
-      this.#valueLines = this.value.split("\n");
+    if (this.value === this.#lastValue) return;
+    const lastValueLines = this.#valueLines;
+    this.#valueLines = this.value.split("\n");
 
-      if (this.#valueLines.length > lastValueLines!.length) {
-        this.#fillDrawObjects();
-      } else if (this.#valueLines.length < lastValueLines!.length) {
-        this.#popUnusedDrawObjects();
-      }
-
-      this.#lastValue = this.value;
+    if (this.#valueLines.length > lastValueLines!.length) {
+      this.#fillDrawObjects();
+    } else if (this.#valueLines.length < lastValueLines!.length) {
+      this.#popUnusedDrawObjects();
     }
 
-    const { vertical, horizontal } = this.align;
-
-    for (const [index, text] of drawnObjects.texts.entries()) {
-      let value = this.#valueLines![index];
-      value = textWidth(value) > rectangle.width ? value.slice(0, rectangle.width) : value;
-
-      text.rectangle.column = rectangle.column;
-      switch (horizontal) {
-        case "center":
-          text.rectangle.column += ~~((rectangle.width - textWidth(value)) / 2);
-          break;
-        case "right":
-          text.rectangle.column += rectangle.width - textWidth(value);
-          break;
-      }
-
-      text.rectangle.row = rectangle.row + index;
-      switch (vertical) {
-        case "center":
-          text.rectangle.row += ~~(rectangle.height / 2 - this.#valueLines!.length / 2);
-          break;
-        case "bottom":
-          text.rectangle.row += rectangle.height - this.#valueLines!.length;
-          break;
-      }
-
-      text.value = value;
-      text.style = style;
-      text.zIndex = zIndex;
-      text.multiCodePointSupport = multiCodePointSupport;
-    }
+    this.#lastValue = this.value;
   }
 
   draw(): void {
@@ -97,38 +64,61 @@ export class Label extends Component {
   }
 
   #fillDrawObjects(): void {
-    if (!this.#valueLines) {
-      throw "#fillDrawObjects has been used before #valueLines has been set";
-    }
+    if (!this.#valueLines) throw "#valueLines has to be set";
 
-    const { rectangle, style, zIndex, drawnObjects, multiCodePointSupport } = this;
+    const { drawnObjects } = this;
 
-    for (let i = drawnObjects.texts.length; i < this.#valueLines.length; ++i) {
-      if (i > rectangle.height) break;
-
-      const value = this.#valueLines[i];
-
+    for (let offset = drawnObjects.texts.length; offset < this.#valueLines.length; ++offset) {
+      const textRectangle = { column: 0, row: 0 };
       const text = new TextObject({
         canvas: this.tui.canvas,
-        value: textWidth(value) > rectangle.width ? value.slice(0, rectangle.width) : value,
-        style: style,
-        zIndex: zIndex,
-        rectangle: {
-          column: rectangle.column,
-          row: rectangle.row + i,
+        value: () => {
+          const value = this.#valueLines![offset];
+          const { width } = this.rectangle;
+          return textWidth(value) > width ? value.slice(0, width) : value;
         },
-        multiCodePointSupport,
+        style: () => this.style,
+        zIndex: () => this.zIndex,
+        multiCodePointSupport: () => this.multiCodePointSupport,
+        rectangle: () => {
+          const { column, row, width, height } = this.rectangle;
+          textRectangle.column = column;
+          textRectangle.row = row + offset;
+
+          let value = this.#valueLines![offset];
+          value = textWidth(value) > width ? value.slice(0, width) : value;
+
+          const { vertical, horizontal } = this.align;
+          switch (horizontal) {
+            case "center":
+              textRectangle.column += Math.round((width - textWidth(value)) / 2);
+              break;
+            case "right":
+              textRectangle.column += width - textWidth(value);
+              break;
+          }
+
+          textRectangle.row = row + offset;
+          switch (vertical) {
+            case "center":
+              textRectangle.row += Math.round(height / 2 - this.#valueLines!.length / 2);
+              break;
+            case "bottom":
+              textRectangle.row += height - this.#valueLines!.length;
+              break;
+          }
+
+          return textRectangle;
+        },
       });
 
-      drawnObjects.texts[i] = text;
+      drawnObjects.texts[offset] = text;
       text.draw();
     }
   }
 
   #popUnusedDrawObjects(): void {
-    if (!this.#valueLines) {
-      throw "#popUnusedDrawObjects has been used before #valueLines has been set";
-    }
+    if (!this.#valueLines) throw "#valueLines has to be set";
 
     for (const text of this.drawnObjects.texts.splice(this.#valueLines.length)) {
       text.erase();

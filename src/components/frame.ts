@@ -1,3 +1,4 @@
+// deno-lint-ignore-file
 import { Component, ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
@@ -13,7 +14,7 @@ export const FrameUnicodeCharacters = {
     bottomRight: "┘",
     horizontal: "─",
     vertical: "│",
-  } as const,
+  },
   rounded: {
     topLeft: "╭",
     topRight: "╮",
@@ -21,7 +22,7 @@ export const FrameUnicodeCharacters = {
     bottomRight: "╯",
     horizontal: "─",
     vertical: "│",
-  } as const,
+  },
 };
 
 export type FrameUnicodeCharactersType = {
@@ -66,101 +67,81 @@ export class Frame extends Component {
 
   update(): void {
     super.update();
-
-    const { charMap, component } = this;
-
-    if (component) this.#updateRelativeRectangle();
-
-    const { top, bottom, left, right } = this.drawnObjects;
-    const { column, row, width, height } = this.rectangle;
-
-    top.style =
-      bottom.style =
-      left.style =
-      right.style =
-        this.style;
-
-    top.zIndex =
-      bottom.zIndex =
-      left.zIndex =
-      right.zIndex =
-        this.zIndex;
-
-    top.rectangle.column = column;
-    top.rectangle.row = row;
-    top.value = charMap.topLeft + charMap.horizontal.repeat(width - 2) + charMap.topRight;
-
-    bottom.rectangle.column = column;
-    bottom.rectangle.row = row + height - 1;
-    bottom.value = charMap.bottomLeft + charMap.horizontal.repeat(width - 2) + charMap.bottomRight;
-
-    left.rectangle.column = column;
-    left.rectangle.row = row + 1;
-    left.rectangle.width = 1;
-    left.rectangle.height = height - 2;
-    left.filler = charMap.vertical;
-
-    right.rectangle.column = column + width - 1;
-    right.rectangle.row = row + 1;
-    right.rectangle.width = 1;
-    right.rectangle.height = height - 2;
-    right.filler = charMap.vertical;
+    if (this.component) {
+      this.#updateRelativeRectangle();
+    }
   }
 
   draw(): void {
     super.draw();
 
-    const { charMap, drawnObjects } = this;
-    const { column, row, width, height } = this.rectangle;
     const { canvas } = this.tui;
 
+    const topRectangle = { column: 0, row: 0 };
     const top = new TextObject({
       canvas,
-      rectangle: {
-        column,
-        row,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
+      value: () => {
+        const { topLeft, horizontal, topRight } = this.charMap;
+        return topLeft + horizontal.repeat(this.rectangle.width - 2) + topRight;
       },
-      style: this.style,
-      zIndex: this.zIndex,
-      value: charMap.topLeft + charMap.horizontal.repeat(width - 2) + charMap.topRight,
+      rectangle: () => {
+        const { column, row } = this.rectangle;
+        topRectangle.column = column;
+        topRectangle.row = row;
+        return topRectangle;
+      },
     });
 
+    const bottomRectangle = { column: 0, row: 0 };
     const bottom = new TextObject({
       canvas,
-      rectangle: {
-        column,
-        row: row + height - 1,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
+      value: () => {
+        const { bottomLeft, horizontal, bottomRight } = this.charMap;
+        return bottomLeft + horizontal.repeat(this.rectangle.width - 2) + bottomRight;
       },
-      style: this.style,
-      zIndex: this.zIndex,
-      value: charMap.bottomLeft + charMap.horizontal.repeat(width - 2) + charMap.bottomRight,
+      rectangle: () => {
+        const { column, row, height } = this.rectangle;
+        bottomRectangle.column = column;
+        bottomRectangle.row = row + height - 1;
+        return bottomRectangle;
+      },
     });
 
+    const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const left = new BoxObject({
       canvas,
-      rectangle: {
-        column,
-        row: row + 1,
-        width: 1,
-        height: height - 2,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
+      rectangle: () => {
+        const { column, row, height } = this.rectangle;
+        leftRectangle.column = column;
+        leftRectangle.row = row + 1;
+        leftRectangle.height = height - 2;
+        return leftRectangle;
       },
-      style: this.style,
-      zIndex: this.zIndex,
-      filler: charMap.vertical,
+      filler: () => this.charMap.vertical,
     });
 
+    const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const right = new BoxObject({
       canvas,
-      rectangle: {
-        column: column + width - 1,
-        row: row + 1,
-        width: 1,
-        height: height - 2,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
+      rectangle: () => {
+        const { column, row, width, height } = this.rectangle;
+        rightRectangle.column = column + width - 1;
+        rightRectangle.row = row + 1;
+        rightRectangle.height = height - 2;
+        return rightRectangle;
       },
-      style: this.style,
-      zIndex: this.zIndex,
-      filler: charMap.vertical,
+      filler: () => this.charMap.vertical,
     });
+
+    const { drawnObjects } = this;
 
     drawnObjects.top = top;
     drawnObjects.bottom = bottom;

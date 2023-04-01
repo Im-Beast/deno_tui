@@ -19,7 +19,6 @@ export interface SliderOptions extends ComponentOptions {
   max: number;
   step: number;
   value: number;
-  smooth: boolean;
   adjustThumbSize?: boolean;
   orientation: SliderOrientation;
   theme: DeepPartial<SliderTheme>;
@@ -33,13 +32,11 @@ export class Slider extends Box {
   max: number;
   step: number;
   value: number;
-  smooth: boolean;
   adjustThumbSize: boolean;
   orientation: SliderOrientation;
 
   constructor(options: SliderOptions) {
     super(options);
-    this.smooth = options.smooth;
     this.min = options.min;
     this.max = options.max;
     this.step = options.step;
@@ -72,43 +69,47 @@ export class Slider extends Box {
 
   update(): void {
     super.update();
-
-    const { thumb } = this.drawnObjects;
-    if (!thumb) return;
-
-    const { zIndex } = this;
-    const style = this.theme.thumb[this.state];
-    const horizontal = this.orientation === "horizontal";
-    const normalizedValue = normalize(this.value, this.min, this.max);
-
-    thumb.style = style;
-    thumb.zIndex = zIndex;
-
-    const { column, row, width, height } = this.rectangle;
-    thumb.rectangle.column = horizontal ? column + Math.round((width - 1) * normalizedValue) : column;
-    thumb.rectangle.row = horizontal ? row : row + Math.round((height - 1) * normalizedValue);
-    thumb.rectangle.width = horizontal ? 1 : width;
-    thumb.rectangle.height = horizontal ? height : 1;
   }
 
   draw(): void {
     super.draw();
 
-    const horizontal = this.orientation === "horizontal";
-
-    const { value } = this;
-    const { column, row, width, height } = this.rectangle;
+    const thumbRectangle = { column: 0, row: 0, width: 0, height: 0 };
 
     const thumb = new BoxObject({
       canvas: this.tui.canvas,
-      rectangle: {
-        column,
-        row,
-        width: horizontal ? ~~(width * value) : width,
-        height: horizontal ? height : ~~(height * value),
+      rectangle: () => {
+        const { value, min, max } = this;
+        const { column, row, width, height } = this.rectangle;
+        const horizontal = this.orientation === "horizontal";
+        const normalizedValue = normalize(value, min, max);
+
+        if (horizontal) {
+          const thumbSize = this.adjustThumbSize ? Math.round((width - 1) / (max - min)) : 1;
+
+          thumbRectangle.column = Math.min(
+            column + width - thumbSize,
+            column + Math.round((width - 1) * normalizedValue),
+          );
+          thumbRectangle.row = row;
+          thumbRectangle.width = thumbSize;
+          thumbRectangle.height = height;
+        } else {
+          const thumbSize = this.adjustThumbSize ? Math.round((height - 1) / (max - min)) : 1;
+
+          thumbRectangle.column = column;
+          thumbRectangle.row = Math.min(
+            row + height - thumbSize,
+            row + Math.round((height - 1) * normalizedValue),
+          );
+          thumbRectangle.width = width;
+          thumbRectangle.height = thumbSize;
+        }
+
+        return thumbRectangle;
       },
-      style: this.theme.thumb[this.state],
-      zIndex: this.zIndex,
+      style: () => this.theme.thumb[this.state],
+      zIndex: () => this.zIndex,
     });
 
     this.drawnObjects.thumb = thumb;

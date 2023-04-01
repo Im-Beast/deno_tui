@@ -21,8 +21,8 @@ export class CheckBox extends Button {
   }
 
   update(): void {
-    this.label.value = this.value ? Mark.Check : Mark.Cross;
     super.update();
+    this.label.value = this.value ? Mark.Check : Mark.Cross;
   }
 
   interact(method: "mouse" | "keyboard"): void {

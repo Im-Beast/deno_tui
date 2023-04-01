@@ -22,24 +22,14 @@ export class Text extends Component {
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
   }
 
-  update(): void {
-    const { text } = this.drawnObjects;
-
-    text.value = this.value;
-    text.style = this.style;
-    text.zIndex = this.zIndex;
-    text.rectangle = this.rectangle;
-    text.multiCodePointSupport = this.multiCodePointSupport;
-  }
-
   draw(): void {
     const text = new TextObject({
       canvas: this.tui.canvas,
-      value: this.value,
-      style: this.style,
-      zIndex: this.zIndex,
-      rectangle: this.rectangle,
-      multiCodePointSupport: this.multiCodePointSupport,
+      rectangle: () => this.rectangle,
+      value: () => this.value,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
+      multiCodePointSupport: () => this.multiCodePointSupport,
     });
 
     this.drawnObjects.text = text;

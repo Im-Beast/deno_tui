@@ -6,7 +6,6 @@ export interface ComboBoxOptions<Items extends string[] = string[]> extends Butt
 }
 
 export class ComboBox<Items extends string[] = string[]> extends Button {
-  // declare drawnObjects: { box: BoxObject };
   declare subComponents: { [button: number]: Button };
 
   expanded: boolean;

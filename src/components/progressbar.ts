@@ -64,110 +64,45 @@ export class ProgressBar extends Box {
     super.update();
 
     const { progress } = this.drawnObjects;
-    if (!progress) return;
+    if (!Array.isArray(progress)) return;
 
-    const { direction, zIndex } = this;
-    const style = this.theme.progress[this.state];
-    const horizontal = this.orientation === "horizontal";
-    let normalizedValue = normalize(this.value, this.min, this.max);
-    if (direction === "reversed") normalizedValue = 1 - normalizedValue;
-
-    if (Array.isArray(progress)) {
-      const { column, row, width, height } = this.rectangle;
-      const charMap = this.charMap[this.orientation];
-      const step = 1 / (charMap.length);
-
-      if (horizontal) {
-        const steps = normalizedValue * width;
-
-        const remainder = steps % 1;
-
-        const stringValue = charMap[0].repeat(steps) +
-          (remainder < step ? "" : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)]);
-
-        for (const [i, text] of progress.entries()) {
-          text.value = stringValue;
-          text.style = style;
-          text.zIndex = zIndex;
-          text.rectangle.column = column;
-          text.rectangle.row = row + i;
-        }
-      } else {
-        const steps = normalizedValue * height;
-
-        const remainder = steps % 1;
-
-        const filled = charMap[0].repeat(width);
-        const ending = remainder < step
-          ? ""
-          : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)].repeat(width);
-
-        let hadEnding = false;
-        for (const [i, text] of progress.entries()) {
-          if (hadEnding) {
-            text.value = "";
-          } else if (i < steps - remainder) {
-            text.value = filled;
-          } else {
-            text.value = ending;
-            hadEnding = true;
-          }
-
-          text.multiCodePointSupport = true;
-          text.style = style;
-          text.zIndex = zIndex;
-          text.rectangle.column = column;
-          text.rectangle.row = row + i;
-        }
-      }
-    } else {
-      progress.style = style;
-      progress.zIndex = zIndex;
-
-      const { column, row, width, height } = this.rectangle;
-      progress.rectangle.column = column;
-      progress.rectangle.row = row;
-      progress.rectangle.width = horizontal ? ~~(width * normalizedValue) : width;
-      progress.rectangle.height = horizontal ? height : ~~(height * normalizedValue);
+    if (progress.length > this.rectangle.height) {
+      this.#popUnusedSmoothDrawObjects();
+    } else if (progress.length < this.rectangle.height) {
+      this.#fillSmoothDrawObjects();
     }
   }
 
   draw(): void {
     super.draw();
 
-    const horizontal = this.orientation === "horizontal";
-
-    const { value } = this;
-    const { column, row, width, height } = this.rectangle;
-
     if (this.smooth) {
       this.drawnObjects.progress = [];
-      for (let r = row; r < row + height; ++r) {
-        const progressLine = new TextObject({
-          canvas: this.tui.canvas,
-          rectangle: {
-            column,
-            row: r,
-          },
-          style: this.theme.progress[this.state],
-          zIndex: this.zIndex,
-          value: "",
-        });
-
-        this.drawnObjects.progress.push(progressLine);
-        progressLine.draw();
-      }
+      this.#fillSmoothDrawObjects();
     } else {
+      const progressRectangle = { column: 0, row: 0, width: 0, height: 0 };
       const progress = new BoxObject({
         canvas: this.tui.canvas,
-        rectangle: {
-          column,
-          row,
-          width: horizontal ? ~~(width * value) : width,
-          height: horizontal ? height : ~~(height * value),
+        zIndex: () => this.zIndex,
+        style: () => this.theme.progress[this.state],
+        rectangle: () => {
+          let normalizedValue = normalize(this.value, this.min, this.max);
+          if (this.direction === "reversed") normalizedValue = 1 - normalizedValue;
+
+          const { column, row, width, height } = this.rectangle;
+          progressRectangle.column = column;
+          progressRectangle.row = row;
+
+          if (this.orientation === "horizontal") {
+            progressRectangle.width = Math.round(width * normalizedValue);
+            progressRectangle.height = height;
+          } else {
+            progressRectangle.width = width;
+            progressRectangle.height = Math.round(height * normalizedValue);
+          }
+
+          return progressRectangle;
         },
-        style: this.theme.progress[this.state],
-        zIndex: this.zIndex,
       });
 
       this.drawnObjects.progress = progress;
@@ -183,5 +118,71 @@ export class ProgressBar extends Box {
       : "focused";
 
     super.interact(method);
+  }
+
+  #fillSmoothDrawObjects() {
+    if (!Array.isArray(this.drawnObjects.progress)) {
+      throw "drawnObjects.progress needs to be an array";
+    }
+
+    for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.height; ++offset) {
+      const progressLineRectangle = { column: 0, row: 0 };
+      const progressLine = new TextObject({
+        canvas: this.tui.canvas,
+        multiCodePointSupport: true,
+        zIndex: () => this.zIndex,
+        style: () => this.theme.progress[this.state],
+        rectangle: () => {
+          const { column, row } = this.rectangle;
+          progressLineRectangle.column = column;
+          progressLineRectangle.row = row + offset;
+          return progressLineRectangle;
+        },
+        value: () => {
+          let normalizedValue = normalize(this.value, this.min, this.max);
+          if (this.direction === "reversed") normalizedValue = 1 - normalizedValue;
+
+          const charMap = this.charMap[this.orientation];
+          const step = 1 / (charMap.length);
+
+          if (this.orientation === "horizontal") {
+            const steps = normalizedValue * this.rectangle.width;
+            const remainder = steps % 1;
+            return charMap[0].repeat(steps) +
+              (
+                remainder < step ? "" : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)]
+              );
+          } else {
+            const { width, height } = this.rectangle;
+            const steps = normalizedValue * height;
+
+            const remainder = steps % 1;
+
+            if (offset - 1 >= steps - remainder) {
+              return "";
+            } else if (offset < steps - remainder) {
+              return charMap[0].repeat(width);
+            } else {
+              return remainder < step
+                ? ""
+                : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)].repeat(width);
+            }
+          }
+        },
+      });
+
+      this.drawnObjects.progress.push(progressLine);
+      progressLine.draw();
+    }
+  }
+
+  #popUnusedSmoothDrawObjects(): void {
+    if (!Array.isArray(this.drawnObjects.progress)) {
+      throw "drawnObjects.progress needs to be an array";
+    }
+
+    for (const progressLine of this.drawnObjects.progress.splice(this.rectangle.height)) {
+      progressLine.erase();
+    }
   }
 }

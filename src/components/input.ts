@@ -8,16 +8,16 @@ import { DeepPartial } from "../types.ts";
 import { insertAt, textWidth } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
+export interface InputTheme extends Theme {
+  cursor: Theme;
+  value: Theme;
+}
+
 export interface InputOptions extends ComponentOptions {
   value?: string;
   theme: DeepPartial<InputTheme>;
   validator?: RegExp;
   multiCodePointSupport?: boolean;
-}
-
-export interface InputTheme extends Theme {
-  cursor: Theme;
-  value: Theme;
 }
 
 export class Input extends Box {
@@ -86,64 +86,46 @@ export class Input extends Box {
     });
   }
 
-  update(): void {
-    super.update();
-
-    const { zIndex, state, theme, multiCodePointSupport, cursorPosition } = this;
-    const { text, cursor } = this.drawnObjects;
-    const { column, row, width } = this.rectangle;
-
-    // Tabs aren't predictable with how they'll render
-    const value = this.value.replace("\t", " ");
-
-    const valueWidth = textWidth(value);
-
-    text.rectangle.row = row;
-    text.rectangle.column = column;
-    text.rectangle.width = Math.min(valueWidth, width);
-
-    const offsetX = cursorPosition - width + 1;
-    text.value = offsetX > 0 ? value.slice(offsetX, cursorPosition) : value;
-    text.zIndex = zIndex;
-    text.style = theme.value[state];
-    text.multiCodePointSupport = multiCodePointSupport;
-    text.overwriteWidth = true;
-
-    cursor.rectangle.row = row;
-    cursor.rectangle.column = column + Math.min(cursorPosition, width - 1);
-    cursor.rectangle.width = 1;
-    cursor.value = value[cursorPosition] ?? " ";
-    cursor.zIndex = zIndex;
-    cursor.style = theme.cursor[state];
-    cursor.multiCodePointSupport = multiCodePointSupport;
-    cursor.overwriteWidth = true;
-  }
-
   draw(): void {
     super.draw();
 
-    const { row, column } = this.rectangle;
-
-    const { theme, state, zIndex, multiCodePointSupport } = this;
     const { canvas } = this.tui;
 
+    const textRectangle = { column: 0, row: 0, width: 0 };
     const text = new TextObject({
       canvas,
-      value: this.value,
-      style: theme.value[state],
-      zIndex,
-      rectangle: { row, column },
-      multiCodePointSupport,
+      zIndex: () => this.zIndex,
+      style: () => this.theme.value[this.state],
+      value: () => {
+        const { cursorPosition } = this;
+        const value = this.value.replace("\t", " ");
+        const offsetX = cursorPosition - this.rectangle.width + 1;
+        return offsetX > 0 ? value.slice(offsetX, cursorPosition) : value;
+      },
+      multiCodePointSupport: () => this.multiCodePointSupport,
+      rectangle: () => {
+        const { row, column, width } = this.rectangle;
+        textRectangle.column = column;
+        textRectangle.row = row;
+        textRectangle.width = Math.min(textWidth(this.value), width);
+        return textRectangle;
+      },
       overwriteWidth: true,
     });
 
+    const cursorRectangle = { column: 0, row: 0, width: 1 };
     const cursor = new TextObject({
       canvas,
-      value: " ",
-      style: theme.cursor[state],
-      zIndex,
-      rectangle: { row, column },
-      multiCodePointSupport,
+      zIndex: () => this.zIndex,
+      value: () => this.value[this.cursorPosition] ?? " ",
+      style: () => this.theme.cursor[this.state],
+      multiCodePointSupport: () => this.multiCodePointSupport,
+      rectangle: () => {
+        const { row, column, width } = this.rectangle;
+        cursorRectangle.column = column + Math.min(this.cursorPosition, width - 1);
+        cursorRectangle.row = row;
+        return cursorRectangle;
+      },
       overwriteWidth: true,
     });
 

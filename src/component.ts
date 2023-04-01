@@ -6,6 +6,7 @@ import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts"
 import { SortedArray } from "./utils/sorted_array.ts";
 import { DrawObject } from "./canvas/draw_object.ts";
 
+// TODO: Allow components to take PossibleDynamic values
 export interface ComponentOptions {
   theme: Partial<Theme>;
   parent: Component | Tui;

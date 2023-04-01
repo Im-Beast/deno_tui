@@ -6,12 +6,6 @@ export class Box extends Component {
 
   update(): void {
     super.update();
-
-    const { box } = this.drawnObjects;
-
-    box.style = this.style;
-    box.rectangle = this.rectangle;
-    box.zIndex = this.zIndex;
   }
 
   draw(): void {
@@ -19,9 +13,9 @@ export class Box extends Component {
 
     const box = new BoxObject({
       canvas: this.tui.canvas,
-      rectangle: this.rectangle,
-      style: this.style,
-      zIndex: this.zIndex,
+      rectangle: () => this.rectangle,
+      style: () => this.style,
+      zIndex: () => this.zIndex,
     });
 
     this.drawnObjects.box = box;
