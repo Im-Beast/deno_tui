@@ -17,10 +17,7 @@ export const TableUnicodeCharacters = {
     leftHorizontal: "├",
     rightHorizontal: "┤",
     horizontal: "─",
-    topHorizontal: "┬",
-    bottomHorizontal: "┴",
     vertical: "│",
-    cross: "┼",
   },
   rounded: {
     topLeft: "╭",
@@ -31,9 +28,6 @@ export const TableUnicodeCharacters = {
     rightHorizontal: "┤",
     horizontal: "─",
     vertical: "│",
-    topHorizontal: "┬",
-    bottomHorizontal: "┴",
-    cross: "┼",
   },
 };
 
