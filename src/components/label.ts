@@ -18,6 +18,7 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
   };
   align?: LabelAlign;
   multiCodePointSupport?: boolean;
+  overwriteRectangle?: boolean;
 }
 
 export class Label extends Component {
@@ -28,28 +29,33 @@ export class Label extends Component {
 
   value: string;
   align: LabelAlign;
+  overwriteRectangle: boolean;
   multiCodePointSupport: boolean;
 
   constructor(options: LabelOptions) {
     super(options as unknown as ComponentOptions);
     this.value = options.value;
-    this.align = options.align ?? {
-      vertical: "top",
-      horizontal: "left",
-    };
+    this.overwriteRectangle = options.overwriteRectangle ?? false;
+    this.align = options.align ?? { vertical: "top", horizontal: "left" };
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
   }
 
   update(): void {
     super.update();
 
-    if (this.value === this.#lastValue) return;
+    if (!this.#valueLines || this.value === this.#lastValue) return;
     const lastValueLines = this.#valueLines;
-    this.#valueLines = this.value.split("\n");
+    const valueLines = this.#valueLines = this.value.split("\n");
 
-    if (this.#valueLines.length > lastValueLines!.length) {
+    const { rectangle } = this;
+    if (!this.overwriteRectangle) {
+      rectangle.width = Math.max(valueLines.reduce((a, b) => Math.max(a, textWidth(b)), 0));
+      rectangle.height = valueLines.length;
+    }
+
+    if (valueLines.length > lastValueLines.length) {
       this.#fillDrawObjects();
-    } else if (this.#valueLines.length < lastValueLines!.length) {
+    } else if (valueLines.length < lastValueLines.length) {
       this.#popUnusedDrawObjects();
     }
 

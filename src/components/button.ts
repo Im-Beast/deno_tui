@@ -63,6 +63,7 @@ export class Button extends Box {
           horizontal: "center",
           vertical: "center",
         },
+        overwriteRectangle: true,
       });
 
       label.subComponentOf = this;
