@@ -21,7 +21,7 @@ export interface SliderOptions extends ComponentOptions {
   value: number;
   adjustThumbSize?: boolean;
   orientation: SliderOrientation;
-  theme: DeepPartial<SliderTheme>;
+  theme: DeepPartial<SliderTheme, "thumb">;
 }
 
 export class Slider extends Box {

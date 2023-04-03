@@ -33,7 +33,7 @@ export interface ProgressBarOptions extends ComponentOptions {
   smooth: boolean;
   direction: ProgressBarDirection;
   orientation: ProgressBarOrientation;
-  theme: DeepPartial<ProgressBarTheme>;
+  theme: DeepPartial<ProgressBarTheme, "progress">;
   charMap?: ProgressBarCharMapType;
 }
 

@@ -15,7 +15,7 @@ export interface InputTheme extends Theme {
 
 export interface InputOptions extends ComponentOptions {
   value?: string;
-  theme: DeepPartial<InputTheme>;
+  theme: DeepPartial<InputTheme, "cursor">;
   validator?: RegExp;
   multiCodePointSupport?: boolean;
 }
@@ -37,11 +37,13 @@ export class Input extends Box {
 
   constructor(options: InputOptions) {
     super(options);
+
+    this.cursorPosition = 0;
+    this.theme.value ??= this.theme;
     this.value = options.value ?? "";
     this.validator = options.validator;
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
 
-    this.cursorPosition = 0;
     this.on("keyPress", ({ key, ctrl, meta }) => {
       if (ctrl || meta) return;
 

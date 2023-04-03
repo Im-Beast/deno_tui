@@ -36,9 +36,9 @@ export type TableUnicodeCharactersType = {
 };
 
 export interface TableTheme extends Theme {
+  frame: Theme;
   header: Theme;
   selectedRow: Theme;
-  frame: Theme;
 }
 
 export type TableHeader<WidthDefined extends boolean> = {
@@ -46,7 +46,7 @@ export type TableHeader<WidthDefined extends boolean> = {
 } & (WidthDefined extends true ? { width: number } : { width?: number });
 
 export interface TableOptions extends Omit<ComponentOptions, "rectangle"> {
-  theme: DeepPartial<TableTheme>;
+  theme: DeepPartial<TableTheme, "frame" | "header" | "selectedRow">;
   headers: TableHeader<false>[];
   rectangle: Omit<Rectangle, "width">;
   data: string[][];
