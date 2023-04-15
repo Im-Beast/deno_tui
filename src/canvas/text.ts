@@ -34,18 +34,13 @@ export class TextObject extends DrawObject<"text"> {
       this.overwriteWidth = options.overwriteWidth ?? false;
     }
 
-    if (isDynamic(options.multiCodePointSupport)) {
-      this.multiCodePointSupport = options.multiCodePointSupport();
-      this.dynamicMultiCodePointSupport = options.multiCodePointSupport;
-    } else {
-      this.multiCodePointSupport = options.multiCodePointSupport ?? false;
-    }
-
-    if (isDynamic(options.value)) {
-      this.value = options.value();
-      this.dynamicValue = options.value;
-    } else {
-      this.value = options.value;
+    setPossibleDynamicProperty(this, "overwriteWidth", options.overwriteWidth ?? false);
+    setPossibleDynamicProperty(this, "multiCodePointSupport", options.multiCodePointSupport ?? false);
+    setPossibleDynamicProperty(this, "value", options.value);
+    setPossibleDynamicProperty(this, "rectangle", options.rectangle);
+    this.rectangle.height = 1;
+    if (!this.overwriteWidth) {
+      this.rectangle.width = textWidth(this.value);
     }
 
     this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");

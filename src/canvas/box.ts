@@ -16,13 +16,9 @@ export class BoxObject extends DrawObject<"box"> {
 
   constructor(options: BoxObjectOptions) {
     super("box", options);
-
-    if (isDynamic(options.filler)) {
-      this.filler = options.filler();
-      this.dynamicFiller = options.filler;
-    } else {
-      this.filler = options.filler ?? " ";
-    }
+    setPossibleDynamicProperty(this, "rectangle", options.rectangle);
+    setPossibleDynamicProperty(this, "filler", options.filler ?? " ");
+  }
 
     if (isDynamic(options.rectangle)) {
       this.rectangle = options.rectangle();

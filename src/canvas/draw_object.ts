@@ -55,12 +55,9 @@ export class DrawObject<Type extends string = string> {
       this.style = options.style;
     }
 
-    if (isDynamic(options.zIndex)) {
-      this.zIndex = options.zIndex();
-      this.dynamicZIndex = options.zIndex;
-    } else {
-      this.zIndex = options.zIndex ?? 0;
-    }
+    setPossibleDynamicProperty(this, "view", options.view);
+    setPossibleDynamicProperty(this, "style", options.style);
+    setPossibleDynamicProperty(this, "zIndex", options.zIndex ?? 0);
 
     this.rerenderCells = [];
     this.omitCells = [];
