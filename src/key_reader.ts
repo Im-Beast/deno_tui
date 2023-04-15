@@ -29,6 +29,7 @@ export function* decodeBuffer(buffer: Uint8Array): Generator<KeyPress | MousePre
   let codes: string[] = [];
 
   if (decodedBuffer.split("\x1b").length > 1) {
+    // deno-lint-ignore no-control-regex
     codes = decodedBuffer.split(/(?=\x1b)/);
   } else if (decodedBuffer.length > 1 && !decodedBuffer.includes("\x1b")) {
     codes = decodedBuffer.split("");
@@ -79,17 +80,20 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
       break;
     default:
       {
-        if (code.length === 1) {
-          keyPress.shift = code !== code.toLowerCase();
-          keyPress.meta = buffer[0] === 27;
-          break;
-        } else if (buffer[0] !== 27) {
+        if (buffer[0] !== 27) {
+          console.log("ugabuga");
           const offset96 = String.fromCharCode(buffer[0] + 96);
           if (/[a-z]/.test(offset96)) {
             keyPress.key = offset96 as Alphabet;
             keyPress.ctrl = true;
             break;
           }
+        }
+
+        if (code.length === 1) {
+          keyPress.shift = code !== code.toLowerCase();
+          keyPress.meta = buffer[0] === 27;
+          break;
         } else if (buffer.length === 1) {
           keyPress.key = "escape";
           break;
