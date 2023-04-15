@@ -5,6 +5,7 @@ import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
 import { DrawObject } from "./canvas/draw_object.ts";
+import { View } from "./view.ts";
 
 // TODO: Allow components to take PossibleDynamic values
 export interface ComponentOptions {
@@ -71,11 +72,6 @@ export class Component extends EventEmitter<{
       method: undefined,
     };
 
-    queueMicrotask(() => {
-      this.tui.addChildren(this);
-    });
-
-    // FIXME: types
     for (const event of ["keyPress", "multiKeyPress", "mousePress"] as const) {
       this.tui.on(event, (arg) => {
         if (this.state === "focused" || this.state === "active") {
@@ -84,6 +80,10 @@ export class Component extends EventEmitter<{
         }
       });
     }
+
+    queueMicrotask(() => {
+      this.tui.addChildren(this);
+    });
   }
 
   addChildren(...children: Component[]): void {
@@ -142,7 +142,9 @@ export class Component extends EventEmitter<{
 
   eraseDrawnObjects(remove: boolean) {
     const { drawnObjects } = this;
-    for (const [key, value] of Object.entries(drawnObjects)) {
+    for (const key in drawnObjects) {
+      const value = drawnObjects[key];
+
       if (Array.isArray(value)) {
         for (const object of value) {
           object.erase();
