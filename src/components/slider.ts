@@ -45,6 +45,8 @@ export class Slider extends Box {
     this.adjustThumbSize = options.adjustThumbSize ?? false;
 
     this.on("keyPress", (keyPress) => {
+      const { value } = this;
+
       switch (keyPress.key) {
         case "up":
         case "right":
@@ -55,15 +57,25 @@ export class Slider extends Box {
           this.value = clamp(this.value - this.step, this.min, this.max);
           break;
       }
+
+      if (this.value !== value) {
+        this.emit("valueChange", this);
+      }
     });
 
     this.on("mousePress", ({ drag, movementX, movementY }) => {
       if (!drag) return;
+      const { value } = this;
+
       this.value = clamp(
         this.value + (this.orientation === "horizontal" ? movementX : movementY) * this.step,
         this.min,
         this.max,
       );
+
+      if (this.value !== value) {
+        this.emit("valueChange", this);
+      }
     });
   }
 
@@ -86,7 +98,7 @@ export class Slider extends Box {
         const normalizedValue = normalize(value, min, max);
 
         if (horizontal) {
-          const thumbSize = this.adjustThumbSize ? Math.round((width - 1) / (max - min)) : 1;
+          const thumbSize = this.adjustThumbSize ? Math.round((width) / (max - min)) : 1;
 
           thumbRectangle.column = Math.min(
             column + width - thumbSize,
@@ -96,7 +108,7 @@ export class Slider extends Box {
           thumbRectangle.width = thumbSize;
           thumbRectangle.height = height;
         } else {
-          const thumbSize = this.adjustThumbSize ? Math.round((height - 1) / (max - min)) : 1;
+          const thumbSize = this.adjustThumbSize ? Math.round((height) / (max - min)) : 1;
 
           thumbRectangle.column = column;
           thumbRectangle.row = Math.min(
