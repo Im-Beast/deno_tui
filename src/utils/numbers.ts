@@ -30,7 +30,9 @@ export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: false):
 export function rectangleIntersection(a: Rectangle, b: Rectangle, data: true): false | Rectangle;
 export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: boolean): boolean | Rectangle {
   const { column: c1, row: r1, width: w1, height: h1 } = a;
+  if (w1 === 0) false;
   const { column: c2, height: h2, width: w2, row: r2 } = b;
+  if (w2 === 0) false;
 
   if (
     c1 >= c2 + w2 ||
@@ -46,6 +48,8 @@ export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: boolean
 
   const width = Math.max(0, colWidth - Math.max(c1, c2));
   const height = Math.max(0, rowHeight - Math.max(r1, r2));
+
+  if (width === 0 || height === 0) return false;
 
   const column = colWidth - width;
   const row = rowHeight - height;
