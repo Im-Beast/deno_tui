@@ -12,10 +12,9 @@ const textBuffer = new Uint8Array(384 ** 2);
 
 /** Interface defining object that {Canvas}'s constructor can interpret */
 export interface CanvasOptions {
-  /** How often canvas tries to find differences in its frameBuffer and render */
-  refreshRate: number;
   /** Stdout to which canvas will render frameBuffer */
   stdout: Stdout;
+  size: ConsoleSize;
 }
 
 /** Map that contains events that {Canvas} can dispatch */
@@ -24,59 +23,49 @@ export type CanvasEventMap = {
 };
 
 export class Canvas extends EventEmitter<CanvasEventMap> {
-  fps: number;
-  lastRender: number;
-
-  size: ConsoleSize;
-  refreshRate: number;
   stdout: Stdout;
-
-  drawnObjects: SortedArray<DrawObject>;
+  size: ConsoleSize;
   frameBuffer: string[][];
-
+  resize: boolean;
   rerenderQueue: Set<number>[];
+  drawnObjects: SortedArray<DrawObject>;
 
   constructor(options: CanvasOptions) {
     super();
 
-    this.refreshRate = options.refreshRate ?? 1000 / 60;
-    this.fps = 0;
-    this.lastRender = 0;
-
-    this.rerenderQueue = [];
-
-    this.stdout = options.stdout;
-    this.size = Deno.consoleSize();
-
-    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex || a.id - b.id);
     this.frameBuffer = [];
-
-    this.fillFrameBuffer();
+    this.rerenderQueue = [];
+    this.stdout = options.stdout;
+    this.size = options.size;
+    this.resize = true;
+    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex || a.id - b.id);
   }
 
   updateIntersections(object: DrawObject): void {
-    const { omitCells, rerenderCells, objectsUnder, zIndex, rectangle } = object;
+    if (object.outOfBounds) return;
+
+    const { omitCells, objectsUnder, zIndex, rectangle } = object;
 
     let objectsUnderPointer = 0;
 
     for (const object2 of this.drawnObjects) {
-      if (object === object2) continue;
-
-      const intersection = rectangleIntersection(rectangle, object2.rectangle, true);
-
-      if (!intersection) continue;
+      if (object === object2 || object2.outOfBounds) continue;
 
       if (object2.zIndex < zIndex || (object2.zIndex === zIndex && object2.id < object.id)) {
         objectsUnder[objectsUnderPointer++] = object2;
         continue;
       }
 
-      for (let row = intersection.row; row < intersection.row + intersection.height; ++row) {
-        omitCells[row] ??= new Set();
-        rerenderCells[row] ??= new Set();
+      const intersection = rectangleIntersection(rectangle, object2.rectangle, true);
+      if (!intersection) continue;
 
-        for (let column = intersection.column; column < intersection.column + intersection.width; ++column) {
-          omitCells[row].add(column);
+      const rowRange = intersection.row + intersection.height;
+      const columnRange = intersection.column + intersection.width;
+      for (let row = intersection.row; row < rowRange; ++row) {
+        const omitColumns = omitCells[row] ??= new Set();
+
+        for (let column = intersection.column; column < columnRange; ++column) {
+          omitColumns.add(column);
         }
       }
     }
@@ -86,37 +75,43 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
   }
 
-  rerender(): void {
-    this.fillFrameBuffer();
+  render(): void {
+    const { frameBuffer, drawnObjects, resize } = this;
 
-    for (const object of this.drawnObjects) {
-      object.rendered = false;
-    }
-  }
+    if (resize) {
+      const { rows } = this.size;
+      this.resize = false;
 
-  fillFrameBuffer(): void {
-    const { frameBuffer } = this;
-    const { rows } = this.size;
-
-    if (frameBuffer.length < rows) {
-      for (let r = 0; r < rows; ++r) {
-        frameBuffer[r] ??= [];
+      if (frameBuffer.length < rows) {
+        for (let r = frameBuffer.length; r < rows; ++r) {
+          frameBuffer[r] ??= [];
+        }
       }
     }
-  }
 
-  render(): void {
-    this.fps = 1000 / (performance.now() - this.lastRender);
-    this.emit("render");
+    for (const object of drawnObjects) {
+      object.outOfBounds = false;
 
-    for (const object of this.drawnObjects) {
+      if (resize) {
+        object.rendered = false;
+      }
+
       object.update();
-      if (object.outOfBounds) continue;
+
+      // DrawObjects might set outOfBounds in update()
+      if (!object.outOfBounds) {
+        object.updateOutOfBounds();
+      }
+
+      if (object.outOfBounds) {
+        continue;
+      }
+
       object.updateMovement();
       object.updatePreviousRectangle();
     }
 
-    for (const object of this.drawnObjects) {
+    for (const object of drawnObjects) {
       if (object.outOfBounds || (object.rendered && object.rerenderCells.length === 0)) {
         continue;
       }
@@ -174,6 +169,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       ),
     );
 
-    this.lastRender = performance.now();
+    this.emit("render");
   }
 }

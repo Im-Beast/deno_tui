@@ -9,10 +9,11 @@ import { SortedArray } from "./utils/sorted_array.ts";
 const textEncoder = new TextEncoder();
 
 export interface TuiOptions {
+  style?: Style;
   stdin?: Stdin;
   stdout?: Stdout;
   canvas?: Canvas;
-  style?: Style;
+  refreshRate?: number;
 }
 
 export class Tui extends EventEmitter<{
@@ -28,6 +29,7 @@ export class Tui extends EventEmitter<{
   children: SortedArray<Component>;
   readonly components: Component[];
   drawnObjects: { background?: BoxObject };
+  refreshRate: number;
 
   #nextUpdateTimeout?: number;
 
@@ -35,10 +37,10 @@ export class Tui extends EventEmitter<{
     super();
     this.stdin = options.stdin ?? Deno.stdin;
     this.stdout = options.stdout ?? Deno.stdout;
-
+    this.refreshRate = options.refreshRate ?? 1000 / 60;
     this.canvas = options.canvas ?? new Canvas({
-      refreshRate: 1000 / 60,
       stdout: this.stdout,
+      size: Deno.consoleSize(),
     });
 
     this.style = options.style;
@@ -47,17 +49,23 @@ export class Tui extends EventEmitter<{
     this.components = [];
     this.children = new SortedArray();
 
-    Deno.addSignalListener("SIGWINCH", () => {
-      const { columns, rows } = this.canvas.size = Deno.consoleSize();
+    const updateCanvasSize = () => {
+      const { canvas } = this;
+      const { columns, rows } = Deno.consoleSize();
 
-      const { background } = this.drawnObjects;
-      if (background) {
-        background.rectangle.width = columns;
-        background.rectangle.height = rows;
+      if (canvas.size.columns !== columns || canvas.size.rows !== rows) {
+        canvas.resize = true;
+        canvas.size.columns = columns;
+        canvas.size.rows = rows;
       }
+    };
 
-      this.canvas.rerender();
-    });
+    updateCanvasSize();
+    if (Deno.build.os === "windows") {
+      this.canvas.on("render", updateCanvasSize);
+    } else {
+      Deno.addSignalListener("SIGWINCH", updateCanvasSize);
+    }
   }
 
   addChildren(...children: Component[]): void {
@@ -79,13 +87,20 @@ export class Tui extends EventEmitter<{
 
       const { columns, rows } = canvas.size;
 
+      const backgroundRectangle = {
+        column: 0,
+        row: 0,
+        width: columns,
+        height: rows,
+      };
+
       const box = new BoxObject({
         canvas,
-        rectangle: {
-          column: 0,
-          row: 0,
-          width: columns,
-          height: rows,
+        rectangle: () => {
+          const { columns, rows } = this.canvas.size;
+          backgroundRectangle.width = columns;
+          backgroundRectangle.height = rows;
+          return backgroundRectangle;
         },
         style,
         zIndex: -1,
@@ -102,24 +117,12 @@ export class Tui extends EventEmitter<{
         if (!component.visible) continue;
         component.update();
       }
+
       canvas.render();
-      this.#nextUpdateTimeout = setTimeout(updateStep, canvas.refreshRate);
+
+      this.#nextUpdateTimeout = setTimeout(updateStep, this.refreshRate);
     };
     updateStep();
-
-    const updateCanvasSize = () => {
-      const size = Deno.consoleSize();
-      if (canvas.size.columns !== size.columns || canvas.size.rows !== size.rows) {
-        canvas.size = size;
-        canvas.rerender();
-      }
-    };
-
-    if (Deno.build.os === "windows") {
-      canvas.on("render", updateCanvasSize);
-    } else {
-      Deno.addSignalListener("SIGWINCH", updateCanvasSize);
-    }
   }
 
   destroy(): void {
