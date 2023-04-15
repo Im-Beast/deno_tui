@@ -3,6 +3,7 @@
 //#region key_reader
 // Copyright 2022 Im-Beast. All rights reserved. MIT license.
 /** Type defining keys that `key_reader.ts` can distinguish */
+// TODO: throw these key types to key_reader
 export type Key =
   | Alphabet
   | Chars
@@ -170,8 +171,8 @@ export enum Timing {
 
 /** Type that describes offset */
 export interface Offset {
-  x: number;
-  y: number;
+  columns: number;
+  rows: number;
 }
 
 /** Type that describes empty edge around Rectangle */
