@@ -81,7 +81,6 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPress {
     default:
       {
         if (buffer[0] !== 27) {
-          console.log("ugabuga");
           const offset96 = String.fromCharCode(buffer[0] + 96);
           if (/[a-z]/.test(offset96)) {
             keyPress.key = offset96 as Alphabet;
