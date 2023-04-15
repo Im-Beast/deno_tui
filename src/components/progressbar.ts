@@ -83,6 +83,7 @@ export class ProgressBar extends Box {
       const progressRectangle = { column: 0, row: 0, width: 0, height: 0 };
       const progress = new BoxObject({
         canvas: this.tui.canvas,
+        view: () => this.view,
         zIndex: () => this.zIndex,
         style: () => this.theme.progress[this.state],
         rectangle: () => {
@@ -130,6 +131,7 @@ export class ProgressBar extends Box {
       const progressLine = new TextObject({
         canvas: this.tui.canvas,
         multiCodePointSupport: true,
+        view: () => this.view,
         zIndex: () => this.zIndex,
         style: () => this.theme.progress[this.state],
         rectangle: () => {

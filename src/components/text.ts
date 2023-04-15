@@ -25,10 +25,11 @@ export class Text extends Component {
   draw(): void {
     const text = new TextObject({
       canvas: this.tui.canvas,
-      rectangle: () => this.rectangle,
+      view: () => this.view,
       value: () => this.value,
       style: () => this.style,
       zIndex: () => this.zIndex,
+      rectangle: () => this.rectangle,
       multiCodePointSupport: () => this.multiCodePointSupport,
     });
 

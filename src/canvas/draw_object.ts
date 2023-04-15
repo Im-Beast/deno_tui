@@ -1,9 +1,10 @@
-import { Dynamic, isDynamic, PossibleDynamic } from "../utils/dynamic.ts";
+import { Dynamic, PossibleDynamic, setPossibleDynamicProperty } from "../utils/dynamic.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
-import type { Rectangle } from "../types.ts";
+import type { Offset, Rectangle } from "../types.ts";
+import { View } from "../view.ts";
 
 export interface DrawObjectOptions {
   canvas: Canvas;
@@ -11,6 +12,7 @@ export interface DrawObjectOptions {
   omitCells?: number[];
   omitCellsPointer?: number;
 
+  view?: PossibleDynamic<View | undefined>;
   style: PossibleDynamic<Style>;
   zIndex?: PossibleDynamic<number>;
 }
@@ -22,9 +24,11 @@ export class DrawObject<Type extends string = string> {
 
   canvas: Canvas;
 
-  style: Style;
+  style!: Style;
   previousStyle?: Style;
 
+  view: View | undefined;
+  viewOffset: Offset;
   rectangle!: Rectangle;
   previousRectangle?: Rectangle;
 
@@ -34,10 +38,11 @@ export class DrawObject<Type extends string = string> {
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
-  zIndex: number;
+  zIndex!: number;
   rendered: boolean;
   outOfBounds: boolean;
 
+  dynamicView?: Dynamic<View | undefined>;
   dynamicZIndex?: Dynamic<number>;
   dynamicStyle?: Dynamic<Style>;
   dynamicRectangle?: Dynamic<Rectangle>;
@@ -48,12 +53,7 @@ export class DrawObject<Type extends string = string> {
 
     this.canvas = options.canvas;
 
-    if (isDynamic(options.style)) {
-      this.style = options.style();
-      this.dynamicStyle = options.style;
-    } else {
-      this.style = options.style;
-    }
+    this.viewOffset = { columns: 0, rows: 0 };
 
     setPossibleDynamicProperty(this, "view", options.view);
     setPossibleDynamicProperty(this, "style", options.style);
@@ -69,18 +69,21 @@ export class DrawObject<Type extends string = string> {
     this.outOfBounds = false;
   }
 
-  draw() {
+  draw(): void {
     this.rendered = false;
     this.canvas.drawnObjects.push(this);
   }
 
-  erase() {
+  erase(): void {
     this.canvas.drawnObjects.remove(this);
 
     const { objectsUnder } = this;
     const { column, row, width, height } = this.rectangle;
-    for (let r = row; r < row + height; ++r) {
-      for (let c = column; c < column + width; ++c) {
+
+    const rowRange = row + height;
+    const columnRange = column + width;
+    for (let r = row; r < rowRange; ++r) {
+      for (let c = column; c < columnRange; ++c) {
         for (const objectUnder of objectsUnder) {
           objectUnder.queueRerender(r, c);
         }
@@ -89,9 +92,17 @@ export class DrawObject<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
+    const viewRectangle = this.view?.rectangle;
     if (row < 0 || column < 0) return;
     const { columns, rows } = this.canvas.size;
     if (row >= rows || column >= columns) return;
+
+    if (
+      viewRectangle && (
+        row < viewRectangle.row || column < viewRectangle.column ||
+        row >= viewRectangle.row + viewRectangle.height || column >= viewRectangle.column + viewRectangle.width
+      )
+    ) return;
 
     (this.rerenderCells[row] ??= new Set()).add(column);
   }
@@ -114,52 +125,97 @@ export class DrawObject<Type extends string = string> {
     const { rectangle, previousRectangle, objectsUnder } = this;
 
     // Rerender cells that changed because objects position changed
-    if (previousRectangle && !rectangleEquals(rectangle, previousRectangle)) {
-      const intersection = rectangleIntersection(rectangle, previousRectangle, true);
+    if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
 
-      for (let r = previousRectangle.row; r < previousRectangle.row + previousRectangle.height; ++r) {
-        for (let c = previousRectangle.column; c < previousRectangle.column + previousRectangle.width; ++c) {
-          if (intersection && fitsInRectangle(c, r, intersection)) {
-            continue;
-          }
+    const intersection = rectangleIntersection(rectangle, previousRectangle, true);
 
-          for (const objectUnder of objectsUnder) {
-            objectUnder.queueRerender(r, c);
-          }
+    const previousRowRange = previousRectangle.row + previousRectangle.height;
+    const previousColumnRange = previousRectangle.column + previousRectangle.width;
+    for (let r = previousRectangle.row; r < previousRowRange; ++r) {
+      for (let c = previousRectangle.column; c < previousColumnRange; ++c) {
+        if (intersection && fitsInRectangle(c, r, intersection)) {
+          continue;
+        }
+
+        for (const objectUnder of objectsUnder) {
+          objectUnder.queueRerender(r, c);
         }
       }
+    }
 
-      for (let r = rectangle.row; r < rectangle.row + rectangle.height; ++r) {
-        for (let c = rectangle.column; c < rectangle.column + rectangle.width; ++c) {
-          if (intersection && fitsInRectangle(c, r, intersection)) {
-            continue;
-          }
-
-          for (const objectUnder of objectsUnder) {
-            objectUnder.queueRerender(r, c);
-          }
-
-          this.queueRerender(r, c);
+    const rowRange = rectangle.row + rectangle.height;
+    const columnRange = rectangle.column + rectangle.width;
+    for (let r = rectangle.row; r < rowRange; ++r) {
+      for (let c = rectangle.column; c < columnRange; ++c) {
+        if (intersection && fitsInRectangle(c, r, intersection)) {
+          continue;
         }
+
+        for (const objectUnder of objectsUnder) {
+          objectUnder.queueRerender(r, c);
+        }
+
+        this.queueRerender(r, c);
       }
     }
   }
 
+  updateOutOfBounds(): void {
+    const { columns, rows } = this.canvas.size;
+    const { column, row, width, height } = this.rectangle;
+
+    this.outOfBounds = width === 0 || height === 0 ||
+      column > columns || row > rows ||
+      column + width < 0 || row + height < 0;
+  }
+
   update(): void {
-    if (this.dynamicRectangle) this.rectangle = this.dynamicRectangle();
+    if (this.dynamicView) this.view = this.dynamicView();
     if (this.dynamicStyle) this.style = this.dynamicStyle();
     if (this.dynamicZIndex) this.zIndex = this.dynamicZIndex();
+    if (this.dynamicRectangle) this.rectangle = this.dynamicRectangle();
 
     const { style } = this;
-
     if (style !== this.previousStyle) this.rendered = false;
     this.previousStyle = style;
 
-    const { column, row, width, height } = this.rectangle;
-    const { columns, rows } = this.canvas.size;
-    this.outOfBounds = column + width < 0 || row + height < 0 || column > columns || row > rows;
+    const { rectangle } = this;
+    const { column, row, width, height } = rectangle;
+
+    const viewRectangle = this.view?.rectangle;
+    if (viewRectangle) {
+      const { offset } = this.view!;
+      const { viewOffset } = this;
+
+      rectangle.column += viewRectangle.column - offset.columns - viewOffset.columns;
+      rectangle.row += viewRectangle.row - offset.rows - viewOffset.rows;
+
+      viewOffset.columns = viewRectangle.column - offset.columns;
+      viewOffset.rows = viewRectangle.row - offset.rows;
+
+      if (
+        column > viewRectangle.column + viewRectangle.width ||
+        row > viewRectangle.row + viewRectangle.height ||
+        column + width < viewRectangle.column || row + height < viewRectangle.row
+      ) {
+        this.updateMovement();
+        this.outOfBounds = true;
+      }
+    }
   }
 
-  render(): void {}
+  render(): void {
+    const { column, row, width, height } = this.rectangle;
+
+    const rowRange = row + height;
+    const columnRange = column + width;
+    for (let r = row; r < rowRange; ++r) {
+      for (let c = column; c < columnRange; ++c) {
+        this.queueRerender(r, c);
+      }
+    }
+    this.rerender();
+  }
+
   rerender(): void {}
 }

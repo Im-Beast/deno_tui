@@ -78,6 +78,7 @@ export class Slider extends Box {
 
     const thumb = new BoxObject({
       canvas: this.tui.canvas,
+      view: () => this.view,
       rectangle: () => {
         const { value, min, max } = this;
         const { column, row, width, height } = this.rectangle;

@@ -13,6 +13,7 @@ export interface ComponentOptions {
   rectangle: Rectangle;
   tui?: Tui;
   zIndex?: number;
+  view?: View;
 }
 
 export interface Interaction {
@@ -36,6 +37,7 @@ export class Component extends EventEmitter<{
   #lastState?: ComponentState;
 
   tui: Tui;
+  view?: View;
   theme: Theme;
   zIndex: number;
   parent: Component | Tui;
@@ -49,6 +51,7 @@ export class Component extends EventEmitter<{
   constructor(options: ComponentOptions) {
     super();
 
+    this.view = options.view;
     this.parent = options.parent;
     this.rectangle = options.rectangle;
     this.theme = hierarchizeTheme(options.theme);

@@ -177,6 +177,7 @@ export class Table extends Component {
     const topRectangle = { column: 0, row: 0 };
     const top = new TextObject({
       canvas,
+      view: () => this.view,
       zIndex: () => this.zIndex,
       style: () => this.theme.frame[this.state],
       rectangle: () => {
@@ -195,8 +196,9 @@ export class Table extends Component {
     const bottomRectangle = { column: 0, row: 0 };
     const bottom = new TextObject({
       canvas,
-      style: () => this.theme.frame[this.state],
+      view: () => this.view,
       zIndex: () => this.zIndex,
+      style: () => this.theme.frame[this.state],
       rectangle: () => {
         const { column, row, height } = this.rectangle;
         bottomRectangle.column = column;
@@ -213,6 +215,7 @@ export class Table extends Component {
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const left = new BoxObject({
       canvas,
+      view: () => this.view,
       zIndex: () => this.zIndex,
       style: () => this.theme.frame[this.state],
       filler: () => this.charMap.vertical,
@@ -229,6 +232,7 @@ export class Table extends Component {
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const right = new BoxObject({
       canvas,
+      view: () => this.view,
       zIndex: () => this.zIndex,
       style: () => this.theme.frame[this.state],
       filler: () => this.charMap.vertical,
@@ -281,8 +285,9 @@ export class Table extends Component {
       const textRectangle = { column: 0, row: 0 };
       const text = new TextObject({
         canvas,
-        value: () => headers[i].title,
+        view: () => this.view,
         zIndex: () => this.zIndex,
+        value: () => headers[i].title,
         style: () => this.theme.header[this.state],
         rectangle: () => {
           const { column, row } = this.rectangle;
@@ -314,8 +319,9 @@ export class Table extends Component {
       const textRectangle = { column: 0, row: 0 };
       const text = new TextObject({
         canvas,
-        style: () => (i + this.offsetRow) === this.selectedRow ? this.theme.selectedRow[this.state] : this.style,
+        view: () => this.view,
         zIndex: () => this.zIndex,
+        style: () => (i + this.offsetRow) === this.selectedRow ? this.theme.selectedRow[this.state] : this.style,
         value: () => {
           let string = "";
           let prevData = "";

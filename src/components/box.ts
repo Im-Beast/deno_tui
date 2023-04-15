@@ -13,6 +13,7 @@ export class Box extends Component {
 
     const box = new BoxObject({
       canvas: this.tui.canvas,
+      view: () => this.view,
       rectangle: () => this.rectangle,
       style: () => this.style,
       zIndex: () => this.zIndex,

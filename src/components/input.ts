@@ -96,6 +96,7 @@ export class Input extends Box {
     const textRectangle = { column: 0, row: 0, width: 0 };
     const text = new TextObject({
       canvas,
+      view: () => this.view,
       zIndex: () => this.zIndex,
       style: () => this.theme.value[this.state],
       value: () => {
@@ -118,6 +119,7 @@ export class Input extends Box {
     const cursorRectangle = { column: 0, row: 0, width: 1 };
     const cursor = new TextObject({
       canvas,
+      view: () => this.view,
       zIndex: () => this.zIndex,
       value: () => this.value[this.cursorPosition] ?? " ",
       style: () => this.theme.cursor[this.state],

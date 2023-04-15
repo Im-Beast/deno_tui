@@ -78,13 +78,15 @@ export class Label extends Component {
       const textRectangle = { column: 0, row: 0 };
       const text = new TextObject({
         canvas: this.tui.canvas,
+        view: () => this.view,
+        style: () => this.style,
+        zIndex: () => this.zIndex,
         value: () => {
           const value = this.#valueLines![offset];
           const { width } = this.rectangle;
           return textWidth(value) > width ? value.slice(0, width) : value;
         },
-        style: () => this.style,
-        zIndex: () => this.zIndex,
+
         multiCodePointSupport: () => this.multiCodePointSupport,
         rectangle: () => {
           const { column, row, width, height } = this.rectangle;

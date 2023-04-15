@@ -80,6 +80,7 @@ export class Frame extends Component {
     const topRectangle = { column: 0, row: 0 };
     const top = new TextObject({
       canvas,
+      view: () => this.view,
       style: () => this.style,
       zIndex: () => this.zIndex,
       value: () => {
@@ -97,6 +98,7 @@ export class Frame extends Component {
     const bottomRectangle = { column: 0, row: 0 };
     const bottom = new TextObject({
       canvas,
+      view: () => this.view,
       style: () => this.style,
       zIndex: () => this.zIndex,
       value: () => {
@@ -114,6 +116,7 @@ export class Frame extends Component {
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const left = new BoxObject({
       canvas,
+      view: () => this.view,
       style: () => this.style,
       zIndex: () => this.zIndex,
       rectangle: () => {
@@ -129,6 +132,7 @@ export class Frame extends Component {
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const right = new BoxObject({
       canvas,
+      view: () => this.view,
       style: () => this.style,
       zIndex: () => this.zIndex,
       rectangle: () => {
