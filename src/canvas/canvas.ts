@@ -8,6 +8,7 @@ import type { ConsoleSize, Stdout } from "../types.ts";
 import { DrawObject } from "./draw_object.ts";
 
 const textEncoder = new TextEncoder();
+const textBuffer = new Uint8Array(384 ** 2);
 
 /** Interface defining object that {Canvas}'s constructor can interpret */
 export interface CanvasOptions {
@@ -143,21 +144,23 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     let lastRow = -1;
     let lastColumn = -1;
+    let setDir = false;
 
-    const { rerenderQueue, frameBuffer } = this;
+    const { rerenderQueue } = this;
 
-    for (const key in rerenderQueue) {
-      const columns = rerenderQueue[key];
+    for (let row = 0; row < rerenderQueue.length; ++row) {
+      const columns = rerenderQueue[row];
       if (columns.size === 0) continue;
-      const row = +key;
-
-      const rowBuffer = frameBuffer[key];
+      const rowBuffer = frameBuffer[row];
 
       for (const column of columns) {
         if (row !== lastRow || column !== lastColumn + 1) {
-          flushDrawSequence();
-          sequenceRow = row;
-          sequenceColumn = column;
+          setDir = false;
+        }
+
+        if (!setDir) {
+          drawSequence += moveCursor(row, column);
+          setDir = true;
         }
 
         drawSequence += rowBuffer[column];
@@ -170,7 +173,16 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     // Complete final loop draw sequence
-    flushDrawSequence();
+    Deno.writeSync(
+      this.stdout.rid,
+      textBuffer.subarray(
+        0,
+        textEncoder.encodeInto(
+          moveCursor(lastRow, lastColumn) + drawSequence,
+          textBuffer,
+        ).written,
+      ),
+    );
 
     this.lastRender = performance.now();
   }
