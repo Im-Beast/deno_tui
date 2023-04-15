@@ -9,12 +9,14 @@ import { insertAt, textWidth } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 
 export interface InputTheme extends Theme {
-  cursor: Theme;
   value: Theme;
+  cursor: Theme;
+  placeholder: Theme;
 }
 
 export interface InputOptions extends ComponentOptions {
   value?: string;
+  placeholder?: string;
   theme: DeepPartial<InputTheme, "cursor">;
   validator?: RegExp;
   multiCodePointSupport?: boolean;
@@ -29,6 +31,7 @@ export class Input extends Box {
   declare theme: InputTheme;
 
   value: string;
+  placeholder?: string;
   multiCodePointSupport: boolean;
 
   validator?: RegExp;
@@ -38,10 +41,13 @@ export class Input extends Box {
   constructor(options: InputOptions) {
     super(options);
 
-    this.cursorPosition = 0;
     this.theme.value ??= this.theme;
+    this.theme.placeholder ??= this.theme.value;
+
+    this.cursorPosition = 0;
     this.value = options.value ?? "";
     this.validator = options.validator;
+    this.placeholder = options.placeholder;
     this.multiCodePointSupport = options.multiCodePointSupport ?? false;
 
     this.on("keyPress", ({ key, ctrl, meta }) => {
@@ -98,10 +104,15 @@ export class Input extends Box {
       canvas,
       view: () => this.view,
       zIndex: () => this.zIndex,
-      style: () => this.theme.value[this.state],
+      style: () => this.theme[!this.value && this.placeholder ? "placeholder" : "value"][this.state],
       value: () => {
-        const { cursorPosition } = this;
+        const { placeholder } = this;
+        if (!this.value && placeholder) {
+          return placeholder.slice(0, this.rectangle.width);
+        }
+
         const value = this.value.replace("\t", " ");
+        const { cursorPosition } = this;
         const offsetX = cursorPosition - this.rectangle.width + 1;
         return offsetX > 0 ? value.slice(offsetX, cursorPosition) : value;
       },
@@ -110,7 +121,9 @@ export class Input extends Box {
         const { row, column, width } = this.rectangle;
         textRectangle.column = column;
         textRectangle.row = row;
-        textRectangle.width = Math.min(textWidth(this.value), width);
+        textRectangle.width = !this.value && this.placeholder
+          ? textWidth(this.placeholder)
+          : Math.min(textWidth(this.value), width);
         return textRectangle;
       },
       overwriteWidth: true,
@@ -121,7 +134,7 @@ export class Input extends Box {
       canvas,
       view: () => this.view,
       zIndex: () => this.zIndex,
-      value: () => this.value[this.cursorPosition] ?? " ",
+      value: () => (!this.value && this.placeholder ? this.placeholder[0] : this.value[this.cursorPosition]) ?? " ",
       style: () => this.theme.cursor[this.state],
       multiCodePointSupport: () => this.multiCodePointSupport,
       rectangle: () => {
