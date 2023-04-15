@@ -131,17 +131,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       }
     }
 
-    const { rid } = this.stdout;
-
     let drawSequence = "";
-    let sequenceColumn = -1;
-    let sequenceRow = -1;
-    const flushDrawSequence = () => {
-      if (!drawSequence) return;
-      Deno.writeSync(rid, textEncoder.encode(moveCursor(sequenceRow, sequenceColumn) + drawSequence));
-      drawSequence = "";
-    };
-
     let lastRow = -1;
     let lastColumn = -1;
     let setDir = false;
