@@ -1,8 +1,9 @@
 import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
+import { InputEventRecord } from "./input_reader/mod.ts";
 import { Style } from "./theme.ts";
-import { KeyPress, MousePress, MultiKeyPress, Stdin, Stdout } from "./types.ts";
+import { Stdin, Stdout } from "./types.ts";
 import { HIDE_CURSOR, SHOW_CURSOR, USE_PRIMARY_BUFFER, USE_SECONDARY_BUFFER } from "./utils/ansi_codes.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
 
@@ -16,12 +17,11 @@ export interface TuiOptions {
   refreshRate?: number;
 }
 
-export class Tui extends EventEmitter<{
-  keyPress: EmitterEvent<[KeyPress]>;
-  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
-  mousePress: EmitterEvent<[MousePress]>;
-  destroy: EmitterEvent<[]>;
-}> {
+export class Tui extends EventEmitter<
+  {
+    destroy: EmitterEvent<[]>;
+  } & InputEventRecord
+> {
   stdin: Stdin;
   stdout: Stdout;
   canvas: Canvas;

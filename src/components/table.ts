@@ -123,15 +123,16 @@ export class Table extends Component {
       this.offsetRow = clamp(this.selectedRow - ~~((height - 4) / 2), 0, lastDataRow - height + 5);
     });
 
-    this.on("mousePress", ({ ctrl, meta, shift, scroll, y }) => {
-      if (ctrl || meta || shift) return;
+    this.on("mouseEvent", (mouseEvent) => {
+      if (mouseEvent.ctrl || mouseEvent.meta || mouseEvent.shift) return;
+      const { y } = mouseEvent;
       const { row, height } = this.rectangle;
 
       const lastDataRow = this.data.length - 1;
 
-      if (scroll !== 0) {
-        this.offsetRow = clamp(this.offsetRow + scroll, 0, lastDataRow - height + 5);
-      } else if (y >= row + 3 && y <= row + height - 2) {
+      if ("scroll" in mouseEvent) {
+        this.offsetRow = clamp(this.offsetRow + mouseEvent.scroll, 0, lastDataRow - height + 5);
+      } else if ("button" in mouseEvent && y >= row + 3 && y <= row + height - 2) {
         const dataRow = y - row + this.offsetRow - 3;
         if (dataRow !== clamp(dataRow, 0, lastDataRow)) return;
         this.selectedRow = dataRow;

@@ -99,13 +99,13 @@ export function handleMouseControls(tui: Tui): void {
     Deno.writeSync(rid, textEncoder.encode(DISABLE_MOUSE));
   });
 
-  tui.on("mousePress", ({ x, y, drag, scroll, shift, meta, ctrl, release, button }) => {
+  tui.on("mousePress", ({ x, y, drag, shift, meta, ctrl, release }) => {
     lastSelectedComponent ??= getComponentClosestToTopLeftCorner(
       tui,
       (object) => isInteractable(object) && object.visible,
     );
 
-    if (!lastSelectedComponent || shift || meta || ctrl || button !== 0 || scroll !== 0 || drag) return;
+    if (!lastSelectedComponent || shift || meta || ctrl || drag) return;
 
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {

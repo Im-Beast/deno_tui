@@ -2,10 +2,11 @@ import { Tui } from "./tui.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
-import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
+import type { Rectangle } from "./types.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
 import { DrawObject } from "./canvas/draw_object.ts";
 import { View } from "./view.ts";
+import { InputEventRecord } from "./input_reader/mod.ts";
 
 // TODO: Allow components to take PossibleDynamic values
 export interface ComponentOptions {
@@ -24,14 +25,13 @@ export interface Interaction {
 
 export type ComponentState = keyof Theme;
 
-export class Component extends EventEmitter<{
-  remove: EmitterEvent<[Component]>;
-  stateChange: EmitterEvent<[Component]>;
-  valueChange: EmitterEvent<[Component]>;
-  keyPress: EmitterEvent<[KeyPress]>;
-  mousePress: EmitterEvent<[MousePress]>;
-  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
-}> {
+export class Component extends EventEmitter<
+  {
+    remove: EmitterEvent<[Component]>;
+    stateChange: EmitterEvent<[Component]>;
+    valueChange: EmitterEvent<[Component]>;
+  } & InputEventRecord
+> {
   declare subComponentOf?: Component;
 
   #visible: boolean;
@@ -72,7 +72,7 @@ export class Component extends EventEmitter<{
       method: undefined,
     };
 
-    for (const event of ["keyPress", "multiKeyPress", "mousePress"] as const) {
+    for (const event of ["keyPress", "mouseEvent", "mousePress", "mouseScroll"] as const) {
       this.tui.on(event, (arg) => {
         if (this.state === "focused" || this.state === "active") {
           // @ts-expect-error welp

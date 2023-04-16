@@ -387,8 +387,7 @@ const viewScrollbar = new Slider({
 // @ts-ignore-
 viewScrollbar.NOFRAME = true;
 
-viewScrollbar.on("mousePress", ({ scroll }) => {
-  if (!scroll) return;
+viewScrollbar.on("mouseScroll", ({ scroll }) => {
   viewScrollbar.value = clamp(viewScrollbar.value + scroll * viewScrollbar.step, viewScrollbar.min, viewScrollbar.max);
   viewScrollbar.emit("valueChange", viewScrollbar);
 });
@@ -486,8 +485,6 @@ queueMicrotask(() => {
   }
 
   tui.on("keyPress", ({ ctrl, meta, shift, key }) => {
-    console.log(ctrl, meta, shift, key);
-
     if (!ctrl || key !== "f" || meta || shift) return;
     for (const component of components) {
       component.visible = !component.visible;
