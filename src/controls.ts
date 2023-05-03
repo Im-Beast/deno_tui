@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./utils/ansi_codes.ts";
@@ -14,7 +15,7 @@ export function handleKeyboardControls(tui: Tui): void {
 
     lastSelectedComponent ??= getComponentClosestToTopLeftCorner(
       tui,
-      (object) => isInteractable(object) && object.visible,
+      (object) => isInteractable(object) && object.visible.peek(),
     );
 
     if (!lastSelectedComponent) return;
@@ -42,7 +43,7 @@ export function handleKeyboardControls(tui: Tui): void {
         return;
     }
 
-    const { rectangle: lastRectangle } = lastSelectedComponent;
+    const lastRectangle = lastSelectedComponent.rectangle.peek();
 
     let bestCandidate: Component | undefined = undefined;
     let bestCandidateDistance;
@@ -57,7 +58,7 @@ export function handleKeyboardControls(tui: Tui): void {
         continue;
       }
 
-      const { rectangle } = component;
+      const rectangle = component.rectangle.peek();
       if (
         !(
           (vectorX === 1 && rectangle.column > lastRectangle.column) ||
@@ -86,8 +87,8 @@ export function handleKeyboardControls(tui: Tui): void {
 
     if (!bestCandidate) return;
 
-    bestCandidate.state = "focused";
-    lastSelectedComponent.state = "base";
+    bestCandidate.state.value = "focused";
+    lastSelectedComponent.state.value = "base";
     lastSelectedComponent = bestCandidate;
   });
 }
@@ -102,7 +103,7 @@ export function handleMouseControls(tui: Tui): void {
   tui.on("mousePress", ({ x, y, drag, shift, meta, ctrl, release }) => {
     lastSelectedComponent ??= getComponentClosestToTopLeftCorner(
       tui,
-      (object) => isInteractable(object) && object.visible,
+      (object) => isInteractable(object) && object.visible.peek(),
     );
 
     if (!lastSelectedComponent || shift || meta || ctrl || drag) return;
@@ -110,33 +111,35 @@ export function handleMouseControls(tui: Tui): void {
     let bestCandidate: Component | undefined = undefined;
     for (const component of tui.components) {
       if (
-        !component.visible ||
+        !component.visible.peek() ||
         component.subComponentOf ||
         !isInteractable(component) ||
-        !fitsInRectangle(x, y, component.rectangle)
-      ) continue;
+        !fitsInRectangle(x, y, component.rectangle.peek())
+      ) {
+        continue;
+      }
 
       if (!bestCandidate) {
         bestCandidate = component;
         continue;
       }
 
-      if (bestCandidate.zIndex > component.zIndex) continue;
+      if (bestCandidate.zIndex.peek() > component.zIndex.peek()) continue;
 
       bestCandidate = component;
     }
 
     if (!bestCandidate) {
-      lastSelectedComponent.state = "base";
+      lastSelectedComponent.state.value = "base";
       return;
     } else if (bestCandidate !== lastSelectedComponent) {
-      lastSelectedComponent.state = "base";
+      lastSelectedComponent.state.value = "base";
     }
 
     if (!release) {
       bestCandidate.interact("mouse");
-    } else if (bestCandidate.state === "active") {
-      bestCandidate.state = "base";
+    } else if (bestCandidate.state.peek() === "active") {
+      bestCandidate.state.value = "base";
     }
 
     lastSelectedComponent = bestCandidate;

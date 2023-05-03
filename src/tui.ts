@@ -1,11 +1,12 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
+import { Computed } from "./signals.ts";
 import { Style } from "./theme.ts";
 import { Stdin, Stdout } from "./types.ts";
 import { HIDE_CURSOR, SHOW_CURSOR, USE_PRIMARY_BUFFER, USE_SECONDARY_BUFFER } from "./utils/ansi_codes.ts";
-import { SortedArray } from "./utils/sorted_array.ts";
 
 const textEncoder = new TextEncoder();
 
@@ -26,8 +27,9 @@ export class Tui extends EventEmitter<
   stdout: Stdout;
   canvas: Canvas;
   style?: Style;
-  children: SortedArray<Component>;
-  readonly components: Component[];
+  children: Component[];
+  components: Set<Component>;
+  focusedComponents: Set<Component>;
   drawnObjects: { background?: BoxObject };
   refreshRate: number;
 
@@ -46,17 +48,20 @@ export class Tui extends EventEmitter<
     this.style = options.style;
 
     this.drawnObjects = {};
-    this.components = [];
-    this.children = new SortedArray();
+    this.components = new Set();
+    this.focusedComponents = new Set();
+    this.children = [];
 
     const updateCanvasSize = () => {
       const { canvas } = this;
       const { columns, rows } = Deno.consoleSize();
 
-      if (canvas.size.columns !== columns || canvas.size.rows !== rows) {
+      const size = canvas.size.peek();
+
+      if (size.columns !== columns || size.rows !== rows) {
         canvas.resize = true;
-        canvas.size.columns = columns;
-        canvas.size.rows = rows;
+        size.columns = columns;
+        size.rows = rows;
       }
     };
 
@@ -70,11 +75,12 @@ export class Tui extends EventEmitter<
 
   addChildren(...children: Component[]): void {
     for (const child of children) {
+      this.children.push(child);
+      this.components.add(child);
+
+      if (!child.visible.peek()) continue;
       child.draw();
     }
-
-    this.children.push(...children);
-    this.components.push(...children);
   }
 
   run(): void {
@@ -85,7 +91,7 @@ export class Tui extends EventEmitter<
 
       background?.erase();
 
-      const { columns, rows } = canvas.size;
+      const { columns, rows } = canvas.size.peek();
 
       const backgroundRectangle = {
         column: 0,
@@ -96,12 +102,12 @@ export class Tui extends EventEmitter<
 
       const box = new BoxObject({
         canvas,
-        rectangle: () => {
-          const { columns, rows } = this.canvas.size;
+        rectangle: new Computed(() => {
+          const { columns, rows } = this.canvas.size.value;
           backgroundRectangle.width = columns;
           backgroundRectangle.height = rows;
           return backgroundRectangle;
-        },
+        }),
         style,
         zIndex: -1,
       });
@@ -112,14 +118,17 @@ export class Tui extends EventEmitter<
 
     Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
 
+    for (const event of ["keyPress", "mouseEvent", "mousePress", "mouseScroll"] as const) {
+      this.on(event, (arg) => {
+        for (const component of this.focusedComponents) {
+          // @ts-expect-error welp
+          component.emit(event, arg);
+        }
+      });
+    }
+
     const updateStep = () => {
-      for (const component of this.components) {
-        if (!component.visible) continue;
-        component.update();
-      }
-
       canvas.render();
-
       this.#nextUpdateTimeout = setTimeout(updateStep, this.refreshRate);
     };
     updateStep();

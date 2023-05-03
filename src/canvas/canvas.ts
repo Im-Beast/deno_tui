@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { EmitterEvent, EventEmitter } from "../event_emitter.ts";
 
 import { moveCursor } from "../utils/ansi_codes.ts";
@@ -6,6 +7,8 @@ import { rectangleIntersection } from "../utils/numbers.ts";
 
 import type { ConsoleSize, Stdout } from "../types.ts";
 import { DrawObject } from "./draw_object.ts";
+import { BaseSignal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
 const textEncoder = new TextEncoder();
 const textBuffer = new Uint8Array(384 ** 2);
@@ -14,7 +17,7 @@ const textBuffer = new Uint8Array(384 ** 2);
 export interface CanvasOptions {
   /** Stdout to which canvas will render frameBuffer */
   stdout: Stdout;
-  size: ConsoleSize;
+  size: ConsoleSize | BaseSignal<ConsoleSize>;
 }
 
 /** Map that contains events that {Canvas} can dispatch */
@@ -24,7 +27,7 @@ export type CanvasEventMap = {
 
 export class Canvas extends EventEmitter<CanvasEventMap> {
   stdout: Stdout;
-  size: ConsoleSize;
+  size: BaseSignal<ConsoleSize>;
   frameBuffer: string[][];
   resize: boolean;
   rerenderQueue: Set<number>[];
@@ -33,30 +36,34 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   constructor(options: CanvasOptions) {
     super();
 
+    this.resize = true;
     this.frameBuffer = [];
     this.rerenderQueue = [];
     this.stdout = options.stdout;
-    this.size = options.size;
-    this.resize = true;
-    this.drawnObjects = new SortedArray((a, b) => a.zIndex - b.zIndex || a.id - b.id);
+    this.size = signalify(options.size, { deepObserve: true });
+    this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
   }
 
   updateIntersections(object: DrawObject): void {
     if (object.outOfBounds) return;
 
-    const { omitCells, objectsUnder, zIndex, rectangle } = object;
+    const { omitCells, objectsUnder } = object;
+
+    const zIndex = object.zIndex.peek();
+    const rectangle = object.rectangle.peek();
 
     let objectsUnderPointer = 0;
 
     for (const object2 of this.drawnObjects) {
       if (object === object2 || object2.outOfBounds) continue;
 
-      if (object2.zIndex < zIndex || (object2.zIndex === zIndex && object2.id < object.id)) {
+      const zIndex2 = object2.zIndex.peek();
+      if (zIndex2 < zIndex || (zIndex2 === zIndex && object2.id < object.id)) {
         objectsUnder[objectsUnderPointer++] = object2;
         continue;
       }
 
-      const intersection = rectangleIntersection(rectangle, object2.rectangle, true);
+      const intersection = rectangleIntersection(rectangle, object2.rectangle.peek(), true);
       if (!intersection) continue;
 
       const rowRange = intersection.row + intersection.height;
@@ -78,16 +85,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   render(): void {
     const { frameBuffer, drawnObjects, resize } = this;
 
-    if (resize) {
-      const { rows } = this.size;
-      this.resize = false;
-
-      if (frameBuffer.length < rows) {
-        for (let r = frameBuffer.length; r < rows; ++r) {
-          frameBuffer[r] ??= [];
-        }
-      }
-    }
+    if (resize) this.resize = false;
 
     for (const object of drawnObjects) {
       object.outOfBounds = false;
@@ -129,26 +127,33 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     let drawSequence = "";
     let lastRow = -1;
     let lastColumn = -1;
-    let setDir = false;
 
+    const { rid } = this.stdout;
     const { rerenderQueue } = this;
 
     for (let row = 0; row < rerenderQueue.length; ++row) {
       const columns = rerenderQueue[row];
-      if (columns.size === 0) continue;
-      const rowBuffer = frameBuffer[row];
+      if (!columns?.size) continue;
+      const rowBuffer = frameBuffer[row] ??= [];
 
       for (const column of columns) {
         if (row !== lastRow || column !== lastColumn + 1) {
-          setDir = false;
-        }
-
-        if (!setDir) {
           drawSequence += moveCursor(row, column);
-          setDir = true;
         }
 
-        drawSequence += rowBuffer[column];
+        const cell = rowBuffer[column];
+        if (drawSequence.length + cell.length > 1024) {
+          Deno.writeSync(
+            rid,
+            textBuffer.subarray(
+              0,
+              textEncoder.encodeInto(moveCursor(lastRow, lastColumn) + drawSequence, textBuffer).written,
+            ),
+          );
+          drawSequence = moveCursor(row, column);
+        }
+
+        drawSequence += cell;
 
         lastRow = row;
         lastColumn = column;
@@ -159,13 +164,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     // Complete final loop draw sequence
     Deno.writeSync(
-      this.stdout.rid,
+      rid,
       textBuffer.subarray(
         0,
-        textEncoder.encodeInto(
-          moveCursor(lastRow, lastColumn) + drawSequence,
-          textBuffer,
-        ).written,
+        textEncoder.encodeInto(moveCursor(lastRow, lastColumn) + drawSequence, textBuffer).written,
       ),
     );
 

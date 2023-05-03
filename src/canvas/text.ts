@@ -1,45 +1,73 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
-import { Dynamic, PossibleDynamic, setPossibleDynamicProperty } from "../utils/dynamic.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
+import { BaseSignal, Effect } from "../signals.ts";
+import { Rectangle } from "../types.ts";
+import { signalify } from "../utils/signals.ts";
+
+export type TextRectangle = { column: number; row: number; width?: number };
 
 export interface TextObjectOptions extends DrawObjectOptions {
-  value: PossibleDynamic<string>;
-  overwriteWidth?: PossibleDynamic<boolean>;
-  multiCodePointSupport?: PossibleDynamic<boolean>;
-  rectangle: PossibleDynamic<{ column: number; row: number }>;
+  value: string | BaseSignal<string>;
+  overwriteRectangle?: boolean | BaseSignal<boolean>;
+  rectangle: TextRectangle | BaseSignal<TextRectangle>;
+  multiCodePointSupport?: boolean | BaseSignal<boolean>;
 }
 
 export class TextObject extends DrawObject<"text"> {
-  value!: string;
-  valueChars: string[];
-  previousValue!: string;
-  overwriteWidth!: boolean;
-  previousValueChars!: string[];
-  multiCodePointSupport!: boolean;
-
-  dynamicValue?: Dynamic<string>;
-  dynamicOverwriteWidth?: Dynamic<boolean>;
-  dynamicMultiCodePointSupport?: Dynamic<boolean>;
+  text: BaseSignal<string>;
+  valueChars: string[] | string;
+  overwriteRectangle: BaseSignal<boolean>;
+  multiCodePointSupport: BaseSignal<boolean>;
 
   constructor(options: TextObjectOptions) {
     super("text", options);
 
-    setPossibleDynamicProperty(this, "overwriteWidth", options.overwriteWidth ?? false);
-    setPossibleDynamicProperty(this, "multiCodePointSupport", options.multiCodePointSupport ?? false);
-    setPossibleDynamicProperty(this, "value", options.value);
-    setPossibleDynamicProperty(this, "rectangle", options.rectangle);
-    this.rectangle.height = 1;
-    if (!this.overwriteWidth) {
-      this.rectangle.width = textWidth(this.value);
-    }
+    this.text = signalify(options.value);
+    this.rectangle = signalify(options.rectangle) as BaseSignal<Rectangle>;
+    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
+    this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
+    this.valueChars = this.multiCodePointSupport.value
+      ? this.text.value.match(UNICODE_CHAR_REGEXP) ?? ""
+      : this.text.value;
 
-    this.valueChars = this.multiCodePointSupport ? this.value.match(UNICODE_CHAR_REGEXP) ?? [] : this.value.split("");
+    new Effect(() => {
+      const _style = this.style.value;
+      const text = this.text.value;
+      const rectangle = this.rectangle.value;
+      const multiCodePointSupport = this.multiCodePointSupport.value;
+      const overwriteRectangle = this.overwriteRectangle.value;
+
+      if (!overwriteRectangle) {
+        rectangle.width = textWidth(text);
+        rectangle.height = 1;
+      }
+
+      const { valueChars: previousValueChars } = this;
+      const valueChars = this.valueChars = multiCodePointSupport ? text.match(UNICODE_CHAR_REGEXP) ?? [] : text;
+
+      const { row, column, width } = rectangle;
+      const barrier = overwriteRectangle
+        ? (width < previousValueChars.length ? width : -1)
+        : (valueChars.length < previousValueChars.length ? valueChars.length : -1);
+
+      for (let c = 0; c < Math.max(valueChars.length, previousValueChars.length); ++c) {
+        if (barrier !== -1 && c >= barrier) {
+          for (const objectUnder of this.objectsUnder) {
+            objectUnder.queueRerender(row, column + c);
+          }
+        } else if (valueChars[c] !== previousValueChars[c]) {
+          this.queueRerender(row, column + c);
+        }
+      }
+    });
   }
 
   updateMovement(): void {
-    const { rectangle, previousRectangle, objectsUnder } = this;
+    const { objectsUnder, previousRectangle } = this;
+    const rectangle = this.rectangle.peek();
 
     // Rerender cells that changed because objects position changed
     if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
@@ -76,56 +104,21 @@ export class TextObject extends DrawObject<"text"> {
     }
   }
 
-  update(): void {
-    if (this.dynamicValue) this.value = this.dynamicValue();
-    if (this.dynamicOverwriteWidth) this.overwriteWidth = this.dynamicOverwriteWidth();
-    if (this.dynamicMultiCodePointSupport) this.multiCodePointSupport = this.dynamicMultiCodePointSupport();
-
-    const { value, previousValue } = this;
-    if (value === previousValue) {
-      super.update();
-      return;
-    }
-
-    const { rectangle, valueChars: oldValueChars } = this;
-    if (!this.overwriteWidth) {
-      rectangle.width = textWidth(value);
-    }
-    rectangle.height = 1;
-    super.update();
-
-    const valueChars = this.valueChars = this.multiCodePointSupport
-      ? this.value.match(UNICODE_CHAR_REGEXP) ?? []
-      : this.value.split("");
-
-    const { row, column } = this.rectangle;
-    if (valueChars.length) {
-      for (let c = 0; c < valueChars.length; ++c) {
-        this.queueRerender(row, column + c);
-      }
-    } else {
-      for (const objectUnder of this.objectsUnder) {
-        for (let c = 0; c < oldValueChars.length; ++c) {
-          objectUnder.queueRerender(row, column + c);
-        }
-      }
-    }
-
-    this.previousValue = value;
-    this.previousValueChars = oldValueChars;
-  }
-
   rerender(): void {
-    const { canvas, style, valueChars, rectangle, omitCells, rerenderCells } = this;
+    const { canvas, valueChars, omitCells, rerenderCells } = this;
 
     const { frameBuffer, rerenderQueue } = canvas;
-    const { columns, rows } = canvas.size;
+    const { columns, rows } = canvas.size.peek();
+
+    const rectangle = this.rectangle.peek();
+    const style = this.style.peek();
 
     const { row } = rectangle;
-    let rowRange = Math.min(row, rows);
-    let columnRange = Math.min(rectangle.column + rectangle.width, columns);
 
-    const viewRectangle = this.view?.rectangle;
+    let rowRange = Math.min(row, rows);
+    let columnRange = Math.min(rectangle.column + valueChars.length, columns);
+
+    const viewRectangle = this.view.peek()?.rectangle;
     if (viewRectangle) {
       rowRange = Math.min(row, viewRectangle.row + viewRectangle.height);
       columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
@@ -134,16 +127,16 @@ export class TextObject extends DrawObject<"text"> {
     if (row > rowRange) return;
 
     const rerenderColumns = rerenderCells[row];
-
     if (!rerenderColumns) return;
 
     const omitColumns = omitCells[row];
-    if (omitColumns?.size === rectangle.width) {
-      omitColumns.clear();
+    if (omitColumns?.size === valueChars.length) {
+      omitColumns?.clear();
       return;
     }
 
-    const rowBuffer = frameBuffer[row];
+    const rowBuffer = frameBuffer[row] ??= [];
+
     const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
     for (const column of rerenderColumns) {

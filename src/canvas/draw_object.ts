@@ -1,10 +1,12 @@
-import { Dynamic, PossibleDynamic, setPossibleDynamicProperty } from "../utils/dynamic.ts";
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
 import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
+import { BaseSignal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
 export interface DrawObjectOptions {
   canvas: Canvas;
@@ -12,9 +14,9 @@ export interface DrawObjectOptions {
   omitCells?: number[];
   omitCellsPointer?: number;
 
-  view?: PossibleDynamic<View | undefined>;
-  style: PossibleDynamic<Style>;
-  zIndex?: PossibleDynamic<number>;
+  view?: View | BaseSignal<View | undefined>;
+  style: Style | BaseSignal<Style>;
+  zIndex: number | BaseSignal<number>;
 }
 
 let id = 0;
@@ -24,12 +26,13 @@ export class DrawObject<Type extends string = string> {
 
   canvas: Canvas;
 
-  style!: Style;
-  previousStyle?: Style;
+  style: BaseSignal<Style>;
+  zIndex: BaseSignal<number>;
 
-  view: View | undefined;
+  view: BaseSignal<View | undefined>;
   viewOffset: Offset;
-  rectangle!: Rectangle;
+
+  rectangle!: BaseSignal<Rectangle>;
   previousRectangle?: Rectangle;
 
   objectsUnder: DrawObject[];
@@ -38,14 +41,8 @@ export class DrawObject<Type extends string = string> {
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
-  zIndex!: number;
   rendered: boolean;
   outOfBounds: boolean;
-
-  dynamicView?: Dynamic<View | undefined>;
-  dynamicZIndex?: Dynamic<number>;
-  dynamicStyle?: Dynamic<Style>;
-  dynamicRectangle?: Dynamic<Rectangle>;
 
   constructor(type: Type, options: DrawObjectOptions) {
     this.id = id++;
@@ -55,18 +52,21 @@ export class DrawObject<Type extends string = string> {
 
     this.viewOffset = { columns: 0, rows: 0 };
 
-    setPossibleDynamicProperty(this, "view", options.view);
-    setPossibleDynamicProperty(this, "style", options.style);
-    setPossibleDynamicProperty(this, "zIndex", options.zIndex ?? 0);
-
-    this.rerenderCells = [];
     this.omitCells = [];
+    this.rerenderCells = [];
 
-    this.objectsUnderPointer = 0;
     this.objectsUnder = [];
+    this.objectsUnderPointer = 0;
 
     this.rendered = false;
     this.outOfBounds = false;
+
+    this.view = signalify(options.view);
+    this.zIndex = signalify(options.zIndex);
+    this.style = signalify(options.style);
+    this.style.subscribe(() => {
+      this.rendered = false;
+    });
   }
 
   draw(): void {
@@ -78,7 +78,7 @@ export class DrawObject<Type extends string = string> {
     this.canvas.drawnObjects.remove(this);
 
     const { objectsUnder } = this;
-    const { column, row, width, height } = this.rectangle;
+    const { column, row, width, height } = this.rectangle.peek();
 
     const rowRange = row + height;
     const columnRange = column + width;
@@ -92,9 +92,9 @@ export class DrawObject<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
-    const viewRectangle = this.view?.rectangle;
+    const viewRectangle = this.view.peek()?.rectangle;
     if (row < 0 || column < 0) return;
-    const { columns, rows } = this.canvas.size;
+    const { columns, rows } = this.canvas.size.peek();
     if (row >= rows || column >= columns) return;
 
     if (
@@ -109,7 +109,7 @@ export class DrawObject<Type extends string = string> {
 
   updatePreviousRectangle(): void {
     const { previousRectangle } = this;
-    const { column, row, width, height } = this.rectangle;
+    const { column, row, width, height } = this.rectangle.peek();
 
     if (!previousRectangle) {
       this.previousRectangle = { column, row, width, height };
@@ -122,7 +122,8 @@ export class DrawObject<Type extends string = string> {
   }
 
   updateMovement(): void {
-    const { rectangle, previousRectangle, objectsUnder } = this;
+    const { previousRectangle, objectsUnder } = this;
+    const rectangle = this.rectangle.peek();
 
     // Rerender cells that changed because objects position changed
     if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
@@ -161,8 +162,8 @@ export class DrawObject<Type extends string = string> {
   }
 
   updateOutOfBounds(): void {
-    const { columns, rows } = this.canvas.size;
-    const { column, row, width, height } = this.rectangle;
+    const { columns, rows } = this.canvas.size.peek();
+    const { column, row, width, height } = this.rectangle.peek();
 
     this.outOfBounds = width === 0 || height === 0 ||
       column > columns || row > rows ||
@@ -170,42 +171,34 @@ export class DrawObject<Type extends string = string> {
   }
 
   update(): void {
-    if (this.dynamicView) this.view = this.dynamicView();
-    if (this.dynamicStyle) this.style = this.dynamicStyle();
-    if (this.dynamicZIndex) this.zIndex = this.dynamicZIndex();
-    if (this.dynamicRectangle) this.rectangle = this.dynamicRectangle();
-
-    const { style } = this;
-    if (style !== this.previousStyle) this.rendered = false;
-    this.previousStyle = style;
-
-    const { rectangle } = this;
+    const rectangle = this.rectangle.peek();
     const { column, row, width, height } = rectangle;
 
-    const viewRectangle = this.view?.rectangle;
-    if (viewRectangle) {
-      const { offset } = this.view!;
-      const { viewOffset } = this;
+    const view = this.view.peek();
+    if (!view) return;
 
-      rectangle.column += viewRectangle.column - offset.columns - viewOffset.columns;
-      rectangle.row += viewRectangle.row - offset.rows - viewOffset.rows;
+    const viewRectangle = view.rectangle;
+    const { offset } = view;
+    const { viewOffset } = this;
 
-      viewOffset.columns = viewRectangle.column - offset.columns;
-      viewOffset.rows = viewRectangle.row - offset.rows;
+    rectangle.column += viewRectangle.column - offset.columns - viewOffset.columns;
+    rectangle.row += viewRectangle.row - offset.rows - viewOffset.rows;
 
-      if (
-        column > viewRectangle.column + viewRectangle.width ||
-        row > viewRectangle.row + viewRectangle.height ||
-        column + width < viewRectangle.column || row + height < viewRectangle.row
-      ) {
-        this.updateMovement();
-        this.outOfBounds = true;
-      }
+    viewOffset.columns = viewRectangle.column - offset.columns;
+    viewOffset.rows = viewRectangle.row - offset.rows;
+
+    if (
+      column > viewRectangle.column + viewRectangle.width ||
+      row > viewRectangle.row + viewRectangle.height ||
+      column + width < viewRectangle.column || row + height < viewRectangle.row
+    ) {
+      this.updateMovement();
+      this.outOfBounds = true;
     }
   }
 
   render(): void {
-    const { column, row, width, height } = this.rectangle;
+    const { column, row, width, height } = this.rectangle.peek();
 
     const rowRange = row + height;
     const columnRange = column + width;

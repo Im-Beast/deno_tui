@@ -1,4 +1,5 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
 import { Tui } from "../tui.ts";
 import { Component } from "../component.ts";
 
@@ -12,7 +13,9 @@ export function getComponentClosestToTopLeftCorner(tui: Tui, filterFn?: (compone
   let closestComponent!: Component;
 
   for (const component of tui.components) {
-    const { rectangle, zIndex } = component;
+    const rectangle = component.rectangle.peek();
+    const zIndex = component.zIndex.peek();
+
     if (filterFn && !filterFn(component)) {
       continue;
     }
@@ -22,7 +25,7 @@ export function getComponentClosestToTopLeftCorner(tui: Tui, filterFn?: (compone
       (0 - rectangle.column) ** 2
     ) ** 0.5;
 
-    if (!closestComponent || (distance < closestDistance && zIndex > closestComponent.zIndex)) {
+    if (!closestComponent || (distance < closestDistance && zIndex > closestComponent.zIndex.peek())) {
       closestDistance = distance;
       closestComponent = component;
       if (distance === 0) break;

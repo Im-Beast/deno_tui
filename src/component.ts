@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "./tui.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
@@ -7,15 +8,17 @@ import { SortedArray } from "./utils/sorted_array.ts";
 import { DrawObject } from "./canvas/draw_object.ts";
 import { View } from "./view.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
+import { BaseSignal, Computed, Signal } from "./signals.ts";
+import { signalify } from "./utils/signals.ts";
 
-// TODO: Allow components to take PossibleDynamic values
 export interface ComponentOptions {
+  tui?: Tui;
   theme: Partial<Theme>;
   parent: Component | Tui;
-  rectangle: Rectangle;
-  tui?: Tui;
-  zIndex?: number;
-  view?: View;
+  visible?: boolean | BaseSignal<boolean>;
+  view?: View | undefined | BaseSignal<View | undefined>;
+  rectangle: Rectangle | BaseSignal<Rectangle>;
+  zIndex: number | BaseSignal<number>;
 }
 
 export interface Interaction {
@@ -32,19 +35,20 @@ export class Component extends EventEmitter<
     valueChange: EmitterEvent<[Component]>;
   } & InputEventRecord
 > {
-  declare subComponentOf?: Component;
+  #drawn: boolean;
+  subComponentOf?: Component;
 
-  #visible: boolean;
-  #lastState?: ComponentState;
+  visible: BaseSignal<boolean>;
+  state: BaseSignal<ComponentState>;
+  view: BaseSignal<View | undefined>;
+  zIndex: BaseSignal<number>;
+  rectangle: BaseSignal<Rectangle>;
+  style: BaseSignal<Style>;
 
   tui: Tui;
-  view?: View;
   theme: Theme;
-  zIndex: number;
   parent: Component | Tui;
-  rectangle: Rectangle;
   children: SortedArray<Component>;
-  state: ComponentState;
   drawnObjects: Record<string, DrawObject | DrawObject[]>;
   subComponents: Record<string, Component>;
   lastInteraction: Interaction;
@@ -52,18 +56,13 @@ export class Component extends EventEmitter<
   constructor(options: ComponentOptions) {
     super();
 
-    this.view = options.view;
+    this.#drawn = false;
     this.parent = options.parent;
-    this.rectangle = options.rectangle;
-    this.theme = hierarchizeTheme(options.theme);
-    this.zIndex = options.zIndex ?? 0;
 
     const { parent } = this;
     this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
 
     this.children = new SortedArray();
-    this.state = "base";
-    this.#visible = true;
     this.drawnObjects = {};
     this.subComponents = {};
 
@@ -72,14 +71,39 @@ export class Component extends EventEmitter<
       method: undefined,
     };
 
-    for (const event of ["keyPress", "mouseEvent", "mousePress", "mouseScroll"] as const) {
-      this.tui.on(event, (arg) => {
-        if (this.state === "focused" || this.state === "active") {
-          // @ts-expect-error welp
-          this.emit(event, arg);
-        }
-      });
-    }
+    this.view = signalify(options.view);
+    this.zIndex = signalify(options.zIndex);
+    this.visible = signalify(options.visible ?? true);
+    this.rectangle = signalify(options.rectangle, { deepObserve: true, watchArrayIndex: true });
+
+    this.visible.subscribe((visible) => {
+      if (!this.#drawn && visible) {
+        if (!this.tui.children.includes(this)) return;
+        this.draw();
+      } else {
+        this.changeDrawnObjectVisibility(visible, false);
+      }
+
+      for (const child of this.children) {
+        child.visible.value = visible;
+      }
+    });
+
+    this.state = new Signal<ComponentState>("base");
+    this.theme = hierarchizeTheme(options.theme);
+    this.style = new Computed(() => {
+      const state = this.state.value;
+      this.emit("stateChange", this);
+
+      const { focusedComponents } = this.tui;
+      if (state === "focused" || state === "active") {
+        focusedComponents.add(this);
+      } else {
+        focusedComponents.delete(this);
+      }
+
+      return this.theme[state];
+    });
 
     queueMicrotask(() => {
       this.tui.addChildren(this);
@@ -88,38 +112,11 @@ export class Component extends EventEmitter<
 
   addChildren(...children: Component[]): void {
     for (const child of children) {
+      this.tui.components.add(child);
+      this.children.push(child);
+
       child.draw();
     }
-
-    this.children.push(...children);
-    this.tui.components.push(...children);
-  }
-
-  get visible() {
-    return this.#visible;
-  }
-
-  set visible(value) {
-    if (value === this.#visible) return;
-    this.#visible = value;
-
-    if (!value) {
-      this.eraseDrawnObjects(false);
-
-      for (const children of this.children) {
-        children.visible = value;
-      }
-    } else {
-      this.redrawDrawnObjects();
-
-      for (const children of this.children) {
-        children.visible = value;
-      }
-    }
-  }
-
-  get style(): Style {
-    return this.theme[this.state];
   }
 
   interact(method: "keyboard" | "mouse"): void {
@@ -127,30 +124,19 @@ export class Component extends EventEmitter<
     this.lastInteraction.method = method;
   }
 
-  redrawDrawnObjects() {
-    const { drawnObjects } = this;
-    for (const value of Object.values(drawnObjects)) {
-      if (Array.isArray(value)) {
-        for (const object of value) {
-          object.draw();
-        }
-      } else {
-        value.draw();
-      }
-    }
-  }
-
-  eraseDrawnObjects(remove: boolean) {
+  changeDrawnObjectVisibility(visible: boolean, remove = false): void {
     const { drawnObjects } = this;
     for (const key in drawnObjects) {
       const value = drawnObjects[key];
 
       if (Array.isArray(value)) {
         for (const object of value) {
-          object.erase();
+          if (visible) object.draw();
+          else object.erase();
         }
       } else {
-        value.erase();
+        if (visible) value.draw();
+        else value.erase();
       }
 
       if (remove) delete drawnObjects[key];
@@ -159,8 +145,10 @@ export class Component extends EventEmitter<
 
   remove(): void {
     this.off();
-    this.eraseDrawnObjects(true);
-    this.parent.children.remove(this);
+    this.changeDrawnObjectVisibility(false, true);
+
+    const { children } = this.parent;
+    children.splice(children.indexOf(this), 1);
 
     const subComponents = this.subComponentOf?.subComponents;
     if (!subComponents) return;
@@ -171,12 +159,7 @@ export class Component extends EventEmitter<
   }
 
   draw(): void {
-    this.eraseDrawnObjects(true);
-  }
-
-  update(): void {
-    if (this.state !== this.#lastState) {
-      this.emit("stateChange", this);
-    }
+    this.#drawn = true;
+    this.changeDrawnObjectVisibility(false, true);
   }
 }
