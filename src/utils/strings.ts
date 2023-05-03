@@ -1,4 +1,4 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 
 /**
  * Regexp that allows for extracting unicode sequences that are supposed to represent single character
@@ -34,6 +34,15 @@ export function textWidth(text: string): number {
   return width;
 }
 
+export function cropToWidth(text: string, width: number): string {
+  text = text.slice(0, width);
+  if (textWidth(text) <= width) return text;
+  do {
+    text = text.slice(0, -1);
+  } while (textWidth(text) > width);
+  return text;
+}
+
 /**
  * Check whether character is full width
  *
@@ -42,7 +51,6 @@ export function textWidth(text: string): number {
 export function characterWidth(character: string): number {
   const codePoint = character.charCodeAt(0);
 
-  // TODO: Check for other zero-width codepoints
   if (codePoint === 0xD83E || codePoint === 0x200B) {
     return 0;
   }
