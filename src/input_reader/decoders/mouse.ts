@@ -121,8 +121,6 @@ export function decodeMouseVT_UTF8(
 ): MousePressEvent | MouseScrollEvent | undefined {
   if (!code.startsWith("\x1b[M")) return undefined;
 
-  console.log("A");
-
   const modifiers = code.charCodeAt(3);
   let x = code.charCodeAt(4);
   let y = code.charCodeAt(5);
