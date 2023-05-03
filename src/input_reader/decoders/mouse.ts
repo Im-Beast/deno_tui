@@ -33,8 +33,8 @@ export function decodeMouseSGR(
 
   const xSeparator = code.indexOf(";");
   let modifiers = +code.slice(3, xSeparator);
-  let x = +code.slice(xSeparator + 1, xSeparator + 3);
   const ySeparator = code.indexOf(";", xSeparator + 1);
+  let x = +code.slice(xSeparator + 1, ySeparator);
   let y = +code.slice(ySeparator + 1, code.length - 1);
 
   x -= 1;
