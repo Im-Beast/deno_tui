@@ -1,73 +1,66 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 
 import type { BoxObject } from "../canvas/box.ts";
 import { Label, LabelAlign } from "./label.ts";
+import { BaseSignal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
+
+const centerAlign: LabelAlign = {
+  horizontal: "center",
+  vertical: "center",
+};
 
 export interface ButtonOptions extends ComponentOptions {
   label?: {
-    value: string;
-    align?: LabelAlign;
+    value: string | BaseSignal<string>;
+    align?: LabelAlign | BaseSignal<LabelAlign>;
   };
 }
 
 export class Button extends Box {
   declare drawnObjects: { box: BoxObject };
   declare subComponents: { label?: Label };
-  label?: {
-    value: string;
-    align?: LabelAlign;
-  };
+  label: BaseSignal<
+    {
+      value: BaseSignal<string>;
+      align: BaseSignal<LabelAlign>;
+    } | undefined
+  >;
 
   constructor(options: ButtonOptions) {
     super(options);
-    this.label = options.label;
-  }
 
-  update(): void {
-    super.update();
+    const { label } = options;
 
-    const { label } = this.subComponents;
-
-    if (this.label && !label) {
-      this.draw();
-    } else if (label) {
-      if (!this.label) {
-        label.remove();
-        return;
-      }
-
-      label.state = this.state;
-      label.theme = this.theme;
-      label.value = this.label.value;
-      label.zIndex = this.zIndex;
-      label.rectangle = this.rectangle;
-
-      if (this.label.align) {
-        label.align = this.label.align;
-      }
+    if (label) {
+      label.value = signalify(label.value);
+      label.align = signalify(label.align ?? centerAlign);
     }
+
+    this.label = signalify(label as unknown as this["label"], { deepObserve: true });
   }
 
   draw(): void {
     super.draw();
 
-    if (this.label) {
+    if (this.label?.value?.value) {
       const label = new Label({
         parent: this,
         theme: this.theme,
-        value: this.label.value,
         zIndex: this.zIndex,
         rectangle: this.rectangle,
-        align: this.label.align ?? {
-          horizontal: "center",
-          vertical: "center",
-        },
         overwriteRectangle: true,
+        value: this.label.value.value,
+        align: this.label.value.align,
+      });
+
+      this.state.subscribe((value) => {
+        label.state.value = value;
       });
 
       label.subComponentOf = this;
-
       this.subComponents.label = label;
       this.children.push(label);
     }
@@ -76,7 +69,7 @@ export class Button extends Box {
   interact(method: "mouse" | "keyboard"): void {
     const interactionInterval = Date.now() - this.lastInteraction.time;
 
-    this.state = this.state === "focused" && (interactionInterval < 500 || method === "keyboard")
+    this.state.value = this.state.peek() === "focused" && (interactionInterval < 500 || method === "keyboard")
       ? "active"
       : "focused";
 

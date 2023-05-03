@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Box } from "./box.ts";
 import { Theme } from "../theme.ts";
 import { ComponentOptions } from "../component.ts";
@@ -8,6 +9,8 @@ import { TextObject } from "../canvas/text.ts";
 import { normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
+import { BaseSignal, Computed } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
 export type ProgressBarCharMapType = {
   vertical: string[];
@@ -27,50 +30,40 @@ export interface ProgressBarTheme extends Theme {
 }
 
 export interface ProgressBarOptions extends ComponentOptions {
-  min: number;
-  max: number;
-  value: number;
-  smooth: boolean;
-  direction: ProgressBarDirection;
-  orientation: ProgressBarOrientation;
+  min: number | BaseSignal<number>;
+  max: number | BaseSignal<number>;
+  value: number | BaseSignal<number>;
+  smooth: boolean | BaseSignal<boolean>;
+  direction: ProgressBarDirection | BaseSignal<ProgressBarDirection>;
+  charMap?: ProgressBarCharMapType | BaseSignal<ProgressBarCharMapType>;
+  orientation: ProgressBarOrientation | BaseSignal<ProgressBarOrientation>;
+
   theme: DeepPartial<ProgressBarTheme, "progress">;
-  charMap?: ProgressBarCharMapType;
 }
 
 export class ProgressBar extends Box {
   declare drawnObjects: { box: BoxObject; progress: BoxObject | TextObject[] };
   declare theme: ProgressBarTheme;
 
-  min: number;
-  max: number;
-  value: number;
-  smooth: boolean;
-  direction: ProgressBarDirection;
-  orientation: ProgressBarOrientation;
-  charMap: ProgressBarCharMapType;
+  min: BaseSignal<number>;
+  max: BaseSignal<number>;
+  value: BaseSignal<number>;
+  smooth: BaseSignal<boolean>;
+  direction: BaseSignal<ProgressBarDirection>;
+  orientation: BaseSignal<ProgressBarOrientation>;
+  charMap: BaseSignal<ProgressBarCharMapType>;
 
   constructor(options: ProgressBarOptions) {
     super(options);
-    this.smooth = options.smooth;
-    this.min = options.min;
-    this.max = options.max;
-    this.value = options.value ?? 0;
-    this.direction = options.direction;
-    this.orientation = options.orientation;
-    this.charMap = options.charMap ?? progressBarCharMap;
-  }
 
-  update(): void {
-    super.update();
-
-    const { progress } = this.drawnObjects;
-    if (!Array.isArray(progress)) return;
-
-    if (progress.length > this.rectangle.height) {
-      this.#popUnusedSmoothDrawObjects();
-    } else if (progress.length < this.rectangle.height) {
-      this.#fillSmoothDrawObjects();
-    }
+    const { min, max, value, smooth, direction, orientation, charMap } = options;
+    this.min = signalify(min);
+    this.max = signalify(max);
+    this.value = signalify(value);
+    this.smooth = signalify(smooth);
+    this.direction = signalify(direction);
+    this.orientation = signalify(orientation);
+    this.charMap = signalify(charMap ?? progressBarCharMap);
   }
 
   draw(): void {
@@ -83,18 +76,18 @@ export class ProgressBar extends Box {
       const progressRectangle = { column: 0, row: 0, width: 0, height: 0 };
       const progress = new BoxObject({
         canvas: this.tui.canvas,
-        view: () => this.view,
-        zIndex: () => this.zIndex,
-        style: () => this.theme.progress[this.state],
-        rectangle: () => {
-          let normalizedValue = normalize(this.value, this.min, this.max);
-          if (this.direction === "reversed") normalizedValue = 1 - normalizedValue;
+        view: this.view,
+        zIndex: this.zIndex,
+        style: new Computed(() => this.theme.progress[this.state.value]),
+        rectangle: new Computed(() => {
+          let normalizedValue = normalize(this.value.value, this.min.value, this.max.value);
+          if (this.direction.value === "reversed") normalizedValue = 1 - normalizedValue;
 
-          const { column, row, width, height } = this.rectangle;
+          const { column, row, width, height } = this.rectangle.value;
           progressRectangle.column = column;
           progressRectangle.row = row;
 
-          if (this.orientation === "horizontal") {
+          if (this.orientation.value === "horizontal") {
             progressRectangle.width = Math.round(width * normalizedValue);
             progressRectangle.height = height;
           } else {
@@ -102,8 +95,17 @@ export class ProgressBar extends Box {
             progressRectangle.height = Math.round(height * normalizedValue);
           }
 
+          const { progress } = this.drawnObjects;
+          if (Array.isArray(progress)) {
+            if (progress.length > height) {
+              this.#popUnusedSmoothDrawObjects();
+            } else if (progress.length < height) {
+              this.#fillSmoothDrawObjects();
+            }
+          }
+
           return progressRectangle;
-        },
+        }),
       });
 
       this.drawnObjects.progress = progress;
@@ -114,7 +116,7 @@ export class ProgressBar extends Box {
   interact(method: "mouse" | "keyboard"): void {
     const interactionInterval = Date.now() - this.lastInteraction.time;
 
-    this.state = this.state === "focused" && (interactionInterval < 500 || method === "keyboard")
+    this.state.value = this.state.peek() === "focused" && (interactionInterval < 500 || method === "keyboard")
       ? "active"
       : "focused";
 
@@ -126,36 +128,37 @@ export class ProgressBar extends Box {
       throw "drawnObjects.progress needs to be an array";
     }
 
-    for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.height; ++offset) {
+    for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.peek().height; ++offset) {
       const progressLineRectangle = { column: 0, row: 0 };
       const progressLine = new TextObject({
         canvas: this.tui.canvas,
         multiCodePointSupport: true,
-        view: () => this.view,
-        zIndex: () => this.zIndex,
-        style: () => this.theme.progress[this.state],
-        rectangle: () => {
-          const { column, row } = this.rectangle;
+        view: this.view,
+        zIndex: this.zIndex,
+        style: new Computed(() => this.theme.progress[this.state.value]),
+        rectangle: new Computed(() => {
+          const { column, row } = this.rectangle.value;
           progressLineRectangle.column = column;
           progressLineRectangle.row = row + offset;
           return progressLineRectangle;
-        },
-        value: () => {
-          let normalizedValue = normalize(this.value, this.min, this.max);
-          if (this.direction === "reversed") normalizedValue = 1 - normalizedValue;
+        }),
+        value: new Computed(() => {
+          let normalizedValue = normalize(this.value.value, this.min.value, this.max.value);
+          if (this.direction.value === "reversed") normalizedValue = 1 - normalizedValue;
 
-          const charMap = this.charMap[this.orientation];
+          const charMap = this.charMap.value[this.orientation.value];
           const step = 1 / (charMap.length);
 
-          if (this.orientation === "horizontal") {
-            const steps = normalizedValue * this.rectangle.width;
+          const { width, height } = this.rectangle.value;
+
+          if (this.orientation.value === "horizontal") {
+            const steps = normalizedValue * width;
             const remainder = steps % 1;
             return charMap[0].repeat(steps) +
               (
                 remainder < step ? "" : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)]
               );
           } else {
-            const { width, height } = this.rectangle;
             const steps = normalizedValue * height;
 
             const remainder = steps % 1;
@@ -170,7 +173,7 @@ export class ProgressBar extends Box {
                 : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)].repeat(width);
             }
           }
-        },
+        }),
       });
 
       this.drawnObjects.progress.push(progressLine);
@@ -183,7 +186,7 @@ export class ProgressBar extends Box {
       throw "drawnObjects.progress needs to be an array";
     }
 
-    for (const progressLine of this.drawnObjects.progress.splice(this.rectangle.height)) {
+    for (const progressLine of this.drawnObjects.progress.splice(this.rectangle.peek().height)) {
       progressLine.erase();
     }
   }

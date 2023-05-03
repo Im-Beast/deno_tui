@@ -1,5 +1,8 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { ComponentOptions } from "../component.ts";
-import { Button } from "./button.ts";
+import { BaseSignal, Computed } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
+import { Button, ButtonOptions } from "./button.ts";
 
 export enum Mark {
   Check = "✓",
@@ -7,26 +10,26 @@ export enum Mark {
 }
 
 export interface CheckBoxOptions extends ComponentOptions {
-  value: boolean;
+  checked: boolean | BaseSignal<boolean>;
 }
 
 export class CheckBox extends Button {
-  value: boolean;
-  label: { value: Mark };
+  checked: BaseSignal<boolean>;
 
   constructor(options: CheckBoxOptions) {
-    super(options);
-    this.value = options.value;
-    this.label = { value: this.value ? Mark.Check : Mark.Cross };
-  }
+    const checkedSignal = signalify(options.checked);
 
-  update(): void {
-    super.update();
-    this.label.value = this.value ? Mark.Check : Mark.Cross;
+    (options as ButtonOptions).label = {
+      value: new Computed(() => checkedSignal.value ? Mark.Check : Mark.Cross),
+    };
+
+    super(options);
+
+    this.checked = checkedSignal;
   }
 
   interact(method: "mouse" | "keyboard"): void {
     super.interact(method);
-    if (this.state === "active") this.value = !this.value;
+    if (this.state.peek() === "active") this.checked.value = !this.checked.peek();
   }
 }

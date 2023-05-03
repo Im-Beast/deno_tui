@@ -1,10 +1,12 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 // deno-lint-ignore-file
 import { Component, ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
 import { TextObject } from "../canvas/text.ts";
 
-import type { Rectangle } from "../types.ts";
+import { BaseSignal, Computed } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
 export const FrameUnicodeCharacters = {
   sharp: {
@@ -29,18 +31,9 @@ export type FrameUnicodeCharactersType = {
   [key in keyof typeof FrameUnicodeCharacters["rounded"]]: string;
 };
 
-export type FrameOptions =
-  & Omit<ComponentOptions, "rectangle">
-  & {
-    charMap: keyof typeof FrameUnicodeCharacters | FrameUnicodeCharactersType;
-  }
-  & ({
-    component: Component;
-    rectangle?: never;
-  } | {
-    component?: never;
-    rectangle: Rectangle;
-  });
+export interface FrameOptions extends ComponentOptions {
+  charMap: keyof typeof FrameUnicodeCharacters | FrameUnicodeCharactersType;
+}
 
 export class Frame extends Component {
   declare drawnObjects: {
@@ -50,26 +43,13 @@ export class Frame extends Component {
     right: BoxObject;
   };
 
-  charMap: FrameUnicodeCharactersType;
-  component?: Component;
+  charMap: BaseSignal<FrameUnicodeCharactersType>;
 
   constructor(options: FrameOptions) {
-    options.rectangle ??= { column: 0, row: 0, width: 0, height: 0 };
-    super(options as ComponentOptions);
-
-    this.component = options.component;
-    if (this.component) {
-      this.#updateRelativeRectangle();
-    }
-
-    this.charMap = typeof options.charMap === "string" ? FrameUnicodeCharacters[options.charMap] : options.charMap;
-  }
-
-  update(): void {
-    super.update();
-    if (this.component) {
-      this.#updateRelativeRectangle();
-    }
+    super(options);
+    this.charMap = signalify(
+      typeof options.charMap === "string" ? FrameUnicodeCharacters[options.charMap] : options.charMap,
+    );
   }
 
   draw(): void {
@@ -80,69 +60,71 @@ export class Frame extends Component {
     const topRectangle = { column: 0, row: 0 };
     const top = new TextObject({
       canvas,
-      view: () => this.view,
-      style: () => this.style,
-      zIndex: () => this.zIndex,
-      value: () => {
-        const { topLeft, horizontal, topRight } = this.charMap;
-        return topLeft + horizontal.repeat(this.rectangle.width - 2) + topRight;
-      },
-      rectangle: () => {
-        const { column, row } = this.rectangle;
-        topRectangle.column = column;
-        topRectangle.row = row;
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      value: new Computed(() => {
+        const { topLeft, horizontal, topRight } = this.charMap.value;
+        return topLeft + horizontal.repeat(this.rectangle.value.width) + topRight;
+      }),
+      rectangle: new Computed(() => {
+        const { column, row } = this.rectangle.value;
+        topRectangle.column = column - 1;
+        topRectangle.row = row - 1;
         return topRectangle;
-      },
+      }),
     });
 
     const bottomRectangle = { column: 0, row: 0 };
     const bottom = new TextObject({
       canvas,
-      view: () => this.view,
-      style: () => this.style,
-      zIndex: () => this.zIndex,
-      value: () => {
-        const { bottomLeft, horizontal, bottomRight } = this.charMap;
-        return bottomLeft + horizontal.repeat(this.rectangle.width - 2) + bottomRight;
-      },
-      rectangle: () => {
-        const { column, row, height } = this.rectangle;
-        bottomRectangle.column = column;
-        bottomRectangle.row = row + height - 1;
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      value: new Computed(() => {
+        const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
+        return bottomLeft + horizontal.repeat(this.rectangle.value.width) + bottomRight;
+      }),
+      rectangle: new Computed(() => {
+        const { column, row, height } = this.rectangle.value;
+        bottomRectangle.column = column - 1;
+        bottomRectangle.row = row + height;
         return bottomRectangle;
-      },
+      }),
     });
+
+    const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const left = new BoxObject({
       canvas,
-      view: () => this.view,
-      style: () => this.style,
-      zIndex: () => this.zIndex,
-      rectangle: () => {
-        const { column, row, height } = this.rectangle;
-        leftRectangle.column = column;
-        leftRectangle.row = row + 1;
-        leftRectangle.height = height - 2;
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      filler: verticalCharMapSignal,
+      rectangle: new Computed(() => {
+        const { column, row, height } = this.rectangle.value;
+        leftRectangle.column = column - 1;
+        leftRectangle.row = row;
+        leftRectangle.height = height;
         return leftRectangle;
-      },
-      filler: () => this.charMap.vertical,
+      }),
     });
 
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const right = new BoxObject({
       canvas,
-      view: () => this.view,
-      style: () => this.style,
-      zIndex: () => this.zIndex,
-      rectangle: () => {
-        const { column, row, width, height } = this.rectangle;
-        rightRectangle.column = column + width - 1;
-        rightRectangle.row = row + 1;
-        rightRectangle.height = height - 2;
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      filler: verticalCharMapSignal,
+      rectangle: new Computed(() => {
+        const { column, row, width, height } = this.rectangle.value;
+        rightRectangle.column = column + width;
+        rightRectangle.row = row;
+        rightRectangle.height = height;
         return rightRectangle;
-      },
-      filler: () => this.charMap.vertical,
+      }),
     });
 
     const { drawnObjects } = this;
@@ -156,17 +138,5 @@ export class Frame extends Component {
     bottom.draw();
     left.draw();
     right.draw();
-  }
-
-  #updateRelativeRectangle(): void {
-    if (!this.component) {
-      throw "updateRelativeRectangle has been used when Frame isn't based on any component";
-    }
-
-    const { column, row, width, height } = this.component.rectangle;
-    this.rectangle.column = column - 1;
-    this.rectangle.row = row - 1;
-    this.rectangle.width = width + 2;
-    this.rectangle.height = height + 2;
   }
 }
