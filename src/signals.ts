@@ -243,6 +243,13 @@ export function makeObjectReactiveToSignal<T>(signal: Signal<T>, watchObjectInde
       return output;
     };
 
+    const pop = Array.prototype.pop.bind(object);
+    object.pop = function () {
+      const output = pop();
+      signal.updateDependencies();
+      return output;
+    };
+
     const splice = Array.prototype.splice.bind(object);
     object.splice = function (start, deleteCount) {
       const output = splice(start, deleteCount);
