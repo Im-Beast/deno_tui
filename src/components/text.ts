@@ -1,13 +1,8 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { TextObject } from "../canvas/text.ts";
+import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
 import { BaseSignal } from "../signals.ts";
-import { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
-
-export type TextRectangle = Omit<Rectangle, "width" | "height"> & {
-  width?: number;
-};
 
 export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
   text: string | BaseSignal<string>;
