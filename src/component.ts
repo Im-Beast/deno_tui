@@ -116,14 +116,7 @@ export class Component extends EventEmitter<
     });
   }
 
-  addChildren(...children: Component[]): void {
-    for (const child of children) {
-      this.tui.components.add(child);
-      this.children.push(child);
 
-      child.draw();
-    }
-  }
 
   interact(method: "keyboard" | "mouse"): void {
     this.lastInteraction.time = Date.now();
