@@ -10,7 +10,7 @@ export type TextRectangle = Omit<Rectangle, "width" | "height"> & {
 };
 
 export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
-  value: string | BaseSignal<string>;
+  text: string | BaseSignal<string>;
   rectangle: TextRectangle | BaseSignal<TextRectangle>;
   overwriteWidth?: boolean | BaseSignal<boolean>;
   multiCodePointSupport?: boolean | BaseSignal<boolean>;
@@ -19,13 +19,13 @@ export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
 export class Text extends Component {
   declare drawnObjects: { text: TextObject };
 
-  value: BaseSignal<string>;
+  text: BaseSignal<string>;
   overwriteRectangle: BaseSignal<boolean>;
   multiCodePointSupport: BaseSignal<boolean>;
 
   constructor(options: TextOptions) {
     super(options as unknown as ComponentOptions);
-    this.value = signalify(options.value);
+    this.text = signalify(options.text);
     this.overwriteRectangle = signalify(options.overwriteWidth ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
   }
@@ -34,7 +34,7 @@ export class Text extends Component {
     const text = new TextObject({
       canvas: this.tui.canvas,
       view: this.view,
-      value: this.value,
+      value: this.text,
       style: this.style,
       zIndex: this.zIndex,
       rectangle: this.rectangle,
