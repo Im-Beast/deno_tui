@@ -251,7 +251,7 @@ new Slider({
   adjustThumbSize: true,
   value: 5,
   min: 1,
-  max: 10,
+  max: 5,
   step: 1,
   rectangle: {
     column: 65,
