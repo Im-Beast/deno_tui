@@ -142,7 +142,15 @@ export class Component extends EventEmitter<
     }
   }
 
-  remove(): void {
+  /**
+   * Destroys component:
+   *  - Disables all listeners
+   *  - Removes all `drawnObjects`
+   *  - calls `destroy()` on its children
+   *  - Removes itself from `subComponentOf.subComponents`
+   *  - Removes itself from `parent.children`
+   */
+  destroy(): void {
     this.#destroyed = true;
 
     this.off();
@@ -152,7 +160,7 @@ export class Component extends EventEmitter<
     children.splice(children.indexOf(this), 1);
 
     for (const child of this.children) {
-      child.remove();
+      child.destroy();
     }
 
     const subComponents = this.subComponentOf?.subComponents;

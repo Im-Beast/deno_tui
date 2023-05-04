@@ -57,7 +57,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
       const subComponent = subComponents[i];
       if (subComponent) {
         if (i >= items.length) {
-          subComponent.remove();
+          subComponent.destroy();
           delete subComponents[i];
         }
         continue;

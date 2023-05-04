@@ -144,7 +144,7 @@ export class Tui extends EventEmitter<
     Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_PRIMARY_BUFFER + SHOW_CURSOR));
 
     for (const component of this.components) {
-      component.remove();
+      component.destroy();
     }
   }
 

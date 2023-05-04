@@ -69,7 +69,7 @@ export class Button extends Box {
 
   #updateLabelSubcomponent(): void {
     if (!this.label.value.text.value) {
-      this.subComponents.label?.remove();
+      this.subComponents.label?.destroy();
       return;
     }
 
