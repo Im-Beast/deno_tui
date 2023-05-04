@@ -11,6 +11,7 @@ export interface ComboBoxOptions<Items extends string[] = string[]> extends Omit
 
 export class ComboBox<Items extends string[] = string[]> extends Button {
   declare subComponents: { [button: number]: Button };
+  #subComponentsLength: number;
 
   items: BaseSignal<Items>;
   expanded: BaseSignal<boolean>;
@@ -24,7 +25,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
 
     const buttonOptions: ButtonOptions = options;
     buttonOptions.label = {
-      value: new Computed(() => {
+      text: new Computed(() => {
         const items = itemsSignal.value;
         const selectedItem = selectedItemSignal.value;
         const placeholder = placeholderSignal.value;
@@ -39,9 +40,12 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
     this.placeholder = placeholderSignal;
     this.selectedItem = selectedItemSignal;
 
+    this.#subComponentsLength = this.items.value.length;
     this.#updateItemButtons();
-    this.items.subscribe(() => {
+
+    this.items.subscribe((items) => {
       this.#updateItemButtons();
+      this.#subComponentsLength = items.length;
     });
   }
 
@@ -49,9 +53,15 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
     const { subComponents } = this;
     const items = this.items.peek();
 
-    for (let i = 0; i < items.length; ++i) {
+    for (let i = 0; i < Math.max(items.length, this.#subComponentsLength); ++i) {
       const subComponent = subComponents[i];
-      if (subComponent) continue;
+      if (subComponent) {
+        if (i >= items.length) {
+          subComponent.remove();
+          delete subComponents[i];
+        }
+        continue;
+      }
 
       const buttonRectangle = { column: 0, row: 0, width: 0, height: 0 };
 
@@ -59,9 +69,9 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
         parent: this,
         theme: this.theme,
         zIndex: this.zIndex,
-        visible: new Computed(() => this.expanded.value),
+        visible: this.expanded,
         label: {
-          value: new Computed(() => this.items.value[i]),
+          text: new Computed(() => this.items.value[i]),
         },
         rectangle: new Computed(() => {
           const { column, row, width, height } = this.rectangle.value;
