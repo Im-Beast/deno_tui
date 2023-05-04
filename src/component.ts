@@ -36,6 +36,8 @@ export class Component extends EventEmitter<
   } & InputEventRecord
 > {
   #drawn: boolean;
+  #destroyed: boolean;
+
   subComponentOf?: Component;
 
   visible: BaseSignal<boolean>;
@@ -57,11 +59,13 @@ export class Component extends EventEmitter<
     super();
 
     this.#drawn = false;
+    this.#destroyed = false;
     this.parent = options.parent;
 
     const { parent } = this;
     this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
 
+    this.parent.children.push(this);
     this.children = new SortedArray();
     this.drawnObjects = {};
     this.subComponents = {};
@@ -77,6 +81,8 @@ export class Component extends EventEmitter<
     this.rectangle = signalify(options.rectangle, { deepObserve: true, watchArrayIndex: true });
 
     this.visible.subscribe((visible) => {
+      if (this.#destroyed) return;
+
       if (!this.#drawn && visible) {
         if (!this.tui.children.includes(this)) return;
         this.draw();
@@ -106,7 +112,7 @@ export class Component extends EventEmitter<
     });
 
     queueMicrotask(() => {
-      this.tui.addChildren(this);
+      this.tui.addChild(this);
     });
   }
 
@@ -144,15 +150,22 @@ export class Component extends EventEmitter<
   }
 
   remove(): void {
+    this.#destroyed = true;
+
     this.off();
     this.changeDrawnObjectVisibility(false, true);
 
     const { children } = this.parent;
     children.splice(children.indexOf(this), 1);
 
-    const subComponents = this.subComponentOf?.subComponents;
-    if (!subComponents) return;
+    for (const child of this.children) {
+      child.remove();
+    }
 
+    const subComponents = this.subComponentOf?.subComponents;
+    delete this.subComponentOf;
+
+    if (!subComponents) return;
     for (const index in subComponents) {
       if (subComponents[index] === this) delete subComponents[index];
     }
