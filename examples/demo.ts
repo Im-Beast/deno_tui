@@ -79,6 +79,19 @@ new CheckBox({
   zIndex: 0,
 });
 
+new CheckBox({
+  parent: tui,
+  theme: baseTheme,
+  rectangle: {
+    column: 32,
+    row: 3,
+    height: 1,
+    width: 1,
+  },
+  checked: true,
+  zIndex: 0,
+});
+
 new ComboBox({
   parent: tui,
   theme: baseTheme,
@@ -148,7 +161,7 @@ new ProgressBar({
   rectangle: {
     column: 48,
     height: 2,
-    row: 6,
+    row: 7,
     width: 10,
   },
   zIndex: 0,
@@ -166,7 +179,7 @@ new ProgressBar({
   rectangle: {
     column: 48,
     height: 5,
-    row: 10,
+    row: 11,
     width: 2,
   },
   zIndex: 0,
@@ -182,9 +195,9 @@ new ProgressBar({
   max: 100,
   smooth: true,
   rectangle: {
-    column: 52,
+    column: 56,
     height: 5,
-    row: 10,
+    row: 11,
     width: 2,
   },
   zIndex: 0,
@@ -197,12 +210,12 @@ new Label({
     vertical: "center",
   },
   rectangle: {
-    column: 75,
-    row: 3,
+    column: 17,
+    row: 21,
     width: 20,
   },
   theme: { base: tui.style },
-  text: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
+  text: "Centered text\nThat automatically adjusts its size\n!@#!\nSo cool\nWOW",
   zIndex: 0,
 });
 
@@ -241,9 +254,9 @@ new Slider({
   max: 10,
   step: 1,
   rectangle: {
-    column: 61,
+    column: 65,
     height: 5,
-    row: 10,
+    row: 7,
     width: 2,
   },
   zIndex: 0,
@@ -260,7 +273,7 @@ new Input({
   theme: cursorBaseTheme,
   rectangle: {
     column: 2,
-    row: 11,
+    row: 10,
     width: 14,
     height: 1,
   },
@@ -296,8 +309,8 @@ new TextBox({
   lineNumbering: true,
   lineHighlighting: true,
   rectangle: {
-    column: 29,
-    row: 11,
+    column: 2,
+    row: 21,
     height: 5,
     width: 12,
   },
@@ -316,7 +329,7 @@ new Table({
     },
   },
   rectangle: {
-    column: 75,
+    column: 20,
     height: 8,
     row: 11,
   },
@@ -339,8 +352,8 @@ new Table({
 
 const view = new View({
   rectangle: {
-    column: 125,
-    row: 1,
+    column: 75,
+    row: 3,
     width: 10,
     height: 10,
   },
@@ -388,7 +401,7 @@ viewScrollbar.value.subscribe((value) => {
   view.offset.rows = value;
 });
 
-const box = new Box({
+const viewBox = new Box({
   parent: tui,
   view,
   rectangle: {
@@ -400,16 +413,16 @@ const box = new Box({
   theme: {
     base: crayon.bgRed,
   },
-  zIndex: 2,
+  zIndex: 1,
 });
 
-box.interact = () => {
-  box.state.value = "focused";
+viewBox.interact = () => {
+  viewBox.state.value = "focused";
 };
 
-box.on("mousePress", ({ drag, movementX, movementY }) => {
+viewBox.on("mousePress", ({ drag, movementX, movementY }) => {
   if (!drag) return;
-  const rectangle = box.rectangle.value;
+  const rectangle = viewBox.rectangle.value;
   rectangle.column += movementX;
   rectangle.row += movementY;
 });
@@ -418,7 +431,7 @@ const moveButton = new Button({
   parent: tui,
   rectangle: {
     column: 2,
-    row: 15,
+    row: 16,
     width: 6,
     height: 2,
   },
@@ -464,21 +477,7 @@ tui.canvas.on("render", () => {
       continue;
     }
 
-    const name = component.constructor.name;
-
-    const { column, row } = component.rectangle.peek();
     components.push(
-      new Text({
-        parent: tui,
-        theme: tuiStyleTheme,
-        visible: false,
-        rectangle: {
-          column: column - 1,
-          row: row - 2,
-        },
-        text: name,
-        zIndex: component.zIndex,
-      }),
       new Frame({
         parent: tui,
         rectangle: component.rectangle,
