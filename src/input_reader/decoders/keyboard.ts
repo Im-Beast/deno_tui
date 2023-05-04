@@ -4,16 +4,21 @@ import type { Alphabet, Key, KeyPressEvent } from "../types.ts";
 
 const lowerCaseAlphabet = "abcdefghijklmnopqrstuvwxyz";
 
+const keyPress: KeyPressEvent = {
+  buffer: new Uint8Array(0),
+  key: "-",
+  meta: false,
+  ctrl: false,
+  shift: false,
+};
+
 export function decodeKey(buffer: Uint8Array, code: string): KeyPressEvent {
   if (code[0] === "\x1b") code = code.slice(1);
-
-  const keyPress: KeyPressEvent = {
-    buffer,
-    key: code as Key,
-    meta: false,
-    shift: false,
-    ctrl: false,
-  };
+  keyPress.buffer = buffer;
+  keyPress.key = code as Key;
+  keyPress.ctrl = false;
+  keyPress.meta = false;
+  keyPress.shift = false;
 
   switch (code) {
     case "\r":
