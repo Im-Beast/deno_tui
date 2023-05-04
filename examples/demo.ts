@@ -201,7 +201,7 @@ new Label({
     width: 20,
   },
   theme: { base: tui.style },
-  value: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
+  text: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
   zIndex: 0,
 });
 
@@ -432,7 +432,7 @@ const moveButton = new Button({
     width: 6,
     height: 2,
   },
-  label: { value: "move\nme" },
+  label: { text: "move\nme" },
   theme: {
     base: crayon.bgGreen,
     focused: crayon.bgLightGreen,
@@ -456,7 +456,7 @@ new Text({
     row: 13,
   },
   theme: baseTheme,
-  value: "wopa",
+  text: "wopa",
   zIndex: 2,
 });
 
@@ -486,7 +486,7 @@ tui.canvas.on("render", () => {
           column: column - 1,
           row: row - 2,
         },
-        value: name,
+        text: name,
         zIndex: component.zIndex,
       }),
       new Frame({
@@ -515,7 +515,7 @@ const performanceStats = new Text({
   parent: tui,
   rectangle: { column: 0, row: 0 },
   theme: baseTheme,
-  value: new Computed(() =>
+  text: new Computed(() =>
     `\
 FPS: ${fps.value.toFixed(2)}\
  | Components: ${tui.components.size}\
