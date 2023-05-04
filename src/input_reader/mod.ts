@@ -37,14 +37,7 @@ export async function emitInputEvents(stdin: Stdin, emitter: EventEmitter<InputE
   }
 }
 
-const { fromCharCode } = String;
-function fastSmallDecode(buffer: Uint8Array): string {
-  let str = fromCharCode(buffer[0]);
-  for (let i = 1; i < buffer.length; ++i) {
-    str += fromCharCode(buffer[i]);
-  }
-  return str;
-}
+const textDecoder = new TextDecoder();
 
 /**
  * Decode character(s) from buffer that was sent to stdin from terminal on mostly
@@ -53,6 +46,6 @@ function fastSmallDecode(buffer: Uint8Array): string {
 export function* decodeBuffer(
   buffer: Uint8Array,
 ): Generator<KeyPressEvent | MouseEvent | MousePressEvent | MouseScrollEvent, void, void> {
-  const code = fastSmallDecode(buffer);
+  const code = textDecoder.decode(buffer);
   yield decodeMouseVT_UTF8(buffer, code) ?? decodeMouseSGR(buffer, code) ?? decodeKey(buffer, code);
 }
