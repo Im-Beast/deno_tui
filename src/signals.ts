@@ -7,7 +7,7 @@ export type SubscriptionCallback<T> = (value: T) => void;
 
 export interface BaseSignalOptions {
   deepObserve?: boolean;
-  watchArrayIndex?: boolean;
+  watchObjectIndex?: boolean;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -37,7 +37,7 @@ export class BaseSignal<T> {
   constructor(options?: BaseSignalOptions) {
     this.dependencies = new Set();
     this.deepObserve = options?.deepObserve ?? false;
-    this.watchObjectIndex = options?.watchArrayIndex ?? false;
+    this.watchObjectIndex = options?.watchObjectIndex ?? false;
   }
 
   get value(): T {

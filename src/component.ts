@@ -78,7 +78,7 @@ export class Component extends EventEmitter<
     this.view = signalify(options.view);
     this.zIndex = signalify(options.zIndex);
     this.visible = signalify(options.visible ?? true);
-    this.rectangle = signalify(options.rectangle, { deepObserve: true, watchArrayIndex: true });
+    this.rectangle = signalify(options.rectangle, { deepObserve: true, watchObjectIndex: true });
 
     this.visible.subscribe((visible) => {
       if (this.#destroyed) return;
