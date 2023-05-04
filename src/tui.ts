@@ -73,14 +73,12 @@ export class Tui extends EventEmitter<
     }
   }
 
-  addChildren(...children: Component[]): void {
-    for (const child of children) {
-      this.children.push(child);
-      this.components.add(child);
+  addChild(child: Component): void {
+    this.children.push(child);
+    this.components.add(child);
 
-      if (!child.visible.peek()) continue;
-      child.draw();
-    }
+    if (!child.visible.peek()) return;
+    child.draw();
   }
 
   run(): void {
