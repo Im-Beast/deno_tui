@@ -40,13 +40,6 @@ export class Button extends Box {
     label.align = signalify(label.align ?? centerAlign);
 
     this.label = signalify(label as unknown as this["label"], { deepObserve: true });
-
-    this.state.subscribe((value) => {
-      if (this.subComponents.label) {
-        this.subComponents.label.state.value = value;
-      }
-    });
-
     this.label.value.text.subscribe(() => {
       this.#updateLabelSubcomponent();
     });
@@ -82,6 +75,9 @@ export class Button extends Box {
       text: this.label.value.text as BaseSignal<string>,
       align: this.label.value.align,
     });
+
+    label.state = this.state;
+    label.style = this.style;
 
     label.subComponentOf = this;
     this.subComponents.label = label;
