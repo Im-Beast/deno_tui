@@ -83,11 +83,10 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
         }),
       });
 
-      button.on("stateChange", () => {
+      button.state.subscribe(() => {
         if (button.state.peek() !== "active") return;
         this.selectedItem.value = i;
         this.expanded.value = false;
-        this.emit("valueChange", this);
       });
 
       subComponents[i] = button;
