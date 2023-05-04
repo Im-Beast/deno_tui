@@ -30,11 +30,7 @@ export interface Interaction {
 export type ComponentState = keyof Theme;
 
 export class Component extends EventEmitter<
-  {
-    remove: EmitterEvent<[Component]>;
-    stateChange: EmitterEvent<[Component]>;
-    valueChange: EmitterEvent<[Component]>;
-  } & InputEventRecord
+  { destroy: EmitterEvent<[Component]> } & InputEventRecord
 > {
   #drawn: boolean;
   #destroyed: boolean;
@@ -100,7 +96,6 @@ export class Component extends EventEmitter<
     this.theme = hierarchizeTheme(options.theme);
     this.style = new Computed(() => {
       const state = this.state.value;
-      this.emit("stateChange", this);
 
       const { focusedComponents } = this.tui;
       if (state === "focused" || state === "active") {
@@ -158,6 +153,7 @@ export class Component extends EventEmitter<
    *  - Removes itself from `parent.children`
    */
   destroy(): void {
+    this.emit("destroy", this);
     this.#destroyed = true;
 
     this.off();
