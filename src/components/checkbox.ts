@@ -20,7 +20,7 @@ export class CheckBox extends Button {
     const checkedSignal = signalify(options.checked);
 
     (options as ButtonOptions).label = {
-      value: new Computed(() => checkedSignal.value ? Mark.Check : Mark.Cross),
+      text: new Computed(() => checkedSignal.value ? Mark.Check : Mark.Cross),
     };
 
     super(options);
