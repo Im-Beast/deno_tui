@@ -1,4 +1,4 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 
 /** Function that's supposed to return styled text given string as parameter */
 export type Style = (text: string) => string;
@@ -14,34 +14,21 @@ export function replaceEmptyStyle(style: Style, replacement: Style): Style {
 }
 
 /** Applies default values to properties (lower one hierarchy or `emptyStyle`) that aren't set */
-export function hierarchizeTheme<
-  T extends Theme = Theme,
-  Y extends Partial<T> = Partial<T>,
->(input: Y): T {
-  let { base, active, focused } = input;
+export function hierarchizeTheme(input: Partial<Theme> = {}): Theme {
+  input.base ??= emptyStyle;
+  input.disabled ??= input.base;
+  input.focused ??= input.base;
+  input.active ??= input.focused;
 
-  base ??= emptyStyle;
-  focused ??= base;
-  active ??= focused ?? base;
-
-  const obj: Record<string, unknown> = {};
-
-  const otherKeys = Object
-    .getOwnPropertyNames(input)
-    .filter((key) => !["base", "focused", "active"].includes(key));
-
-  for (const key of otherKeys) {
-    const property = input[key as keyof Y];
-    if (typeof property !== "object") {
-      obj[key] ??= emptyStyle;
+  const output = input as Theme & Record<string, Theme>;
+  for (const key in output) {
+    if (key === "base" || key === "focused" || key === "active" || key === "disabled" || output === output[key]) {
       continue;
     }
-
-    // deno-lint-ignore no-explicit-any
-    obj[key] = hierarchizeTheme<any, any>(property);
+    output[key] = hierarchizeTheme(output[key]);
   }
 
-  return { ...obj, base, focused, active } as T;
+  return output;
 }
 
 /** Base theme used to style components, can be expanded upon */
@@ -52,4 +39,6 @@ export interface Theme {
   focused: Style;
   /** Style when component is active */
   active: Style;
+  /** Style when component is disabled */
+  disabled: Style;
 }

@@ -1,161 +1,145 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { Box } from "./box.ts";
+import { Theme } from "../theme.ts";
+import { ComponentOptions } from "../component.ts";
 
-import { hierarchizeTheme, Theme } from "../theme.ts";
-
-import { PlaceComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
-import { EmitterEvent } from "../event_emitter.ts";
+import { BoxObject } from "../canvas/box.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
-import type { EventRecord } from "../event_emitter.ts";
+import { BaseSignal, Computed } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
-/** Theme used by {SliderComponent} to style itself */
+export type SliderOrientation = "vertical" | "horizontal";
+
 export interface SliderTheme extends Theme {
   thumb: Theme;
 }
 
-/** Interface defining object that {SliderComponent}'s constructor can interpret */
-export interface SliderComponentOptions extends PlaceComponentOptions {
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  direction: "horizontal" | "vertical";
-  adjustThumbSize?: boolean;
-  theme?: DeepPartial<SliderTheme>;
+export interface SliderOptions extends ComponentOptions {
+  min: number | BaseSignal<number>;
+  max: number | BaseSignal<number>;
+  step: number | BaseSignal<number>;
+  value: number | BaseSignal<number>;
+  adjustThumbSize: boolean | BaseSignal<boolean>;
+  orientation: SliderOrientation | BaseSignal<SliderOrientation>;
+  theme: DeepPartial<SliderTheme, "thumb">;
 }
 
-/** Complementary interface defining what's accessible in {ScrollableViewComponent} class in addition to {SliderComponentOptions} */
-export interface SliderComponentPrivate {
-  adjustThumbSize: boolean;
-  theme: SliderTheme;
-}
-
-/** Implementation for {SliderComponent} class */
-export type SliderComponentImplementation = SliderComponentOptions & SliderComponentPrivate;
-
-/** EventMap that {SliderComponent} uses */
-export type SliderComponentEventMap = {
-  valueChange: EmitterEvent<[SliderComponent<EventRecord>]>;
-};
-
-/** Component that allows user to input number by sliding a handle */
-export class SliderComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & SliderComponentEventMap> implements SliderComponentImplementation {
+export class Slider extends Box {
+  declare drawnObjects: { box: BoxObject; thumb: BoxObject };
   declare theme: SliderTheme;
 
-  direction: "horizontal" | "vertical";
-  min: number;
-  max: number;
-  step: number;
-  #value: number;
-  adjustThumbSize: boolean;
+  min: BaseSignal<number>;
+  max: BaseSignal<number>;
+  step: BaseSignal<number>;
+  value: BaseSignal<number>;
+  adjustThumbSize: BaseSignal<boolean>;
+  orientation: BaseSignal<SliderOrientation>;
 
-  constructor(options: SliderComponentOptions) {
+  constructor(options: SliderOptions) {
     super(options);
-    this.direction = options.direction;
-    this.min = options.min;
-    this.max = options.max;
-    this.#value = options.value;
-    this.step = options.step;
-    this.theme.thumb = hierarchizeTheme(options.theme?.thumb ?? {});
-    this.adjustThumbSize = options.adjustThumbSize ?? false;
+    this.min = signalify(options.min);
+    this.max = signalify(options.max);
+    this.step = signalify(options.step);
+    this.value = signalify(options.value ?? 0);
+    this.orientation = signalify(options.orientation);
+    this.adjustThumbSize = signalify(options.adjustThumbSize ?? false);
 
-    const lastMove = { x: -1, y: -1, time: 0 };
-    this.on("keyPress", ({ key, ctrl, meta, shift }) => {
-      if (ctrl || meta || shift) return;
+    this.on("keyPress", ({ key, ctrl, shift, meta }) => {
+      if (ctrl || shift || meta) return;
+
+      const min = this.min.peek();
+      const max = this.max.peek();
+      const step = this.step.peek();
+      const value = this.value.peek();
 
       switch (key) {
         case "up":
         case "right":
-          this.value += this.step;
+          this.value.value = clamp(value + step, min, max);
           break;
         case "down":
         case "left":
-          this.value -= this.step;
+          this.value.value = clamp(value - step, min, max);
           break;
       }
     });
 
-    this.on("mousePress", ({ x, y, drag }) => {
-      if (Date.now() - lastMove.time > 300) {
-        lastMove.x = -1;
-        lastMove.y = -1;
-      }
+    this.on("mousePress", ({ drag, movementX, movementY, ctrl, shift, meta }) => {
+      if (!drag || ctrl || shift || meta) return;
 
-      if (!drag || (this.state !== "active" && this.state !== "focused")) return;
+      const { min, max, step, value, orientation } = this;
 
-      switch (this.direction) {
-        case "horizontal":
-          if (lastMove.x === -1) break;
-          this.value += (x - lastMove.x) * this.step;
-          break;
-        case "vertical":
-          if (lastMove.y === -1) break;
-          this.value += (y - lastMove.y) * this.step;
-          break;
-      }
-
-      lastMove.x = x;
-      lastMove.y = y;
-      lastMove.time = Date.now();
+      value.value = clamp(
+        value.peek() + (orientation.peek() === "horizontal" ? movementX : movementY) * step.peek(),
+        min.peek(),
+        max.peek(),
+      );
     });
-  }
 
-  get value(): number {
-    return this.#value;
-  }
+    this.on("mouseScroll", ({ scroll }) => {
+      const { min, max, step, value } = this;
 
-  set value(value) {
-    const prev = this.#value;
-    this.#value = clamp(value, this.min, this.max);
-
-    if (this.#value !== prev) {
-      this.emit("valueChange", this);
-    }
+      this.value.value = clamp(value.peek() + scroll * step.peek(), min.peek(), max.peek());
+    });
   }
 
   draw(): void {
     super.draw();
 
-    const { theme, state, value, min, max, direction } = this;
-    const { canvas } = this.tui;
-    const { column, row, width, height } = this.rectangle;
+    const thumbRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const thumb = new BoxObject({
+      view: this.view,
+      zIndex: this.zIndex,
+      canvas: this.tui.canvas,
+      style: new Computed(() => this.theme.thumb[this.state.value]),
+      rectangle: new Computed(() => {
+        const value = this.value.value;
+        const min = this.min.value;
+        const max = this.max.value;
 
-    const normalizedValue = normalize(value, min, max);
+        const { column, row, width, height } = this.rectangle.value;
+        const horizontal = this.orientation.value === "horizontal";
+        const normalizedValue = normalize(value, min, max);
 
-    const thumbStyle = theme.thumb[state];
+        if (horizontal) {
+          const thumbSize = this.adjustThumbSize.value ? Math.round((width) / (max - min)) : 1;
 
-    switch (direction) {
-      case "horizontal":
-        {
-          const thumbWidth = this.adjustThumbSize ? ~~((width - 1) / (max - min)) : 1;
-
-          canvas.draw(
-            column + normalizedValue * (width - thumbWidth),
-            row,
-            thumbStyle((" ".repeat(Math.max(thumbWidth, 1)) + "\n").repeat(height)),
+          thumbRectangle.column = Math.min(
+            column + width - thumbSize,
+            column + Math.round((width - 1) * normalizedValue),
           );
-        }
-        break;
-      case "vertical":
-        {
-          const thumbHeight = this.adjustThumbSize ? ~~((height - 1) / (max - min)) : 1;
+          thumbRectangle.row = row;
+          thumbRectangle.width = thumbSize;
+          thumbRectangle.height = height;
+        } else {
+          const thumbSize = this.adjustThumbSize.value ? Math.round((height) / (max - min)) : 1;
 
-          canvas.draw(
-            column,
-            row + normalizedValue * (height - thumbHeight),
-            thumbStyle((" ".repeat(width) + "\n").repeat(Math.max(thumbHeight, 1))),
+          thumbRectangle.column = column;
+          thumbRectangle.row = Math.min(
+            row + height - thumbSize,
+            row + Math.round((height - 1) * normalizedValue),
           );
+          thumbRectangle.width = width;
+          thumbRectangle.height = thumbSize;
         }
-        break;
-    }
+
+        return thumbRectangle;
+      }),
+    });
+
+    this.drawnObjects.thumb = thumb;
+    thumb.draw();
   }
 
-  interact(): void {
-    this.state = (this.state === "focused" || this.state === "active") ? "active" : "focused";
+  interact(method: "keyboard" | "mouse"): void {
+    super.interact(method);
+    const interactionInterval = Date.now() - this.lastInteraction.time;
+
+    this.state.value = this.state.peek() === "focused" && (interactionInterval < 500 || method === "keyboard")
+      ? "active"
+      : "focused";
   }
 }

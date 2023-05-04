@@ -1,196 +1,187 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
-
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "./tui.ts";
 import { hierarchizeTheme, Style, Theme } from "./theme.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
-import type { ViewComponent } from "./components/view.ts";
-import type { KeyPress, MousePress, MultiKeyPress, Rectangle } from "./types.ts";
-import type { EventRecord } from "./event_emitter.ts";
+import type { Rectangle } from "./types.ts";
+import { SortedArray } from "./utils/sorted_array.ts";
+import { DrawObject } from "./canvas/draw_object.ts";
+import { View } from "./view.ts";
+import { InputEventRecord } from "./input_reader/mod.ts";
+import { BaseSignal, Computed, Signal } from "./signals.ts";
+import { signalify } from "./utils/signals.ts";
 
-/** Type defining any {Component}, even inherited ones */
-// deno-lint-ignore no-explicit-any
-export type AnyComponent = Component<any>;
-
-/** Interface defining object that {Component}'s constructor can interpret */
 export interface ComponentOptions {
-  /** Parent tui, used for retrieving canvas and adding event listeners */
-  tui: Tui;
-  /** Component that can manipulate drawing position on the canvas by replacing `tui` element with fake one */
-  view?: ViewComponent;
-  /** Theme defining look of component */
-  theme?: Partial<Theme>;
-  /** Position and size of component */
-  rectangle?: Rectangle;
-  /** Components get rendered based on this value, lower values get rendered first */
-  zIndex?: number;
+  tui?: Tui;
+  theme: Partial<Theme>;
+  parent: Component | Tui;
+  zIndex: number | BaseSignal<number>;
+  visible?: boolean | BaseSignal<boolean>;
+  rectangle: Rectangle | BaseSignal<Rectangle>;
+  view?: View | undefined | BaseSignal<View | undefined>;
 }
 
-/** Interface defining what's accessible in {Component} class */
-export interface ComponentPrivate {
-  theme: Theme;
-  draw(): void;
-  interact(method?: "keyboard" | "mouse"): void;
-  state: ComponentState;
-  zIndex: number;
+export interface Interaction {
+  time: number;
+  method: "keyboard" | "mouse" | undefined;
 }
 
-/** Implementation for {Component} class */
-export type ComponentImplementation = ComponentPrivate;
+/** Possible states of a component */
+export type ComponentState = keyof Theme;
 
-/** Default EventMap that every component should use */
-export type ComponentEventMap = {
-  stateChange: EmitterEvent<[Component<EventRecord>]>;
-  remove: EmitterEvent<[Component<EventRecord>]>;
-  keyPress: EmitterEvent<[KeyPress]>;
-  multiKeyPress: EmitterEvent<[MultiKeyPress]>;
-  mousePress: EmitterEvent<[MousePress]>;
-};
+export class Component extends EventEmitter<
+  { destroy: EmitterEvent<[Component]> } & InputEventRecord
+> {
+  #drawn: boolean;
+  #destroyed: boolean;
 
-/** Interactivity states that components should use */
-export type ComponentState =
-  | "focused"
-  | "active"
-  | "base";
+  subComponentOf?: Component;
 
-/** Base Component that should be used as base for creating other components */
-export class Component<
-  EventMap extends EventRecord = Record<never, never>,
-> extends EventEmitter<EventMap & ComponentEventMap> implements ComponentImplementation {
-  #state: ComponentState;
-  #view?: ViewComponent<EventRecord>;
-  #rectangle?: Rectangle;
+  visible: BaseSignal<boolean>;
+  state: BaseSignal<ComponentState>;
+  view: BaseSignal<View | undefined>;
+  zIndex: BaseSignal<number>;
+  rectangle: BaseSignal<Rectangle>;
+  style: BaseSignal<Style>;
 
   tui: Tui;
   theme: Theme;
-  zIndex: number;
+  parent: Component | Tui;
+  children: SortedArray<Component>;
+  drawnObjects: Record<string, DrawObject | DrawObject[]>;
+  subComponents: Record<string, Component>;
+  lastInteraction: Interaction;
 
   constructor(options: ComponentOptions) {
     super();
 
-    this.#rectangle = options.rectangle;
-    this.theme = hierarchizeTheme(options.theme ?? {});
-    this.zIndex = options.zIndex ?? 0;
-    this.#state = "base";
-    this.tui = options.tui;
-    this.#view = options.view;
+    this.#drawn = false;
+    this.#destroyed = false;
+    this.parent = options.parent;
 
-    const offKeyPress = this.tui.on("keyPress", (keyPress) => {
-      if (this.#state !== "base") this.emit("keyPress", keyPress);
+    const { parent } = this;
+    this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
+
+    this.parent.children.push(this);
+    this.children = new SortedArray();
+    this.drawnObjects = {};
+    this.subComponents = {};
+
+    this.lastInteraction = {
+      time: -1,
+      method: undefined,
+    };
+
+    this.view = signalify(options.view);
+    this.zIndex = signalify(options.zIndex);
+    this.visible = signalify(options.visible ?? true);
+    this.rectangle = signalify(options.rectangle, { deepObserve: true, watchObjectIndex: true });
+
+    this.visible.subscribe((visible) => {
+      if (this.#destroyed) return;
+
+      if (!this.#drawn && visible) {
+        if (!this.tui.children.includes(this)) return;
+        this.draw();
+      } else {
+        this.changeDrawnObjectVisibility(visible, false);
+      }
+
+      for (const child of this.children) {
+        child.visible.value = visible;
+      }
     });
 
-    const offMultiKeyPress = this.tui.on("multiKeyPress", (multiKeyPress) => {
-      if (this.#state !== "base") this.emit("multiKeyPress", multiKeyPress);
+    this.state = new Signal<ComponentState>("base");
+    this.theme = hierarchizeTheme(options.theme);
+    this.style = new Computed(() => {
+      const state = this.state.value;
+
+      const { focusedComponents } = this.tui;
+      if (state === "focused" || state === "active") {
+        focusedComponents.add(this);
+      } else {
+        focusedComponents.delete(this);
+      }
+
+      return this.theme[state];
     });
 
-    const offMousePress = this.tui.on("mousePress", (mousePress) => {
-      if (this.#state !== "base") this.emit("mousePress", mousePress);
-    });
-
-    this.on("remove", () => {
-      offKeyPress();
-      offMultiKeyPress();
-      offMousePress();
-    });
-
-    // This should run after everything else is setup
-    // That's why it's added after everything on even loop is ready
     queueMicrotask(() => {
-      this.tui.components.push(this);
-      this.tui.emit("addComponent", this);
+      this.tui.addChild(this);
     });
   }
 
-  /** Returns view that's currently associated with component */
-  get view(): ViewComponent<EventRecord> | undefined {
-    return this.#view;
+  /**
+   * Interact with component using mouse/keyboard
+   */
+  interact(method: "keyboard" | "mouse"): void {
+    this.lastInteraction.time = Date.now();
+    this.lastInteraction.method = method;
   }
 
-  /** Sets view that will be associated with component and updates view offsets */
-  set view(view) {
-    if (view) {
-      this.tui = view.fakeTui;
+  /**
+   * Changes visibility of `drawnObjects` (erases/draws them depending on {visible})
+   *
+   * If {visible} is set to false and {remove} is set to true it deletes objects from `drawnObjects`
+   */
+  changeDrawnObjectVisibility(visible: boolean, remove = false): void {
+    const { drawnObjects } = this;
+    for (const key in drawnObjects) {
+      const value = drawnObjects[key];
 
-      view.components.push(this);
-      view.updateOffsets(this);
-    } else if (this.view) {
-      this.tui = this.view.fakeTui.realTui;
+      if (Array.isArray(value)) {
+        for (const object of value) {
+          if (visible) object.draw();
+          else object.erase();
+        }
+      } else {
+        if (visible) value.draw();
+        else value.erase();
+      }
 
-      this.view.components.remove(this);
-      this.view.updateOffsets();
+      if (remove) delete drawnObjects[key];
+    }
+  }
+
+  /**
+   * Destroys component:
+   *  - Disables all listeners
+   *  - Removes all `drawnObjects`
+   *  - calls `destroy()` on its children
+   *  - Removes itself from `subComponentOf.subComponents`
+   *  - Removes itself from `parent.children`
+   */
+  destroy(): void {
+    this.emit("destroy", this);
+    this.#destroyed = true;
+
+    this.off();
+    this.changeDrawnObjectVisibility(false, true);
+
+    const { children } = this.parent;
+    children.splice(children.indexOf(this), 1);
+
+    for (const child of this.children) {
+      child.destroy();
     }
 
-    this.#view = view;
-  }
+    const subComponents = this.subComponentOf?.subComponents;
+    delete this.subComponentOf;
 
-  /** Returns component's rectangle */
-  get rectangle(): Rectangle | undefined {
-    return this.#rectangle;
-  }
-
-  /** Sets component's rectangle */
-  set rectangle(rectangle) {
-    this.#rectangle = rectangle;
-  }
-
-  /** Returns current component style */
-  get style(): Style {
-    return this.theme[this.state];
-  }
-
-  /** Sets current component state and dispatches stateChange event */
-  set state(state) {
-    this.#state = state;
-    this.emit("stateChange", this);
-  }
-
-  /** Returns current component state */
-  get state(): ComponentState {
-    return this.#state;
+    if (!subComponents) return;
+    for (const index in subComponents) {
+      if (subComponents[index] === this) delete subComponents[index];
+    }
   }
 
   /**
-   * Function that's used for rendering component
-   * It's called on `tui` update event
+   * Draw component
+   *
+   * If called more than one times it deletes previous `drawnObjects`
    */
-  draw(): void {}
-
-  /**
-   * Function that's used for interacting with a component
-   * It's called by keyboard and mouse control handlers
-   */
-  interact(_method?: "keyboard" | "mouse"): void {}
-
-  /** Remove component from `tui` and dispatch `removeComponent` event   */
-  remove(): void {
-    this.off();
-    this.emit("remove", this);
-    this.tui.components.remove(this);
-    this.tui.emit("removeComponent", this);
-  }
-}
-
-/** Interface defining object that {Component}'s constructor can interpret */
-export interface PlaceComponentOptions extends ComponentOptions {
-  rectangle: Rectangle;
-}
-
-/** Component that definitely has it's rectangle set */
-export class PlaceComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> {
-  #rectangle: Rectangle;
-
-  constructor(options: PlaceComponentOptions) {
-    super(options);
-    this.#rectangle = options.rectangle;
-  }
-
-  get rectangle(): Rectangle {
-    return this.#rectangle;
-  }
-
-  set rectangle(rectangle) {
-    this.#rectangle = rectangle;
+  draw(): void {
+    this.#drawn = true;
+    this.changeDrawnObjectVisibility(false, true);
   }
 }

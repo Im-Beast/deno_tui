@@ -1,105 +1,142 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
-
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { TextObject } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
 
-import { textWidth } from "../utils/strings.ts";
+import { cropToWidth, textWidth } from "../utils/strings.ts";
 
 import type { Rectangle } from "../types.ts";
-import type { EventRecord } from "../event_emitter.ts";
+import { BaseSignal, Computed, Effect } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
-/** Interface describing positioning of label when given boundaries using `rectangle` */
-export interface LabelTextAlign {
-  horizontal: "left" | "center" | "right";
+export type LabelRectangle = Omit<Rectangle, "width" | "height"> & {
+  width?: number;
+  height?: number;
+};
+
+export interface LabelAlign {
   vertical: "top" | "center" | "bottom";
+  horizontal: "left" | "center" | "right";
 }
 
-/** Interface defining object that {LabelComponent}'s constructor can interpret */
-export interface LabelComponentOptions extends ComponentOptions {
-  rectangle: Rectangle;
-  /** Position of label when given boundaries using `rectangle` */
-  align: LabelTextAlign;
-  /** Text displayed on label */
-  value: string;
+export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
+  text: string | BaseSignal<string>;
+  rectangle: LabelRectangle | BaseSignal<LabelRectangle>;
+  align?: LabelAlign | BaseSignal<LabelAlign>;
+  multiCodePointSupport?: boolean | BaseSignal<boolean>;
+  overwriteRectangle?: boolean | BaseSignal<boolean>;
 }
 
-/** Implementation for {LabelComponent} class */
-export type LabelComponentImplementation = LabelComponentOptions;
+export class Label extends Component {
+  declare drawnObjects: { texts: TextObject[] };
 
-/**
- * Component that displays text in given `rectangle`
- * When `rectangle`'s `width` and/or `height` properties are set to `-1` then `width` and/or `height` are set dynamically depending on the text size.
- */
-export class LabelComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> implements LabelComponentImplementation {
-  #rectangle: Rectangle;
+  #valueLines?: string[];
 
-  value: string;
-  align: LabelTextAlign;
+  text: BaseSignal<string>;
+  align: BaseSignal<LabelAlign>;
+  overwriteRectangle: BaseSignal<boolean>;
+  multiCodePointSupport: BaseSignal<boolean>;
 
-  constructor(options: LabelComponentOptions) {
-    super(options);
+  constructor(options: LabelOptions) {
+    super(options as ComponentOptions);
 
-    this.value = options.value;
-    this.align = options.align;
-    this.#rectangle = options.rectangle;
-    this.rectangle = options.rectangle;
-  }
+    this.text = signalify(options.text);
+    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
+    this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
+    this.align = signalify(options.align ?? { vertical: "top", horizontal: "left" }, { deepObserve: true });
 
-  get rectangle(): Rectangle {
-    return this.#rectangle;
-  }
+    new Effect(() => {
+      const value = this.text.value;
+      const rectangle = this.rectangle.value;
+      const overwriteRectangle = this.overwriteRectangle.value;
 
-  set rectangle(rectangle: Rectangle) {
-    this.#rectangle = rectangle;
+      const lastValueLines = this.#valueLines;
+      const valueLines = this.#valueLines = value.split("\n");
+      if (!overwriteRectangle) {
+        rectangle.width = valueLines.reduce((p, c) => Math.max(p, textWidth(c)), 0);
+        rectangle.height = valueLines.length;
+      }
 
-    const lines = this.value.split("\n");
-
-    const dynamicWidth = this.#rectangle.width === -1;
-    const dynamicHeight = this.#rectangle.width === -1;
-
-    for (const [i, line] of lines.entries()) {
-      if (dynamicWidth) this.rectangle.width = Math.max(this.rectangle.width, textWidth(line));
-      if (dynamicHeight) this.rectangle.height = Math.max(this.rectangle.height, i + 1);
-    }
+      if (!lastValueLines) return;
+      if (valueLines.length > lastValueLines.length) {
+        this.#fillDrawObjects();
+      } else if (valueLines.length < lastValueLines.length) {
+        this.#popUnusedDrawObjects();
+      }
+    });
   }
 
   draw(): void {
     super.draw();
+    this.drawnObjects.texts = [];
+    this.#valueLines = this.text.peek().split("\n");
+    this.#fillDrawObjects();
+  }
 
-    const { style, align, value } = this;
-    const { canvas } = this.tui;
+  #fillDrawObjects(): void {
+    if (!this.#valueLines) throw new Error("#valueLines has to be set");
 
-    const { column, row, width, height } = this.rectangle;
+    const { drawnObjects } = this;
 
-    const lines = value.split("\n");
-    for (const [i, line] of lines.entries()) {
-      let r = row + i;
-      let c = column;
+    for (let offset = drawnObjects.texts.length; offset < this.#valueLines.length; ++offset) {
+      const textRectangle = { column: 0, row: 0, width: 0, height: 0 };
+      const text = new TextObject({
+        canvas: this.tui.canvas,
+        view: this.view,
+        style: this.style,
+        zIndex: this.zIndex,
+        multiCodePointSupport: this.multiCodePointSupport,
+        value: new Computed(() => {
+          // associate computed with this.text
+          this.text.value;
+          const value = this.#valueLines![offset];
+          return cropToWidth(value, this.rectangle.value.width);
+        }),
+        rectangle: new Computed(() => {
+          // associate computed with this.text
+          this.text.value;
 
-      switch (align.horizontal) {
-        case "left":
-          break;
-        case "center":
-          c += (width - textWidth(line)) / 2;
-          break;
-        case "right":
-          c += width - textWidth(line);
-          break;
-      }
+          const { column, row, width, height } = this.rectangle.value;
+          textRectangle.column = column;
+          textRectangle.row = row + offset;
 
-      switch (align.vertical) {
-        case "top":
-          break;
-        case "center":
-          r += height / 2 - lines.length / 2;
-          break;
-        case "bottom":
-          r += height - lines.length;
-          break;
-      }
+          let value = this.#valueLines![offset];
+          value = cropToWidth(value, width);
+          const valueWidth = textWidth(value);
 
-      canvas.draw(c, r, style(line), this.rectangle);
+          const { vertical, horizontal } = this.align.value;
+          switch (horizontal) {
+            case "center":
+              textRectangle.column += ~~((width - valueWidth) / 2);
+              break;
+            case "right":
+              textRectangle.column += width - valueWidth;
+              break;
+          }
+
+          textRectangle.row = row + offset;
+          switch (vertical) {
+            case "center":
+              textRectangle.row += ~~(height / 2 - this.#valueLines!.length / 2);
+              break;
+            case "bottom":
+              textRectangle.row += height - this.#valueLines!.length;
+              break;
+          }
+
+          return textRectangle;
+        }),
+      });
+
+      drawnObjects.texts[offset] = text;
+      text.draw();
+    }
+  }
+
+  #popUnusedDrawObjects(): void {
+    if (!this.#valueLines) throw new Error("#valueLines has to be set");
+
+    for (const text of this.drawnObjects.texts.splice(this.#valueLines.length)) {
+      text.erase();
     }
   }
 }

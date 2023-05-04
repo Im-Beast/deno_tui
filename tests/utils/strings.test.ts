@@ -1,9 +1,11 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
-import { insertAt, isFullWidth, stripStyles, textWidth, UNICODE_CHAR_REGEXP } from "../../src/utils/strings.ts";
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
+import { characterWidth, insertAt, stripStyles, textWidth, UNICODE_CHAR_REGEXP } from "../../src/utils/strings.ts";
 import { assertEquals } from "../deps.ts";
 
 const unicodeString = "♥☭👀f🌏g⚠5✌💢✅💛🌻";
 const fullWidths = ["０", "１", "２", "３", "４", "ｈ", "ｉ", "ｊ", "ｋ", "ｌ", "テ", "ク", "ワ"];
+const halfWidths = ["a", "b", "1", "ą", "ł", "､", "ﾝ", "ｼ"];
 
 Deno.test("utils/strings.ts", async (t) => {
   await t.step("UNICODE_CHAR_REGEXP", () => {
@@ -18,16 +20,14 @@ Deno.test("utils/strings.ts", async (t) => {
     assertEquals(insertAt("test", 4, "!"), "test!");
   });
 
-  await t.step("isFullWidth()", () => {
+  await t.step("characterWidth()", () => {
     for (const character of fullWidths) {
-      assertEquals(isFullWidth(character), true);
+      assertEquals(characterWidth(character), 2);
     }
 
-    assertEquals(isFullWidth("a"), false);
-    assertEquals(isFullWidth("ą"), false);
-    assertEquals(isFullWidth("1"), false);
-    assertEquals(isFullWidth("k"), false);
-    assertEquals(isFullWidth("z"), false);
+    for (const character of halfWidths) {
+      assertEquals(characterWidth(character), 1);
+    }
   });
 
   await t.step("stripStyles()", () => {

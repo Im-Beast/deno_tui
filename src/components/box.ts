@@ -1,22 +1,22 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { BoxObject } from "../canvas/box.ts";
+import { Component } from "../component.ts";
 
-import { PlaceComponent, PlaceComponentOptions } from "../component.ts";
-
-import type { EventRecord } from "../event_emitter.ts";
-
-/** Simple component that is a Box that cannot be interacted with by default */
-export class BoxComponent<EventMap extends EventRecord = Record<never, never>> extends PlaceComponent<EventMap> {
-  constructor(options: PlaceComponentOptions) {
-    super(options);
-  }
+export class Box extends Component {
+  declare drawnObjects: { box: BoxObject };
 
   draw(): void {
     super.draw();
 
-    const { style } = this;
-    const { canvas } = this.tui;
-    const { column, row, width, height } = this.rectangle;
+    const box = new BoxObject({
+      canvas: this.tui.canvas,
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      rectangle: this.rectangle,
+    });
 
-    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
+    this.drawnObjects.box = box;
+    box.draw();
   }
 }

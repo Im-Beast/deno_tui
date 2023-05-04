@@ -1,54 +1,85 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { ComponentOptions } from "../component.ts";
+import { Box } from "./box.ts";
 
-import { BoxComponent } from "./box.ts";
-import { PlaceComponentOptions } from "../component.ts";
+import type { BoxObject } from "../canvas/box.ts";
+import { Label, LabelAlign } from "./label.ts";
+import { BaseSignal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
-import type { EventRecord } from "../event_emitter.ts";
+const centerAlign: LabelAlign = {
+  horizontal: "center",
+  vertical: "center",
+};
 
-/** Interface defining object that {ButtonComponent}'s constructor can interpret */
-export interface ButtonComponentOptions extends PlaceComponentOptions {
-  /** Text displayed on the center of the button */
-  label?: string;
+export interface ButtonOptions extends ComponentOptions {
+  label?: {
+    text: string | BaseSignal<string>;
+    align?: LabelAlign | BaseSignal<LabelAlign>;
+  };
 }
 
-/** Implementation for {ButtonComponent} class */
-export type ButtonComponentImplementation = ButtonComponentOptions;
+export class Button extends Box {
+  declare drawnObjects: { box: BoxObject };
+  declare subComponents: { label?: Label };
+  label: BaseSignal<{
+    text: BaseSignal<string | undefined>;
+    align: BaseSignal<LabelAlign>;
+  }>;
 
-/** Component that can be pressed */
-export class ButtonComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap> implements ButtonComponentImplementation {
-  #lastInteraction = 0;
-
-  label?: string;
-
-  constructor(options: ButtonComponentOptions) {
+  constructor(options: ButtonOptions) {
     super(options);
-    this.label = options.label;
+
+    let { label } = options;
+
+    if (!label) {
+      label = { text: "", align: centerAlign };
+    }
+
+    label.text = signalify(label.text);
+    label.align = signalify(label.align ?? centerAlign);
+
+    this.label = signalify(label as unknown as this["label"], { deepObserve: true });
+    this.label.value.text.subscribe(() => {
+      this.#updateLabelSubcomponent();
+    });
   }
 
   draw(): void {
     super.draw();
-
-    if (this.label) {
-      const { style } = this;
-      const { canvas } = this.tui;
-      const { column, row, width, height } = this.rectangle;
-
-      canvas.draw(
-        column + (width / 2) - (this.label.length / 2),
-        row + (height / 2),
-        style(this.label),
-      );
-    }
+    this.#updateLabelSubcomponent();
   }
 
-  interact(method?: "mouse" | "keyboard"): void {
-    const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
+  interact(method: "mouse" | "keyboard"): void {
+    const interactionInterval = Date.now() - this.lastInteraction.time;
 
-    this.state = this.state === "focused" && (interactionDelay < 500 || method === "keyboard") ? "active" : "focused";
+    this.state.value = this.state.peek() === "focused" && (interactionInterval < 500 || method === "keyboard")
+      ? "active"
+      : "focused";
 
-    this.#lastInteraction = now;
+    super.interact(method);
+  }
+
+  #updateLabelSubcomponent(): void {
+    if (!this.label.value.text.value) {
+      this.subComponents.label?.destroy();
+      return;
+    }
+
+    const label = new Label({
+      parent: this,
+      theme: this.theme,
+      zIndex: this.zIndex,
+      rectangle: this.rectangle,
+      overwriteRectangle: true,
+      text: this.label.value.text as BaseSignal<string>,
+      align: this.label.value.align,
+    });
+
+    label.state = this.state;
+    label.style = this.style;
+
+    label.subComponentOf = this;
+    this.subComponents.label = label;
   }
 }

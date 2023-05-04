@@ -1,279 +1,318 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { Box } from "./box.ts";
+import { ComponentOptions } from "../component.ts";
 
-import { ComponentEventMap, PlaceComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
-import { EmitterEvent } from "../event_emitter.ts";
-
-import { insertAt } from "../utils/strings.ts";
+import { BoxObject } from "../canvas/box.ts";
+import { TextObject } from "../canvas/text.ts";
+import { Theme } from "../theme.ts";
+import { DeepPartial } from "../types.ts";
+import { cropToWidth, insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
+import { BaseSignal, Computed, Effect, Signal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
+import { KeyPressEvent } from "../input_reader/types.ts";
 
-import type { EventRecord } from "../event_emitter.ts";
-import { emptyStyle, hierarchizeTheme, Style, Theme } from "../theme.ts";
-import type { DeepPartial, KeyPress } from "../types.ts";
+export interface CursorPosition {
+  x: number;
+  y: number;
+}
 
-export interface TextboxTheme extends Theme {
+export interface TextBoxTheme extends Theme {
+  value: Theme;
+  cursor: Theme;
   /** Style for numbers counting textbox rows */
   lineNumbers: Theme;
   /** Style for currently selected text row */
   highlightedLine: Theme;
-  /** Style for placeholder text */
-  placeholder: Style;
 }
 
-/** Interface defining object that {TextboxComponent}'s constructor can interpret */
-export interface TextboxComponentOptions extends PlaceComponentOptions {
-  theme?: DeepPartial<TextboxTheme>;
-  /** Whether texbox should allow new lines */
-  multiline?: boolean;
-  /** Whether textbox value should be starred ("*") */
-  hidden?: boolean;
-  /** Current value of textbox */
-  value?: string;
-  /** Text displayed as a proposition of example text input */
-  placeholder?: string;
+export interface TextBoxOptions extends ComponentOptions {
+  text?: string | BaseSignal<string>;
+  validator?: RegExp | BaseSignal<RegExp>;
+  theme: DeepPartial<TextBoxTheme, "cursor">;
+  multiCodePointSupport?: boolean | BaseSignal<boolean>;
   /** Whether to highlight currently selected text row */
-  lineHighlighting?: boolean;
+  lineHighlighting?: boolean | BaseSignal<boolean>;
   /** Whether to number textbox rows */
-  lineNumbering?: boolean;
+  lineNumbering?: boolean | BaseSignal<boolean>;
   /** Function that defines what key does what while textbox is focused/active */
-  keyboardHandler?: (textbox: TextboxComponent<EventRecord>) => (keyPress: KeyPress) => void;
+  keyboardHandler?: (keyPress: KeyPressEvent) => void;
 }
 
-/** Complementary interface defining what's accessible in {TextboxComponent} class in addition to {TextboxComponentOptions} */
-export interface TextboxComponentPrivate {
-  theme: TextboxTheme;
-  lineHighlighting: boolean;
-  lineNumbering: boolean;
-  multiline: boolean;
-  hidden: boolean;
-  value: string;
-}
-
-/** Implementation for {TextboxComponent} class */
-export type TextboxComponentImplementation = TextboxComponentOptions & TextboxComponentPrivate;
-
-/** EventMap that {TextboxComponent} uses */
-export type TextboxComponentEventMap = ComponentEventMap & {
-  valueChange: EmitterEvent<[TextboxComponent<EventRecord>]>;
-};
-
-/** Default keyboard handler for {TextboxComponent} */
-export function textboxKeyboardHandler(textbox: TextboxComponent<EventRecord>): (keyPress: KeyPress) => void {
-  return (keyPress) => {
-    const { key, ctrl, meta } = keyPress;
-    if (ctrl || meta) return;
-
-    let { x, y } = textbox.cursorPosition;
-
-    const startValue = textbox.value;
-
-    if (key.length === 1) {
-      textbox.rawValue[y] = insertAt(textbox.rawValue[y], x, key);
-      ++x;
-    } else {
-      const currentLine = textbox.rawValue[y];
-      const endOfLine = x === currentLine.length;
-
-      switch (key) {
-        case "space":
-          textbox.rawValue[y] = insertAt(textbox.rawValue[y], x, " ");
-          ++x;
-          break;
-        case "tab":
-          textbox.rawValue[y] = insertAt(textbox.rawValue[y], x, "  ");
-          ++x;
-          break;
-        case "up":
-          --y;
-          break;
-        case "down":
-          y = Math.min(++y, textbox.rawValue.length - 1);
-          break;
-        case "left":
-          --x;
-          break;
-        case "right":
-          ++x;
-          break;
-        case "home":
-          x = 0;
-          break;
-        case "end":
-          x = currentLine.length;
-          break;
-        case "return":
-          if (!textbox.multiline) break;
-
-          if (!endOfLine) {
-            const splitLines = [currentLine.slice(0, x), currentLine.slice(x)];
-            textbox.rawValue.splice(y, 1, ...splitLines);
-            x = 0;
-          }
-          ++y;
-          break;
-        case "delete":
-          if (!endOfLine) {
-            textbox.rawValue[y] = currentLine.slice(0, x) + currentLine.slice(x + 1);
-          } else if (textbox.rawValue.length > y + 1) {
-            const combinedLines = currentLine + textbox.rawValue[y + 1];
-            textbox.rawValue.splice(y, 2, combinedLines);
-          }
-          break;
-        case "backspace":
-          if (y - 1 >= 0 && x === 0) {
-            const previousLine = textbox.rawValue[y - 1];
-            const combinedLines = previousLine + currentLine;
-            textbox.rawValue.splice(y - 1, 2, combinedLines);
-            --y;
-            x = previousLine.length;
-          } else if (x !== 0) {
-            textbox.rawValue[y] = currentLine.slice(0, x - 1) + currentLine.slice(x);
-            --x;
-          }
-          break;
-      }
-    }
-
-    y = Math.max(y, 0);
-    textbox.rawValue[y] ||= "";
-    x = clamp(x, 0, textbox.rawValue[y].length);
-    textbox.cursorPosition = { x, y };
-
-    if (textbox.value !== startValue) {
-      textbox.emit("valueChange", textbox);
-    }
+export class TextBox extends Box {
+  declare drawnObjects: {
+    box: BoxObject;
+    lines: TextObject[];
+    lineNumbers: TextObject[];
+    cursor: TextObject;
   };
-}
+  declare theme: TextBoxTheme;
 
-/**
- * Component that allows user to input text.
- * It implements most important ways to manipulate inputting text e.g.:
- *  - Arrows - Move cursor in specified direction
- *  - Return – Create new line
- *  - Home/End - Go to the start/end of the line
- *  - PgUp/PgDown - Go to the start/end of the text input
- *  - Delete/Backspace - Delete preceding/subsequent character
- */
-export class TextboxComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & TextboxComponentEventMap> implements TextboxComponentImplementation {
-  declare theme: TextboxTheme;
+  #textLines: Computed<string[]>;
 
-  rawValue: string[] = [];
-  #placeholder?: string[];
+  text: BaseSignal<string>;
+  lineNumbering: BaseSignal<boolean>;
+  lineHighlighting: BaseSignal<boolean>;
+  cursorPosition: BaseSignal<CursorPosition>;
+  multiCodePointSupport: BaseSignal<boolean>;
 
-  cursorPosition: {
-    x: number;
-    y: number;
-  };
-  multiline: boolean;
-  hidden: boolean;
-  lineHighlighting: boolean;
-  lineNumbering: boolean;
-  placeholder?: string;
-
-  constructor(options: TextboxComponentOptions) {
+  constructor(options: TextBoxOptions) {
     super(options);
-    this.multiline = options.multiline ?? false;
-    this.lineHighlighting = options.lineHighlighting ?? false;
-    this.lineNumbering = options.lineNumbering ?? false;
-    this.hidden = options.hidden ?? false;
-    this.value = options.value ?? "";
-    this.cursorPosition = { x: this.rawValue.at(-1)?.length ?? 0, y: this.rawValue.length - 1 ?? 0 };
-    this.placeholder = options.placeholder;
-    if (this.placeholder) {
-      this.#placeholder = this.placeholder.split("\n");
-    }
 
-    this.theme.placeholder = options.theme?.placeholder ?? emptyStyle;
-    this.theme.highlightedLine = hierarchizeTheme(options.theme?.highlightedLine ?? {});
-    this.theme.lineNumbers = hierarchizeTheme(options.theme?.lineNumbers ?? {});
+    this.theme.value ??= this.theme;
+    this.theme.lineNumbers ??= this.theme;
+    this.theme.highlightedLine ??= this.theme;
 
-    this.on("keyPress", textboxKeyboardHandler(this));
-  }
+    this.cursorPosition = new Signal({ x: 0, y: 0 }, { deepObserve: true });
 
-  get value(): string {
-    return this.rawValue.join("\n");
-  }
+    this.text = signalify(options.text ?? "");
+    this.lineNumbering = signalify(options.lineNumbering ?? false);
+    this.lineHighlighting = signalify(options.lineHighlighting ?? false);
+    this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
 
-  set value(value: string) {
-    const split = value.split("\n");
-    this.rawValue = this.multiline ? split : [split.join("")];
+    // FIXME: This creates unnecessary arrays each time it runs
+    this.#textLines = new Computed(() => this.text.value.split("\n"));
+
+    new Effect(() => {
+      this.#updateLineDrawObjects();
+    });
+
+    this.on(
+      "keyPress",
+      options.keyboardHandler ?? (({ key, ctrl, meta }) => {
+        if (ctrl || meta) return;
+
+        const cursorPosition = this.cursorPosition.peek();
+        const textLines = this.#textLines.peek();
+        const textLine = textLines[cursorPosition.y] ??= "";
+
+        let character: string;
+
+        switch (key) {
+          case "left":
+            --cursorPosition.x;
+            break;
+          case "right":
+            ++cursorPosition.x;
+            break;
+          case "up":
+            --cursorPosition.y;
+            break;
+          case "down":
+            if (textLines.length - 1 > cursorPosition.y) {
+              ++cursorPosition.y;
+            }
+            break;
+          case "home":
+            cursorPosition.x = 0;
+            return;
+          case "end":
+            cursorPosition.x = textLine.length;
+            return;
+
+          case "backspace":
+            if (cursorPosition.x === 0) {
+              if (cursorPosition.y === 0) return;
+              textLines[cursorPosition.y - 1] += textLines[cursorPosition.y];
+              textLines.splice(cursorPosition.y, 1);
+              --cursorPosition.y;
+              cursorPosition.x = textLines[cursorPosition.y].length;
+            } else {
+              textLines[cursorPosition.y] = textLine.slice(0, cursorPosition.x - 1) + textLine.slice(cursorPosition.x);
+              cursorPosition.x = clamp(cursorPosition.x - 1, 0, textLine.length);
+            }
+            break;
+          case "delete":
+            textLines[cursorPosition.y] = textLine.slice(0, cursorPosition.x) + textLine.slice(cursorPosition.x + 1);
+
+            if (cursorPosition.x === textLine.length && textLines.length - 1 > cursorPosition.y) {
+              textLines[cursorPosition.y] += textLines[cursorPosition.y + 1];
+              textLines.splice(cursorPosition.y + 1, 1);
+            }
+            break;
+          case "return":
+            ++cursorPosition.y;
+            break;
+
+          case "space":
+            character = " ";
+            break;
+          case "tab":
+            character = "\t";
+            break;
+          default:
+            if (key.length > 1) return;
+            character = key;
+        }
+
+        cursorPosition.y = clamp(cursorPosition.y, 0, textLines.length);
+        cursorPosition.x = clamp(cursorPosition.x, 0, textLines[cursorPosition.y]?.length ?? 0);
+
+        if (character!) {
+          textLines[cursorPosition.y] = insertAt(textLine, cursorPosition.x, character);
+          ++cursorPosition.x;
+        }
+
+        this.text.value = textLines.join("\n");
+      }),
+    );
   }
 
   draw(): void {
     super.draw();
 
     const { canvas } = this.tui;
+    const { drawnObjects } = this;
 
-    let { column, row, width, height } = this.rectangle;
-    const textLineOffset = `${this.rawValue.length}`.length;
+    drawnObjects.lineNumbers = [];
+    drawnObjects.lines = [];
 
-    if (this.lineNumbering) {
-      column += textLineOffset;
-      width -= textLineOffset;
-    }
+    this.#updateLineDrawObjects();
 
-    if (!this.value && !this.placeholder) return;
-    const isPlaceholder = !this.value;
-    const textArray = isPlaceholder ? this.#placeholder! : this.rawValue;
+    const cursorRectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursor = new TextObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      multiCodePointSupport: this.multiCodePointSupport,
+      value: new Computed(() => {
+        const cursorPosition = this.cursorPosition.value;
+        const value = this.#textLines.value[cursorPosition.y];
+        return value?.[cursorPosition.x] ?? " ";
+      }),
+      style: new Computed(() => this.theme.cursor[this.state.value]),
+      rectangle: new Computed(() => {
+        const cursorPosition = this.cursorPosition.value;
+        const { row, column, width, height } = this.rectangle.value;
 
-    const textStyle = isPlaceholder && this.theme.placeholder
-      ? (text: string) => this.style(this.theme.placeholder(text).replaceAll("\x1b[0m", ""))
-      : this.style;
+        cursorRectangle.row = row + Math.min(cursorPosition.y, height - 1);
 
-    const { x, y } = this.cursorPosition;
+        if (this.lineNumbering.value) {
+          const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
+          cursorRectangle.column = column + lineNumbersWidth + Math.min(cursorPosition.x, width - lineNumbersWidth - 1);
+        } else {
+          cursorRectangle.column = column + Math.min(cursorPosition.x, width - 1);
+        }
 
-    const offsetX = Math.max(x - width + 1, 0);
-    const offsetY = Math.max(y - height + 1, 0);
+        return cursorRectangle;
+      }),
+    });
 
-    const lineNumbersStyle = this.theme.lineNumbers[this.state];
-    const highlightedLineStyle = this.theme.highlightedLine[this.state];
-
-    for (const [i, line] of textArray.entries()) {
-      if (i < offsetY) continue;
-      if (i - offsetY >= height) break;
-
-      let lineText = line.slice(offsetX, offsetX + width);
-      lineText = this.hidden ? "*".repeat(lineText.length) : lineText;
-
-      if (this.lineHighlighting && i === y && highlightedLineStyle !== emptyStyle) {
-        lineText = highlightedLineStyle(lineText);
-        canvas.draw(column, row + i - offsetY, highlightedLineStyle(" ".repeat(width)));
-      }
-
-      lineText = textStyle(lineText);
-
-      canvas.draw(
-        column,
-        row + i - offsetY,
-        lineText,
-      );
-
-      if (!this.lineNumbering) continue;
-
-      const rowNumber = `${i + 1}`;
-      const rowNumberText = lineNumbersStyle(
-        this.lineNumbering ? (rowNumber + " ".repeat(textLineOffset - rowNumber.length)) : "",
-      );
-
-      canvas.draw(
-        column - textLineOffset,
-        row + i - offsetY,
-        rowNumberText,
-      );
-    }
-
-    if (this.state === "base") return;
-
-    canvas.draw(
-      column + Math.min(x, width - 1),
-      row + Math.min(y, height - 1),
-      textStyle("\x1b[7m" + (textArray[y][x] ?? " ") + "\x1b[0m"),
-    );
+    drawnObjects.cursor = cursor;
+    cursor.draw();
   }
 
-  interact(): void {
-    this.state = "focused";
+  interact(method: "keyboard" | "mouse"): void {
+    this.state.value = "focused";
+    super.interact(method);
+  }
+
+  #updateLineDrawObjects(): void {
+    const { lineNumbers, lines } = this.drawnObjects;
+    if (!lines) return;
+
+    const { canvas } = this.tui;
+    const elements = lines.length;
+    const { height } = this.rectangle.value;
+    const lineNumbering = this.lineNumbering.value;
+
+    for (let offset = 0; offset < Math.max(height, elements); ++offset) {
+      const lineNumber = lineNumbers[offset];
+      if (!lineNumber && lineNumbering) {
+        const lineNumberRectangle = { column: 0, row: 0, width: 0 };
+        const lineNumber = new TextObject({
+          canvas,
+          view: this.view,
+          zIndex: this.zIndex,
+          multiCodePointSupport: this.multiCodePointSupport,
+          style: new Computed(() => this.theme.lineNumbers[this.state.value]),
+          value: new Computed(() => {
+            const { height } = this.rectangle.value;
+            const cursorPosition = this.cursorPosition.value;
+
+            const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0) + 1;
+            const maxLineNumber = this.#textLines.value.length;
+
+            return `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");
+          }),
+          rectangle: new Computed(() => {
+            const { row, column } = this.rectangle.value;
+            lineNumberRectangle.column = column;
+            lineNumberRectangle.row = row + offset;
+            return lineNumberRectangle;
+          }),
+        });
+
+        lineNumbers[offset] = lineNumber;
+        lineNumber.draw();
+      } else if (lineNumber && !lineNumbering) {
+        lineNumber.erase();
+        delete lineNumbers[offset];
+      }
+
+      const line = lines[offset];
+      if (!line) {
+        const lineRectangle = { column: 0, row: 0, width: 0 };
+        const line = new TextObject({
+          canvas,
+          view: this.view,
+          zIndex: this.zIndex,
+          multiCodePointSupport: this.multiCodePointSupport,
+          style: new Computed(() => {
+            // associate computed with this.text
+            this.text.value;
+
+            const state = this.state.value;
+            const highlightLine = this.lineHighlighting.value;
+            const cursorPosition = this.cursorPosition.value;
+
+            const offsetY = Math.max(cursorPosition.y - this.rectangle.value.height + 1, 0);
+            const currentLine = offsetY + offset;
+
+            if (highlightLine && cursorPosition.y === currentLine) {
+              return this.theme.highlightedLine[state];
+            } else return this.theme.value[state];
+          }),
+          value: new Computed(() => {
+            const cursorPosition = this.cursorPosition.value;
+
+            let { width, height } = this.rectangle.value;
+            if (this.lineNumbering.value) {
+              const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
+              width -= lineNumbersWidth;
+            }
+
+            const offsetX = cursorPosition.x - width + 1;
+            const offsetY = Math.max(cursorPosition.y - height + 1, 0);
+
+            const value = this.#textLines.value[offset + offsetY]?.replace("\t", " ") ?? "";
+
+            return cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value, width).padEnd(width, " ");
+          }),
+          rectangle: new Computed(() => {
+            // associate computed with this.lineNumbering and this.#textLines
+            this.lineNumbering.value;
+            this.#textLines.value;
+
+            const { row, column } = this.rectangle.value;
+            lineRectangle.column = column;
+            lineRectangle.row = row + offset;
+
+            if (this.lineNumbering.value) {
+              const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
+              lineRectangle.column += lineNumbersWidth;
+            }
+
+            return lineRectangle;
+          }),
+        });
+
+        lines[offset] = line;
+        line.draw();
+      } else if (offset >= height) {
+        line.erase();
+        delete lines[offset];
+      }
+    }
   }
 }

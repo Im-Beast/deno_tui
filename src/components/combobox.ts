@@ -1,118 +1,103 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { BaseSignal, Computed, Signal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
+import { Button, ButtonOptions } from "./button.ts";
 
-import { Component, ComponentOptions } from "../component.ts";
-import { BoxComponent } from "./box.ts";
-import { ButtonComponent } from "./button.ts";
-import { EmitterEvent } from "../event_emitter.ts";
-
-import type { Rectangle } from "../types.ts";
-import type { EventRecord } from "../event_emitter.ts";
-
-/** Interface defining object that {ComboboxComponent}'s constructor can interpret */
-export interface ComboboxComponentOptions<OptionType extends string[] = string[]> extends ComponentOptions {
-  rectangle: Rectangle;
-  /** Text displayed on combobox by default */
-  label?: string;
-  /** Possible values of combobox */
-  options: OptionType;
+export interface ComboBoxOptions<Items extends string[] = string[]> extends Omit<ButtonOptions, "label"> {
+  placeholder?: string;
+  items: Items | BaseSignal<Items>;
+  selectedItem?: number | undefined | BaseSignal<number | undefined>;
 }
 
-/** Complementary interface defining what's accessible in {ComboboxComponent} class in addition to {ComboboxComponentOptions} */
-export interface ComboboxComponentPrivate<OptionType extends string[] = string[]> {
-  label: string;
-  /** Currently selected option */
-  value?: OptionType[number];
-}
+export class ComboBox<Items extends string[] = string[]> extends Button {
+  declare subComponents: { [button: number]: Button };
+  #subComponentsLength: number;
 
-/** Implementation for {ComboboxComponent} class */
-export type ComboboxComponentImplementation = ComboboxComponentOptions & ComboboxComponentPrivate;
+  items: BaseSignal<Items>;
+  expanded: BaseSignal<boolean>;
+  selectedItem: BaseSignal<number | undefined>;
+  placeholder: BaseSignal<string>;
 
-/** EventMap that {ComboboxComponent} uses */
-export type ComboboxComponentEventMap = {
-  valueChange: EmitterEvent<[ComboboxComponent<string[], EventRecord>]>;
-};
+  constructor(options: ComboBoxOptions<Items>) {
+    const selectedItemSignal = signalify(options.selectedItem);
+    const itemsSignal = signalify(options.items, { deepObserve: true });
+    const placeholderSignal = signalify(options.placeholder ?? "");
 
-/**
- * Component that allows user to input value by selecting one from available options.
- * If `label` isn't provided then first value from `options` will be used.
- */
-export class ComboboxComponent<
-  OptionType extends string[] = string[],
-  EventMap extends EventRecord = Record<never, never>,
-> extends BoxComponent<EventMap & ComboboxComponentEventMap> implements ComboboxComponentImplementation {
-  #lastInteraction = 0;
-  #temporaryComponents: Component[] = [];
+    const buttonOptions: ButtonOptions = options;
+    buttonOptions.label = {
+      text: new Computed(() => {
+        const items = itemsSignal.value;
+        const selectedItem = selectedItemSignal.value;
+        const placeholder = placeholderSignal.value;
+        return selectedItem === undefined ? placeholder : items[selectedItem];
+      }),
+    };
 
-  label: string;
-  options: string[];
-  option?: OptionType[number];
+    super(buttonOptions);
 
-  constructor(options: ComboboxComponentOptions<OptionType>) {
-    super(options);
-    this.options = options.options;
-    this.label = options.label ?? this.options[0];
-    this.option = options.label ? undefined : this.options[0];
+    this.items = itemsSignal;
+    this.expanded = new Signal(false);
+    this.placeholder = placeholderSignal;
+    this.selectedItem = selectedItemSignal;
+
+    this.#subComponentsLength = this.items.value.length;
+    this.#updateItemButtons();
+
+    this.items.subscribe((items) => {
+      this.#updateItemButtons();
+      this.#subComponentsLength = items.length;
+    });
   }
 
-  draw(): void {
-    super.draw();
+  #updateItemButtons(): void {
+    const { subComponents } = this;
+    const items = this.items.peek();
 
-    if (this.label) {
-      const { style } = this;
-      const { canvas } = this.tui;
-      const { column, row, width, height } = this.rectangle;
+    for (let i = 0; i < Math.max(items.length, this.#subComponentsLength); ++i) {
+      const subComponent = subComponents[i];
+      if (subComponent) {
+        if (i >= items.length) {
+          subComponent.destroy();
+          delete subComponents[i];
+        }
+        continue;
+      }
 
-      canvas.draw(
-        column + (width / 2) - (this.label.length / 2),
-        row + (height / 2),
-        style(this.label),
-      );
+      const buttonRectangle = { column: 0, row: 0, width: 0, height: 0 };
+
+      const button = new Button({
+        parent: this,
+        theme: this.theme,
+        zIndex: this.zIndex,
+        visible: this.expanded,
+        label: {
+          text: new Computed(() => this.items.value[i]),
+        },
+        rectangle: new Computed(() => {
+          const { column, row, width, height } = this.rectangle.value;
+          buttonRectangle.column = column;
+          buttonRectangle.row = row + (i + 1) * height;
+          buttonRectangle.width = width;
+          buttonRectangle.height = height;
+          return buttonRectangle;
+        }),
+      });
+
+      button.state.subscribe(() => {
+        if (button.state.peek() !== "active") return;
+        this.selectedItem.value = i;
+        this.expanded.value = false;
+      });
+
+      subComponents[i] = button;
     }
   }
 
-  interact(): void {
-    const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
+  interact(method: "mouse" | "keyboard"): void {
+    super.interact(method);
 
-    this.state = this.state === "focused" && interactionDelay < 500 ? "active" : "focused";
-
-    const temporaryComponents = this.#temporaryComponents;
-
-    if (this.state === "active") {
-      const { column, row, width, height } = this.rectangle;
-
-      for (const [i, option] of this.options.entries()) {
-        const button = new ButtonComponent({
-          tui: this.tui,
-          rectangle: {
-            column,
-            row: row + ((i + 1) * height),
-            height,
-            width,
-          },
-          label: option,
-          theme: this.theme,
-          zIndex: this.zIndex,
-        });
-
-        button.on("stateChange", (component) => {
-          const { state } = component;
-          if (state !== "active") return;
-          this.label = option;
-          this.option = option;
-          this.emit("valueChange", this);
-          this.interact();
-        });
-
-        temporaryComponents.push(button);
-      }
-    } else {
-      for (const component of temporaryComponents) {
-        component.remove();
-      }
-      temporaryComponents.length = 0;
+    if (this.state.peek() === "active") {
+      this.expanded.value = !this.expanded.peek();
     }
-
-    this.#lastInteraction = now;
   }
 }

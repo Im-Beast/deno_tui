@@ -1,301 +1,366 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
-
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 
-import type { EventRecord } from "../event_emitter.ts";
-import { hierarchizeTheme, replaceEmptyStyle, Theme } from "../theme.ts";
+import { BoxObject } from "../canvas/box.ts";
+import { TextObject } from "../canvas/text.ts";
 
-import { DeepPartial, Rectangle } from "../types.ts";
-import { clamp } from "../utils/numbers.ts";
+import type { DeepPartial, Rectangle } from "../types.ts";
+import { Theme } from "../theme.ts";
 import { textWidth } from "../utils/strings.ts";
+import { clamp } from "../utils/numbers.ts";
+import { BaseSignal, Computed, Effect, Signal } from "../signals.ts";
+import { signalify } from "../utils/signals.ts";
 
-export const sharpTableFramePieces = {
-  topLeft: "┌",
-  topRight: "┐",
-  bottomLeft: "└",
-  bottomRight: "┘",
-  leftHorizontal: "├",
-  rightHorizontal: "┤",
-  horizontal: "─",
-  vertical: "│",
-} as const;
-
-export const roundedTableFramePieces = {
-  topLeft: "╭",
-  topRight: "╮",
-  bottomLeft: "╰",
-  bottomRight: "╯",
-  leftHorizontal: "├",
-  rightHorizontal: "┤",
-  horizontal: "─",
-  vertical: "│",
-  topHorizontal: "┬",
-  bottomHorizontal: "┴",
-  cross: "┼",
-} as const;
-
-/** Type that specifies structore of object that defines how table frame looks like  */
-export type TableFramePieceType = {
-  [key in keyof typeof sharpTableFramePieces]: string;
+export const TableUnicodeCharacters = {
+  sharp: {
+    topLeft: "┌",
+    topRight: "┐",
+    bottomLeft: "└",
+    bottomRight: "┘",
+    leftHorizontal: "├",
+    rightHorizontal: "┤",
+    horizontal: "─",
+    vertical: "│",
+  },
+  rounded: {
+    topLeft: "╭",
+    topRight: "╮",
+    bottomLeft: "╰",
+    bottomRight: "╯",
+    leftHorizontal: "├",
+    rightHorizontal: "┤",
+    horizontal: "─",
+    vertical: "│",
+  },
 };
 
-/** Theme used by {TableComponent} to style itself */
+export type TableUnicodeCharactersType = {
+  [key in keyof typeof TableUnicodeCharacters["rounded"]]: string;
+};
+
 export interface TableTheme extends Theme {
-  /** Style for table headers */
-  header: Theme;
-  /** Style for currently selected row */
-  selectedRow: Theme;
-  /** Style for frame surrounding table */
   frame: Theme;
+  header: Theme;
+  selectedRow: Theme;
 }
 
-/** Object that determines text & width of a column in {TableComponent}'s headers */
-export interface TableHeader {
-  /** Text displayed above column */
+export type TableHeader<WidthDefined extends boolean> = {
   title: string;
-  /** Enforced width of a column */
-  width: number;
-}
+} & (WidthDefined extends true ? { width: number } : { width?: number });
 
-/** Interface defining object that {TableComponent}'s constructor can interpret */
-export interface TableComponentOptions extends Omit<ComponentOptions, "rectangle"> {
-  theme: DeepPartial<TableTheme>;
-  /**
-   *  Headers detailing size & text displayed for each data column
-   *  When string is used width is determined by maximal width of either text or data in column
-   */
-  headers: (TableHeader | string)[];
-  /** Data displayed by table */
-  data: string[][];
-  /**
-   *  Position and size of component
-   *  {TableComponent}'s rectangle doesn't include `width` property as width is defined by headers and table data
-   */
+export interface TableOptions extends Omit<ComponentOptions, "rectangle"> {
+  theme: DeepPartial<TableTheme, "frame" | "header" | "selectedRow">;
+  headers: TableHeader<false>[];
   rectangle: Omit<Rectangle, "width">;
-  /** Option that changes characters that surround {TableComponent} */
-  framePieces?: "sharp" | "rounded" | TableFramePieceType;
+  data: string[][];
+  charMap: keyof typeof TableUnicodeCharacters | TableUnicodeCharactersType;
 }
 
-/** Implementation for {TableComponent} class */
-export type TableComponentImplementation = Omit<TableComponentOptions, "rectangle"> & {
-  rectangle: Rectangle;
-};
-
-/** Component that can be pressed */
-export class TableComponent<
-  EventMap extends EventRecord = Record<never, never>,
-> extends Component<EventMap> implements TableComponentImplementation {
+export class Table extends Component {
   declare theme: TableTheme;
+  declare drawnObjects: {
+    frame: [
+      top: TextObject,
+      bottom: TextObject,
+      spacer: TextObject,
+      left: BoxObject,
+      right: BoxObject,
+    ];
 
-  #lastInteraction = 0;
-  #lastSelectedRow = 0;
-  #rectangle: Rectangle;
+    header: TextObject;
+    data: TextObject[];
+  };
 
-  rowOffset: number;
-  headers: TableHeader[];
-  data: string[][];
-  selectedRow: number;
-  framePieces: "sharp" | "rounded" | TableFramePieceType;
+  data: BaseSignal<string[][]>;
+  headers: BaseSignal<TableHeader<true>[]>;
+  charMap: BaseSignal<TableUnicodeCharactersType>;
+  selectedRow: BaseSignal<number>;
+  offsetRow: BaseSignal<number>;
 
-  constructor(options: TableComponentOptions) {
+  constructor(options: TableOptions) {
     super(options as unknown as ComponentOptions);
 
-    this.theme.frame = hierarchizeTheme(options.theme.frame ?? {});
-    this.theme.selectedRow = hierarchizeTheme(options.theme.selectedRow ?? {});
-    this.theme.header = hierarchizeTheme(options.theme.header ?? {});
+    this.data = signalify(options.data, { deepObserve: true });
+    this.charMap = signalify(
+      typeof options.charMap === "string" ? TableUnicodeCharacters[options.charMap] : options.charMap,
+      { deepObserve: true },
+    );
+    this.headers = signalify(options.headers as TableHeader<true>[], { deepObserve: true });
+    this.selectedRow = new Signal(0);
+    this.offsetRow = new Signal(0);
 
-    this.framePieces = options.framePieces ?? "sharp";
-    this.rowOffset = 0;
-    this.selectedRow = 0;
-    this.data = options.data;
-    this.headers = options.headers.map((header, i) => {
-      let title = "";
-      let width = 0;
-
-      if (typeof header === "object") {
-        title = header.title;
-        width = header.width;
-      } else {
-        title = header;
+    new Effect(() => {
+      const headers = this.headers.value;
+      let width = 1;
+      for (let i = 0; i < headers.length; ++i) {
+        const header = headers[i];
+        header.width = Math.max(
+          textWidth(header.title),
+          this.data.value.reduce((a, b) => Math.max(a, textWidth(b[i])), 0),
+        );
+        width += header.width + 1;
       }
-
-      return {
-        title,
-        width: width || Math.max(
-          textWidth(title),
-          this.data.reduce((a, b) => Math.max(a, textWidth(b[i])), 0),
-        ),
-      };
+      this.rectangle.value.width = width;
     });
 
-    const { column, row, height } = options.rectangle;
-
-    this.#rectangle = {
-      column,
-      row,
-      width: -1,
-      height,
-    };
+    this.data.subscribe((data) => {
+      const dataDrawObjects = this.drawnObjects.data?.length;
+      if (!dataDrawObjects) return;
+      if (data.length > dataDrawObjects) {
+        this.#fillDataDrawObjects();
+      } else if (data.length < dataDrawObjects) {
+        this.#popUnusedDataDrawObjects();
+      }
+    });
 
     this.on("keyPress", ({ key, ctrl, meta, shift }) => {
       if (ctrl || meta || shift) return;
 
-      const lastDataRow = this.data.length - 1;
+      const { height } = this.rectangle.peek();
+      const lastDataRow = this.data.peek().length - 1;
+
+      const { selectedRow, offsetRow } = this;
 
       switch (key) {
         case "up":
-          --this.selectedRow;
+          --selectedRow.value;
           break;
         case "down":
-          ++this.selectedRow;
+          ++selectedRow.value;
           break;
         case "pageup":
-          this.selectedRow -= ~~(lastDataRow / 100);
+          selectedRow.value -= ~~(lastDataRow / 100);
           break;
         case "pagedown":
-          this.selectedRow += ~~(lastDataRow / 100);
+          selectedRow.value += ~~(lastDataRow / 100);
           break;
         case "home":
-          this.selectedRow = 0;
+          selectedRow.value = 0;
           break;
         case "end":
-          this.selectedRow = lastDataRow;
+          selectedRow.value = lastDataRow;
           break;
       }
 
-      this.selectedRow = clamp(this.selectedRow, 0, lastDataRow);
-      this.rowOffset = clamp(this.selectedRow - ~~((height - 4) / 2), 0, lastDataRow - height + 5);
+      selectedRow.value = clamp(selectedRow.peek(), 0, lastDataRow - 1);
+      offsetRow.value = clamp(selectedRow.peek() - ~~((height - 4) / 2), 0, lastDataRow - height + 5);
     });
 
-    this.on("mousePress", ({ scroll, y, shift }) => {
-      const { row, height } = this.#rectangle;
+    this.on("mouseEvent", (mouseEvent) => {
+      if (mouseEvent.ctrl || mouseEvent.meta || mouseEvent.shift) return;
+      const { y } = mouseEvent;
+      const { row, height } = this.rectangle.peek();
 
-      const lastDataRow = this.data.length - 1;
+      const lastDataRow = this.data.peek().length - 1;
 
-      if (scroll !== 0) {
-        if (shift) scroll *= ~~(lastDataRow / 100);
-        this.rowOffset = clamp(this.rowOffset + scroll, 0, lastDataRow - height + 5);
-      } else if (y >= row + 3 && y <= row + height - 2) {
-        const dataRow = y - row + this.rowOffset - 3;
-        const clampedRow = clamp(dataRow, 0, lastDataRow);
-        if (dataRow !== clampedRow) return;
-        this.selectedRow = dataRow;
+      if ("scroll" in mouseEvent) {
+        this.offsetRow.value = clamp(this.offsetRow.peek() + mouseEvent.scroll, 0, lastDataRow - height + 5);
+      } else if ("button" in mouseEvent && y >= row + 3 && y <= row + height - 2) {
+        const dataRow = y - row + this.offsetRow.peek() - 3;
+        if (dataRow !== clamp(dataRow, 0, lastDataRow)) return;
+        this.selectedRow.value = dataRow;
       }
     });
-  }
-
-  get rectangle(): Rectangle {
-    return {
-      ...this.#rectangle,
-      width: this.headers.reduce<number>(
-        // + 1 because of spacing between each header
-        (a, b) => a + b.width + 1,
-        0,
-        // + 1 because of frames  on each side
-      ) + 1,
-    };
-  }
-
-  set rectangle(rectangle) {
-    this.#rectangle = rectangle;
   }
 
   draw(): void {
-    const { style, theme, state, data, headers, framePieces } = this;
-    const frameStyle = replaceEmptyStyle(theme.frame[state], style);
-    const headerStyle = replaceEmptyStyle(theme.header[state], style);
-    const selectedRowStyle = replaceEmptyStyle(theme.selectedRow[state], style);
+    super.draw();
 
     const { canvas } = this.tui;
-    const { column, row, width, height } = this.rectangle;
-
-    canvas.draw(column, row, style((" ".repeat(width) + "\n").repeat(height)));
+    const { drawnObjects } = this;
 
     // Drawing header cells
-    {
-      let colOffset = 0;
-      for (const header of headers) {
-        canvas.draw(column + colOffset + 1, row + 1, headerStyle(header.title));
-        colOffset += header.width + 1;
-      }
-    }
+    const headerRectangle = { column: 0, row: 0 };
+    const header = new TextObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      style: new Computed(() => this.theme.header[this.state.value]),
+      rectangle: new Computed(() => {
+        const { column, row } = this.rectangle.value;
+        headerRectangle.column = column + 1;
+        headerRectangle.row = row + 1;
+        return headerRectangle;
+      }),
+      value: new Computed(() => {
+        // associate computed with this.data
+        this.data.value;
+
+        const headers = this.headers.value;
+        let value = "";
+
+        for (const header of headers) {
+          value += header.title + " ".repeat(header.width + 1 - textWidth(header.title));
+        }
+
+        return value;
+      }),
+    });
+
+    header.draw();
+    drawnObjects.header = header;
 
     // Drawing data cells
-    {
-      let colOffset = 0;
-      const lastRow = row + height - 1;
-      const lastColumn = column + width - 1;
-      for (const [r, rowData] of data.entries()) {
-        if (r < this.rowOffset) continue;
-        const drawRow = row + r + 3 - this.rowOffset;
-        if (drawRow >= lastRow) break;
+    drawnObjects.data = [];
+    this.#fillDataDrawObjects();
 
-        const isSelected = r === this.selectedRow;
-        const rowStyle = isSelected ? selectedRowStyle : style;
-        if (isSelected) {
-          canvas.draw(column, drawRow, rowStyle(" ".repeat(width)));
-        }
+    // Drawing frame
+    const frameStyleSignal = new Computed(() => this.theme.frame[this.state.value]);
 
-        colOffset = 0;
+    const topRectangle = { column: 0, row: 0 };
+    const top = new TextObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      style: frameStyleSignal,
+      rectangle: new Computed(() => {
+        const { column, row } = this.rectangle.value;
+        topRectangle.column = column;
+        topRectangle.row = row;
+        return topRectangle;
+      }),
+      value: new Computed(() => {
+        const { topLeft, horizontal, topRight } = this.charMap.value;
+        return topLeft + horizontal.repeat(this.rectangle.value.width - 2) + topRight;
+      }),
+    });
 
-        for (const [c, colData] of rowData.entries()) {
-          const drawColumn = column + colOffset + 1;
-          if (drawColumn >= lastColumn) continue;
+    const bottomRectangle = { column: 0, row: 0 };
+    const bottom = new TextObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      style: frameStyleSignal,
+      rectangle: new Computed(() => {
+        const { column, row, height } = this.rectangle.value;
+        bottomRectangle.column = column;
+        bottomRectangle.row = row + height - 1;
+        return bottomRectangle;
+      }),
+      value: new Computed(() => {
+        const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
+        return bottomLeft + horizontal.repeat(this.rectangle.value.width - 2) + bottomRight;
+      }),
+    });
 
-          const headerWidth = headers[c].width;
+    const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
-          canvas.draw(drawColumn, drawRow, rowStyle(colData), {
-            column: drawColumn,
-            row: drawRow,
-            width: Math.min(
-              lastColumn - drawColumn - 1,
-              headerWidth - 1,
-            ),
-            height: 1,
-          });
-          colOffset += headerWidth + 1;
-        }
-      }
-    }
+    const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
+    const left = new BoxObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      style: frameStyleSignal,
+      filler: verticalCharMapSignal,
+      rectangle: new Computed(() => {
+        const { column, row, height } = this.rectangle.value;
+        leftRectangle.column = column;
+        leftRectangle.row = row + 1;
+        leftRectangle.height = height - 2;
+        return leftRectangle;
+      }),
+    });
 
-    // Render frame
-    const pieces = framePieces === "sharp"
-      ? sharpTableFramePieces
-      : framePieces === "rounded"
-      ? roundedTableFramePieces
-      : framePieces;
+    const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
+    const right = new BoxObject({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      filler: verticalCharMapSignal,
+      style: frameStyleSignal,
+      rectangle: new Computed(() => {
+        const { column, row, width, height } = this.rectangle.value;
+        rightRectangle.column = column + width - 1;
+        rightRectangle.row = row + 1;
+        rightRectangle.height = height - 2;
+        return rightRectangle;
+      }),
+    });
 
-    canvas.draw(column, row, frameStyle(pieces.topLeft));
-    canvas.draw(column + width - 1, row, frameStyle(pieces.topRight));
+    const middleRectangle = { column: 0, row: 0 };
+    const spacer = new TextObject({
+      canvas,
+      zIndex: this.zIndex,
+      style: frameStyleSignal,
+      rectangle: new Computed(() => {
+        const { column, row } = this.rectangle.value;
+        middleRectangle.column = column;
+        middleRectangle.row = row + 2;
+        return middleRectangle;
+      }),
+      value: new Computed(() => {
+        const { leftHorizontal, horizontal, rightHorizontal } = this.charMap.value;
+        return leftHorizontal + horizontal.repeat(this.rectangle.value.width - 2) + rightHorizontal;
+      }),
+    });
 
-    for (let y = row + 1; y < row + height - 1; ++y) {
-      canvas.draw(column, y, frameStyle(pieces.vertical));
-      canvas.draw(column + width - 1, y, frameStyle(pieces.vertical));
-    }
+    drawnObjects.frame = [top, bottom, spacer, left, right];
 
-    canvas.draw(column, row + 2, frameStyle(pieces.leftHorizontal));
-    canvas.draw(column + width - 1, row + 2, frameStyle(pieces.rightHorizontal));
-
-    for (let x = column + 1; x < column + width - 1; ++x) {
-      canvas.draw(x, row, frameStyle(pieces.horizontal));
-      canvas.draw(x, row + 2, frameStyle(pieces.horizontal));
-      canvas.draw(x, row + height - 1, frameStyle(pieces.horizontal));
-    }
-
-    canvas.draw(column, row + height - 1, frameStyle(pieces.bottomLeft));
-    canvas.draw(column + width - 1, row + height - 1, frameStyle(pieces.bottomRight));
+    top.draw();
+    bottom.draw();
+    left.draw();
+    right.draw();
+    spacer.draw();
   }
 
-  interact(method?: "mouse" | "keyboard"): void {
-    const now = Date.now();
-    const interactionDelay = now - this.#lastInteraction;
+  interact(method: "mouse" | "keyboard"): void {
+    const interactionInterval = Date.now() - this.lastInteraction.time;
 
-    this.state = this.state === "focused" &&
-        ((this.selectedRow == this.#lastSelectedRow && interactionDelay < 500) || method === "keyboard")
+    this.state.value = this.state.peek() === "focused" && (interactionInterval < 500 || method === "keyboard")
       ? "active"
       : "focused";
 
-    this.#lastInteraction = now;
-    this.#lastSelectedRow = this.selectedRow;
+    super.interact(method);
+  }
+
+  #fillDataDrawObjects(): void {
+    const { canvas } = this.tui;
+    const { drawnObjects } = this;
+
+    for (let i = drawnObjects.data.length; i < this.rectangle.peek().height - 4; ++i) {
+      const textRectangle = { column: 0, row: 0 };
+      const text = new TextObject({
+        canvas,
+        view: this.view,
+        zIndex: this.zIndex,
+        style: new Computed(() => {
+          const offsetRow = this.offsetRow.value;
+          const selectedRow = this.selectedRow.value;
+          const selectedRowStyle = this.theme.selectedRow[this.state.value];
+          const style = this.style.value;
+          return (i + offsetRow) === selectedRow ? selectedRowStyle : style;
+        }),
+        value: new Computed(() => {
+          const dataRow = this.data.value[i + this.offsetRow.value];
+          const headers = this.headers.value;
+
+          let string = "";
+          let prevData = "";
+          for (const [j, dataCell] of dataRow.entries()) {
+            if (j !== 0) string += " ".repeat(headers[j - 1].width - textWidth(prevData) + 1);
+            string += dataCell;
+            prevData = dataCell;
+          }
+
+          string += " ".repeat(this.rectangle.value.width - 1 - textWidth(string));
+          return string;
+        }),
+        rectangle: new Computed(() => {
+          const { column, row } = this.rectangle.value;
+          textRectangle.column = column + 1;
+          textRectangle.row = row + i + 3;
+          return textRectangle;
+        }),
+      });
+
+      drawnObjects.data.push(text);
+      text.draw();
+    }
+  }
+
+  #popUnusedDataDrawObjects(): void {
+    for (const dataCell of this.drawnObjects.data.splice(this.data.value.length)) {
+      dataCell.erase();
+    }
   }
 }

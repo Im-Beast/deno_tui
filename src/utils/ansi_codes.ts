@@ -1,4 +1,4 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 
 /** Get ANSI escape code for moving cursor to given location */
 export function moveCursor(row: number, column: number): string {
