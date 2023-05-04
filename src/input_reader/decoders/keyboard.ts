@@ -2,7 +2,7 @@
 /** Decode code sequence to {KeyPress} object. */
 import type { Alphabet, Key, KeyPressEvent } from "../types.ts";
 
-const alphabetRegex = /[a-z]/;
+const lowerCaseAlphabet = "abcdefghijklmnopqrstuvwxyz";
 
 export function decodeKey(buffer: Uint8Array, code: string): KeyPressEvent {
   if (code[0] === "\x1b") code = code.slice(1);
@@ -37,7 +37,7 @@ export function decodeKey(buffer: Uint8Array, code: string): KeyPressEvent {
       {
         if (buffer[0] !== 27) {
           const offset96 = String.fromCharCode(buffer[0] + 96);
-          if (alphabetRegex.test(offset96)) {
+          if (lowerCaseAlphabet.indexOf(offset96) !== -1) {
             keyPress.key = offset96 as Alphabet;
             keyPress.ctrl = true;
             break;
