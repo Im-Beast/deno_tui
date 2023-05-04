@@ -19,7 +19,7 @@ export interface LabelAlign {
 }
 
 export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
-  value: string | BaseSignal<string>;
+  text: string | BaseSignal<string>;
   rectangle: LabelRectangle | BaseSignal<LabelRectangle>;
   align?: LabelAlign | BaseSignal<LabelAlign>;
   multiCodePointSupport?: boolean | BaseSignal<boolean>;
@@ -31,7 +31,7 @@ export class Label extends Component {
 
   #valueLines?: string[];
 
-  value: BaseSignal<string>;
+  text: BaseSignal<string>;
   align: BaseSignal<LabelAlign>;
   overwriteRectangle: BaseSignal<boolean>;
   multiCodePointSupport: BaseSignal<boolean>;
@@ -39,13 +39,13 @@ export class Label extends Component {
   constructor(options: LabelOptions) {
     super(options as ComponentOptions);
 
-    this.value = signalify(options.value);
+    this.text = signalify(options.text);
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
     this.align = signalify(options.align ?? { vertical: "top", horizontal: "left" }, { deepObserve: true });
 
     new Effect(() => {
-      const value = this.value.value;
+      const value = this.text.value;
       const rectangle = this.rectangle.value;
       const overwriteRectangle = this.overwriteRectangle.value;
 
@@ -68,7 +68,7 @@ export class Label extends Component {
   draw(): void {
     super.draw();
     this.drawnObjects.texts = [];
-    this.#valueLines = this.value.peek().split("\n");
+    this.#valueLines = this.text.peek().split("\n");
     this.#fillDrawObjects();
   }
 
@@ -86,14 +86,14 @@ export class Label extends Component {
         zIndex: this.zIndex,
         multiCodePointSupport: this.multiCodePointSupport,
         value: new Computed(() => {
-          // associate computed with this.value
-          this.value.value;
+          // associate computed with this.text
+          this.text.value;
           const value = this.#valueLines![offset];
           return cropToWidth(value, this.rectangle.value.width);
         }),
         rectangle: new Computed(() => {
-          // associate computed with this.value
-          this.value.value;
+          // associate computed with this.text
+          this.text.value;
 
           const { column, row, width, height } = this.rectangle.value;
           textRectangle.column = column;
