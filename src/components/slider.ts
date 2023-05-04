@@ -64,28 +64,25 @@ export class Slider extends Box {
         case "left":
           this.value.value = clamp(value - step, min, max);
           break;
-        default:
-          return;
-      }
-
-      if (this.value.peek() !== value) {
-        this.emit("valueChange", this);
       }
     });
 
     this.on("mousePress", ({ drag, movementX, movementY, ctrl, shift, meta }) => {
       if (!drag || ctrl || shift || meta) return;
-      const value = this.value.peek();
 
-      this.value.value = clamp(
-        value + (this.orientation.peek() === "horizontal" ? movementX : movementY) * this.step.peek(),
-        this.min.peek(),
-        this.max.peek(),
+      const { min, max, step, value, orientation } = this;
+
+      value.value = clamp(
+        value.peek() + (orientation.peek() === "horizontal" ? movementX : movementY) * step.peek(),
+        min.peek(),
+        max.peek(),
       );
+    });
 
-      if (this.value.peek() !== value) {
-        this.emit("valueChange", this);
-      }
+    this.on("mouseScroll", ({ scroll }) => {
+      const { min, max, step, value } = this;
+
+      this.value.value = clamp(value.peek() + scroll * step.peek(), min.peek(), max.peek());
     });
   }
 
