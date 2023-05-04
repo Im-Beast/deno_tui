@@ -69,6 +69,7 @@ handleKeyboardControls(tui);
 
 ```ts
 import { Button } from "https://deno.land/x/tui@version/src/components/mod.ts";
+import { Signal, Computed } from "https://deno.land/x/tui@version/mod.ts";
 
 ...
 
