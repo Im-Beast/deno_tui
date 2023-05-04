@@ -1,4 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
+
 import { Tui } from "../src/tui.ts";
 import { handleInput } from "../src/input.ts";
 import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts";
@@ -15,10 +17,9 @@ import { CheckBox } from "../src/components/checkbox.ts";
 import { ComboBox } from "../src/components/combobox.ts";
 import { ProgressBar } from "../src/components/progressbar.ts";
 
-import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { clamp, Component } from "../mod.ts";
+import { Component } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed } from "../src/signals.ts";
 import { Signal } from "../src/signals.ts";
@@ -383,19 +384,8 @@ const viewScrollbar = new Slider({
 // @ts-ignore-
 viewScrollbar.NOFRAME = true;
 
-viewScrollbar.on("mouseScroll", ({ scroll }) => {
-  viewScrollbar.value.value = clamp(
-    viewScrollbar.value.peek() + scroll * viewScrollbar.step.peek(),
-    viewScrollbar.min.peek(),
-    viewScrollbar.max.peek(),
-  );
-  viewScrollbar.emit("valueChange", viewScrollbar);
-});
-
-viewScrollbar.on("valueChange", () => {
-  view.offset.rows = viewScrollbar.value.peek();
-  viewBackground.rectangle.value.row = view.rectangle.row;
-  viewScrollbar.rectangle.value.row = view.rectangle.row;
+viewScrollbar.value.subscribe((value) => {
+  view.offset.rows = value;
 });
 
 const box = new Box({
