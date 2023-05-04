@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Offset, Rectangle } from "./types.ts";
 
 interface ViewOptions {

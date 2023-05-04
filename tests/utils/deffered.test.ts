@@ -1,4 +1,5 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
 import { sleep } from "../../src/utils/async.ts";
 import { Deffered } from "../../src/utils/deffered.ts";
 import { assert } from "../deps.ts";

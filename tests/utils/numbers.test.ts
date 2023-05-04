@@ -1,4 +1,5 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
 import { clamp, fits, fitsInRectangle, normalize } from "../../src/utils/numbers.ts";
 import { assertEquals } from "../deps.ts";
 
@@ -34,7 +35,8 @@ Deno.test("utils/numbers.ts", async (t) => {
     assertEquals(fitsInRectangle(13, 0, rectangle), false);
     assertEquals(fitsInRectangle(13, 6, rectangle), true);
     assertEquals(fitsInRectangle(5, 5, rectangle), true);
-    assertEquals(fitsInRectangle(15, 15, rectangle), true);
+    assertEquals(fitsInRectangle(14, 14, rectangle), true);
+    assertEquals(fitsInRectangle(15, 15, rectangle), false);
   });
 
   await t.step("normalize()", () => {

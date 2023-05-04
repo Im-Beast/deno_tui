@@ -1,4 +1,4 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 
 import type { KeyPressEvent, MouseEvent, MousePressEvent, MouseScrollEvent } from "./types.ts";
 import type { Stdin } from "../types.ts";

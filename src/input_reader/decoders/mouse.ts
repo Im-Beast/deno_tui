@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import type { MouseEvent, MousePressEvent, MouseScrollEvent } from "../types.ts";
 
 const a: MouseEvent = {

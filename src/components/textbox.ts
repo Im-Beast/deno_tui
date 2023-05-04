@@ -230,7 +230,7 @@ export class TextBox extends Box {
             const { height } = this.rectangle.value;
             const cursorPosition = this.cursorPosition.value;
 
-            const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0);
+            const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0) + 1;
             const maxLineNumber = this.#textLines.value.length;
 
             return `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");

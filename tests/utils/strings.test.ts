@@ -1,4 +1,5 @@
-// Copyright 2022 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
 import { characterWidth, insertAt, stripStyles, textWidth, UNICODE_CHAR_REGEXP } from "../../src/utils/strings.ts";
 import { assertEquals } from "../deps.ts";
 
