@@ -22,12 +22,12 @@ Simple [Deno](https://github.com/denoland/deno/) module that allows easy creatio
 
 ## 🖥️ OS Support
 
-| Operating system     | Linux | macOS | Windows¹<sup>,</sup>²   | WSL  |
-| -------------------- | ----- | ----- | ----------------------- | ---- |
-| Base                 | ✔️    | ✔️    | ✔️                      | ✔️   |
-| Keyboard support     | ✔️    | ✔️    | ✔️                      | ✔️   |
-| Mouse support        | ✔️    | ✔️    | ❌                       | ✔️   |
-| Required permissions | none  | none  | --unstable --allow-ffi³ | none |
+| Operating system     | Linux | macOS | Windows¹<sup>,</sup>² | WSL  |
+| -------------------- | ----- | ----- | --------------------- | ---- |
+| Base                 | ✔️     | ✔️     | ✔️                     | ✔️    |
+| Keyboard support     | ✔️     | ✔️     | ✔️                     | ✔️    |
+| Mouse support        | ✔️     | ✔️     | ✔️                     | ✔️    |
+| Required permissions | none  | none  | none                  | none |
 
 ¹ - [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) is a heavily recommended way to run Tui on Windows, if
 you need to stick to clean Windows, please consider using [Windows Terminal](https://github.com/Microsoft/Terminal).
@@ -35,24 +35,19 @@ you need to stick to clean Windows, please consider using [Windows Terminal](htt
 ² - If unicode characters are displayed incorrectly type `chcp 65001` into the console to change active console code
 page to use UTF-8 encoding.
 
-³ - Related to [this issue](https://github.com/denoland/deno/issues/5945), in order to recognize all pressed keys
-(including arrows etc.) on Windows Tui uses `C:\Windows\System32\msvcrt.dll` to read pressed keys via `_getch` function,
-see code [here](./src/key_reader.ts?plain=1#L116).
-
 ## 🎓 Get started
+
+#### Replace {version} with relevant module versions
 
 1. Create Tui instance
 
 ```ts
-import { crayon } from "https://deno.land/x/crayon@3.3.2/mod.ts";
+import { crayon } from "https://deno.land/x/crayon@version/mod.ts";
 import { Canvas, Tui } from "https://deno.land/x/tui@version/mod.ts";
 
 const tui = new Tui({
-  style: crayon.bgBlue,
-  canvas: new Canvas({
-    refreshRate: 1000 / 60, // Run in 60FPS
-    stdout: Deno.stdout,
-  }),
+  style: crayon.bgBlack, // Make background black
+  refreshRate: 1000 / 60, // Run in 60FPS
 });
 
 tui.dispatch(); // Close Tui on CTRL+C
@@ -61,11 +56,10 @@ tui.dispatch(); // Close Tui on CTRL+C
 2. Enable interaction using keyboard and mouse
 
 ```ts
-import { handleKeyboardControls, handleKeypresses, handleMouseControls } from "https://deno.land/x/tui@version/mod.ts";
-
+import { handleInput, handleKeyboardControls, handleMouseControls } from "https://deno.land/x/tui@version/mod.ts";
 ...
 
-handleKeypresses(tui);
+handleInput(tui);
 handleMouseControls(tui);
 handleKeyboardControls(tui);
 ```
@@ -73,31 +67,50 @@ handleKeyboardControls(tui);
 3. Add some components
 
 ```ts
-import { ButtonComponent } from "https://deno.land/x/tui@version/src/components/mod.ts";
+import { Button } from "https://deno.land/x/tui@version/src/components/mod.ts";
 
 ...
 
-let value = 0;
-const button = new ButtonComponent({
-  tui,
+// Create signal to make number automatically reactive
+const number = new Signal(0);
+
+const button = new Button({
+  parent: tui,
+  zIndex: 0,
+  label: {
+    text: new Computed(() => number.value.toString()), // cast number to string
+  },
   theme: {
     base: crayon.bgRed,
     focused: crayon.bgLightRed,
     active: crayon.bgYellow,
   },
   rectangle: {
-    column: 15,
-    row: 3,
+    column: 1,
+    row: 1,
     height: 5,
     width: 10,
   },
-  label: String(value),
 });
 
-button.on("stateChange", () => {
-  if (button.state !== "active") return;
-  button.label = String(++value);
-})
+// Subscribe for button state changes
+button.state.subscribe((state) => {
+  // If button is active (pressed) make number bigger by one
+  if (state === "active")  {
+    ++number.value;
+  }
+});
+
+// Listen to mousePress event
+button.on("mousePress", ({ drag, movementX, movementY }) => {
+  if (!drag) return;
+
+  // Use peek() to get signal's value when it happens outside of Signal/Computed/Effect
+  const rectangle = button.rectangle.peek();
+  // Move button by how much mouse has moved while dragging it
+  rectangle.column += movementX;
+  rectangle.row += movementY;
+});
 ```
 
 4. Run Tui
@@ -115,7 +128,7 @@ tui.run();
 <br /> Code should be well document and easy to follow what's going on.
 
 This project follows [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
-<br /> If your pull request's code could introduce understandability trouble, please add comments to it.
+<br /> If your pull request's code can be hard to understand, please add comments to it.
 
 ## 📝 Licensing
 
