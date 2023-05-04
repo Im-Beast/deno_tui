@@ -14,7 +14,7 @@ const centerAlign: LabelAlign = {
 
 export interface ButtonOptions extends ComponentOptions {
   label?: {
-    value: string | BaseSignal<string>;
+    text: string | BaseSignal<string>;
     align?: LabelAlign | BaseSignal<LabelAlign>;
   };
 }
@@ -22,48 +22,39 @@ export interface ButtonOptions extends ComponentOptions {
 export class Button extends Box {
   declare drawnObjects: { box: BoxObject };
   declare subComponents: { label?: Label };
-  label: BaseSignal<
-    {
-      value: BaseSignal<string>;
-      align: BaseSignal<LabelAlign>;
-    } | undefined
-  >;
+  label: BaseSignal<{
+    text: BaseSignal<string | undefined>;
+    align: BaseSignal<LabelAlign>;
+  }>;
 
   constructor(options: ButtonOptions) {
     super(options);
 
-    const { label } = options;
+    let { label } = options;
 
-    if (label) {
-      label.value = signalify(label.value);
-      label.align = signalify(label.align ?? centerAlign);
+    if (!label) {
+      label = { text: "", align: centerAlign };
     }
 
+    label.text = signalify(label.text);
+    label.align = signalify(label.align ?? centerAlign);
+
     this.label = signalify(label as unknown as this["label"], { deepObserve: true });
+
+    this.state.subscribe((value) => {
+      if (this.subComponents.label) {
+        this.subComponents.label.state.value = value;
+      }
+    });
+
+    this.label.value.text.subscribe(() => {
+      this.#updateLabelSubcomponent();
+    });
   }
 
   draw(): void {
     super.draw();
-
-    if (this.label?.value?.value) {
-      const label = new Label({
-        parent: this,
-        theme: this.theme,
-        zIndex: this.zIndex,
-        rectangle: this.rectangle,
-        overwriteRectangle: true,
-        value: this.label.value.value,
-        align: this.label.value.align,
-      });
-
-      this.state.subscribe((value) => {
-        label.state.value = value;
-      });
-
-      label.subComponentOf = this;
-      this.subComponents.label = label;
-      this.children.push(label);
-    }
+    this.#updateLabelSubcomponent();
   }
 
   interact(method: "mouse" | "keyboard"): void {
@@ -74,5 +65,25 @@ export class Button extends Box {
       : "focused";
 
     super.interact(method);
+  }
+
+  #updateLabelSubcomponent(): void {
+    if (!this.label.value.text.value) {
+      this.subComponents.label?.remove();
+      return;
+    }
+
+    const label = new Label({
+      parent: this,
+      theme: this.theme,
+      zIndex: this.zIndex,
+      rectangle: this.rectangle,
+      overwriteRectangle: true,
+      text: this.label.value.text as BaseSignal<string>,
+      align: this.label.value.align,
+    });
+
+    label.subComponentOf = this;
+    this.subComponents.label = label;
   }
 }
