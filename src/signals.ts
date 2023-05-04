@@ -19,6 +19,7 @@ export class BaseSignal<T> {
   dependencies: Set<AnyDependency>;
   subscriptions?: SubscriptionCallback<unknown>[];
 
+  /** Whether value should be deeply observed (needs to be an object) */
   deepObserve: boolean;
   /*
   Only works if `deepObserve` is set to true
@@ -158,15 +159,7 @@ export class Computed<T> extends BaseSignal<T> {
     }
   }
 
-  peek(): T {
-    return this.#value;
-  }
-
-  get value(): T {
-    if (trackSignals) activeSignals.add(this);
-    return this.#value;
-  }
-
+  /** Update value using `updator` */
   update(): void {
     if (trackSignals) activeSignals.add(this);
 
@@ -176,6 +169,15 @@ export class Computed<T> extends BaseSignal<T> {
     if (this.#value !== oldValue) {
       this.updateDependencies();
     }
+  }
+
+  peek(): T {
+    return this.#value;
+  }
+
+  get value(): T {
+    if (trackSignals) activeSignals.add(this);
+    return this.#value;
   }
 
   valueOf(): T {
@@ -205,6 +207,7 @@ export class Effect<T> {
     }
   }
 
+  /** Remove effect from dependants */
   dispose(): void {
     for (const signal of this.dependants!) {
       signal.dependencies.delete(this);
@@ -212,8 +215,18 @@ export class Effect<T> {
   }
 }
 
+/**
+ * Makes {signal}'s value deeply reactive
+ *
+ * When {watchObjectIndex} is set it is achieved using `Proxy`, otherwise:
+ *  - In case of `Array` it overwrites `push`, `pop`, `splice`, `sort` and `reverse` on object and updates signal when they are called & array changed
+ *  - In case of objects it overwrites all properties on object that are already present with getters and setters and updates signal when values change
+ */
 export function makeObjectReactiveToSignal<T>(signal: Signal<T>, watchObjectIndex: boolean): T {
   const object = signal.peek();
+  if (typeof object !== "object") {
+    throw new Error("makeObjectReactiveToSignal can only be called when signal's value is an object");
+  }
 
   if (watchObjectIndex) {
     // deno-lint-ignore no-explicit-any
@@ -302,7 +315,9 @@ let $in = 0;
 let $out = 0;
 // deno-lint-ignore no-explicit-any
 const activeSignals = new Set<BaseSignal<any>>();
-async function trackDependencies(thisArg: unknown, func: () => void) {
+
+/** Track dependencies of given function */
+export async function trackDependencies(thisArg: unknown, func: () => void) {
   while (trackSignals || $in !== $out) {
     await sleep(0);
   }

@@ -3,6 +3,7 @@
 import { Tui } from "../tui.ts";
 import { Component } from "../component.ts";
 
+/** Returns whether component defines `interact` property  */
 export function isInteractable(component: Component): boolean {
   return component.interact !== Component.prototype.interact;
 }

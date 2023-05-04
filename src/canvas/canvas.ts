@@ -87,6 +87,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     if (resize) this.resize = false;
 
+    // TODO: Recalculate object intersections when their rectangle changes
     for (const object of drawnObjects) {
       object.outOfBounds = false;
 

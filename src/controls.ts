@@ -9,6 +9,9 @@ const textEncoder = new TextEncoder();
 
 let lastSelectedComponent: Component;
 
+/**
+ * Enable handling of controlling Tui using keyboard
+ */
 export function handleKeyboardControls(tui: Tui): void {
   tui.on("keyPress", ({ key, ctrl, shift, meta }) => {
     if ((!ctrl && key !== "return") || shift || meta) return;
@@ -93,6 +96,9 @@ export function handleKeyboardControls(tui: Tui): void {
   });
 }
 
+/**
+ * Enable handling of controlling Tui using mouse
+ */
 export function handleMouseControls(tui: Tui): void {
   const { rid } = tui.stdout;
   Deno.writeSync(rid, textEncoder.encode(ENABLE_MOUSE));

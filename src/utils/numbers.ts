@@ -27,6 +27,19 @@ export function rectangleEquals(a: Rectangle, b: Rectangle): boolean {
 }
 
 const intersectionObject = { column: 0, row: 0, width: 0, height: 0 };
+/**
+ * Calculate intersection between two rectangles
+ *
+ * When `data` is set to true it returns:
+ *  - collision rectangle when they collide
+ *  - false when they don't
+ *
+ * Otherwise it simply returns boolean whether they collide
+ *
+ * **Don't hold onto intersection object reference that gets returned!**
+ *
+ * **It gets reused to save CPU usage and minimize GC.**
+ */
 export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: false): boolean;
 export function rectangleIntersection(a: Rectangle, b: Rectangle, data: true): false | Rectangle;
 export function rectangleIntersection(a: Rectangle, b: Rectangle, data?: boolean): boolean | Rectangle {

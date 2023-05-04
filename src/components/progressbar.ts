@@ -125,7 +125,7 @@ export class ProgressBar extends Box {
 
   #fillSmoothDrawObjects() {
     if (!Array.isArray(this.drawnObjects.progress)) {
-      throw "drawnObjects.progress needs to be an array";
+      throw new Error("drawnObjects.progress needs to be an array");
     }
 
     for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.peek().height; ++offset) {
@@ -183,7 +183,7 @@ export class ProgressBar extends Box {
 
   #popUnusedSmoothDrawObjects(): void {
     if (!Array.isArray(this.drawnObjects.progress)) {
-      throw "drawnObjects.progress needs to be an array";
+      throw new Error("drawnObjects.progress needs to be an array");
     }
 
     for (const progressLine of this.drawnObjects.progress.splice(this.rectangle.peek().height)) {

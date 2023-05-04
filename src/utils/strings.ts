@@ -11,17 +11,17 @@ export const UNICODE_CHAR_REGEXP =
 // deno-lint-ignore no-control-regex
 const STRIP_STYLE_REGEXP = /\x1b\[([0-9]|;)+m/gi;
 
-/** Strips string of all styles */
+/** Strips string of all its styles */
 export function stripStyles(string: string): string {
   return string.replaceAll(STRIP_STYLE_REGEXP, "");
 }
 
-/** Inserts string into string on given index */
+/** Inserts {value} into {string} on given {index} */
 export function insertAt(string: string, index: number, value: string): string {
   return string.slice(0, index) + value + string.slice(index);
 }
 
-/** Returns real text width */
+/** Returns real {text} width */
 export function textWidth(text: string): number {
   if (!text) return 0;
 
@@ -34,6 +34,7 @@ export function textWidth(text: string): number {
   return width;
 }
 
+/** Crops {text} to given {width} */
 export function cropToWidth(text: string, width: number): string {
   text = text.slice(0, width);
   if (textWidth(text) <= width) return text;
@@ -44,7 +45,7 @@ export function cropToWidth(text: string, width: number): string {
 }
 
 /**
- * Check whether character is full width
+ * Return width of given character
  *
  * Originally created by sindresorhus: https://github.com/sindresorhus/is-fullwidth-code-point/blob/main/index.js
  */
@@ -80,6 +81,7 @@ export function characterWidth(character: string): number {
   return 1;
 }
 
+/** Returns capitalized string created from {text} */
 export function capitalize<T extends string>(text: T): Capitalize<T> {
   return (text[0].toUpperCase() + text.slice(1)) as Capitalize<T>;
 }

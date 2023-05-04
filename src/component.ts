@@ -15,10 +15,10 @@ export interface ComponentOptions {
   tui?: Tui;
   theme: Partial<Theme>;
   parent: Component | Tui;
-  visible?: boolean | BaseSignal<boolean>;
-  view?: View | undefined | BaseSignal<View | undefined>;
-  rectangle: Rectangle | BaseSignal<Rectangle>;
   zIndex: number | BaseSignal<number>;
+  visible?: boolean | BaseSignal<boolean>;
+  rectangle: Rectangle | BaseSignal<Rectangle>;
+  view?: View | undefined | BaseSignal<View | undefined>;
 }
 
 export interface Interaction {
@@ -26,6 +26,7 @@ export interface Interaction {
   method: "keyboard" | "mouse" | undefined;
 }
 
+/** Possible states of a component */
 export type ComponentState = keyof Theme;
 
 export class Component extends EventEmitter<
@@ -116,13 +117,19 @@ export class Component extends EventEmitter<
     });
   }
 
-
-
+  /**
+   * Interact with component using mouse/keyboard
+   */
   interact(method: "keyboard" | "mouse"): void {
     this.lastInteraction.time = Date.now();
     this.lastInteraction.method = method;
   }
 
+  /**
+   * Changes visibility of `drawnObjects` (erases/draws them depending on {visible})
+   *
+   * If {visible} is set to false and {remove} is set to true it deletes objects from `drawnObjects`
+   */
   changeDrawnObjectVisibility(visible: boolean, remove = false): void {
     const { drawnObjects } = this;
     for (const key in drawnObjects) {
@@ -172,6 +179,11 @@ export class Component extends EventEmitter<
     }
   }
 
+  /**
+   * Draw component
+   *
+   * If called more than one times it deletes previous `drawnObjects`
+   */
   draw(): void {
     this.#drawn = true;
     this.changeDrawnObjectVisibility(false, true);

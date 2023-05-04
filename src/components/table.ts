@@ -224,7 +224,6 @@ export class Table extends Component {
         return topLeft + horizontal.repeat(this.rectangle.value.width - 2) + topRight;
       }),
     });
-    top.draw();
 
     const bottomRectangle = { column: 0, row: 0 };
     const bottom = new TextObject({
@@ -243,7 +242,6 @@ export class Table extends Component {
         return bottomLeft + horizontal.repeat(this.rectangle.value.width - 2) + bottomRight;
       }),
     });
-    bottom.draw();
 
     const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
@@ -262,7 +260,6 @@ export class Table extends Component {
         return leftRectangle;
       }),
     });
-    left.draw();
 
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
     const right = new BoxObject({
@@ -279,7 +276,6 @@ export class Table extends Component {
         return rightRectangle;
       }),
     });
-    right.draw();
 
     const middleRectangle = { column: 0, row: 0 };
     const spacer = new TextObject({
@@ -297,9 +293,14 @@ export class Table extends Component {
         return leftHorizontal + horizontal.repeat(this.rectangle.value.width - 2) + rightHorizontal;
       }),
     });
-    spacer.draw();
 
     drawnObjects.frame = [top, bottom, spacer, left, right];
+
+    top.draw();
+    bottom.draw();
+    left.draw();
+    right.draw();
+    spacer.draw();
   }
 
   interact(method: "mouse" | "keyboard"): void {

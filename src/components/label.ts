@@ -73,7 +73,7 @@ export class Label extends Component {
   }
 
   #fillDrawObjects(): void {
-    if (!this.#valueLines) throw "#valueLines has to be set";
+    if (!this.#valueLines) throw new Error("#valueLines has to be set");
 
     const { drawnObjects } = this;
 
@@ -133,7 +133,7 @@ export class Label extends Component {
   }
 
   #popUnusedDrawObjects(): void {
-    if (!this.#valueLines) throw "#valueLines has to be set";
+    if (!this.#valueLines) throw new Error("#valueLines has to be set");
 
     for (const text of this.drawnObjects.texts.splice(this.#valueLines.length)) {
       text.erase();

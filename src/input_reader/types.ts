@@ -10,6 +10,7 @@ export interface KeyPressEvent {
   buffer: Uint8Array;
 }
 
+/** Interface defining any mouse event issued to stdin */
 export interface MouseEvent {
   key: "mouse";
   buffer: Uint8Array;
@@ -22,20 +23,20 @@ export interface MouseEvent {
   shift: boolean;
 }
 
+/** Interface defining mouse press issued to stdin */
 export interface MousePressEvent extends MouseEvent {
   drag: boolean;
   release: boolean;
-  // undefined when release
+  /** undefined when `release` is true */
   button: 0 | 1 | 2 | undefined;
 }
 
 export interface MouseScrollEvent extends MouseEvent {
   drag: boolean;
   /**
-   * Whether user scroll
-   *  - 1 - Scrolls downwards
-   *  - 0 - Doesn't scroll
-   *  - -1 - Scrolls upwards)
+   *  - 1 – Scrolls downwards
+   *  - 0 – Doesn't scroll
+   *  - -1 – Scrolls upwards
    */
   scroll: 1 | 0 | -1;
 }
