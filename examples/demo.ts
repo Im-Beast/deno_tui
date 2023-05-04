@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Tui } from "../src/tui.ts";
 import { handleInput } from "../src/input.ts";
 import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts";
@@ -17,10 +18,14 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { clamp, Component, isInteractable } from "../mod.ts";
+import { clamp, Component } from "../mod.ts";
+import { TextBox } from "../src/components/textbox.ts";
+import { Computed } from "../src/signals.ts";
+import { Signal } from "../src/signals.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
+  refreshRate: 1000 / 60,
 });
 
 handleInput(tui);
@@ -36,13 +41,6 @@ const baseTheme: Theme = {
   disabled: crayon.bgLightBlack.black,
 };
 
-const performanceStats = new Text({
-  parent: tui,
-  rectangle: { column: 0, row: 0 },
-  theme: baseTheme,
-  value: "",
-});
-
 new Box({
   parent: tui,
   theme: baseTheme,
@@ -52,6 +50,7 @@ new Box({
     height: 5,
     width: 10,
   },
+  zIndex: 0,
 });
 
 new Button({
@@ -63,6 +62,7 @@ new Button({
     height: 5,
     width: 10,
   },
+  zIndex: 0,
 });
 
 new CheckBox({
@@ -74,7 +74,8 @@ new CheckBox({
     height: 1,
     width: 1,
   },
-  value: false,
+  checked: false,
+  zIndex: 0,
 });
 
 new ComboBox({
@@ -87,6 +88,7 @@ new ComboBox({
     width: 7,
   },
   items: ["one", "two", "three", "four"],
+  placeholder: "numer",
   zIndex: 2,
 });
 
@@ -100,25 +102,27 @@ new ComboBox({
     width: 7,
   },
   items: ["one", "two", "three", "four"],
-  label: {
-    value: "numer",
-  },
+  placeholder: "numer",
   zIndex: 1,
 });
 
-const progressBar1 = new ProgressBar({
+const progress = new Signal(0);
+let progressDir = 1;
+const progressBarTheme = {
+  ...baseTheme,
+  progress: {
+    base: crayon.bgLightBlue.green,
+    focused: crayon.bgCyan.lightGreen,
+    active: crayon.bgBlue.lightYellow,
+  },
+};
+
+new ProgressBar({
   parent: tui,
   orientation: "horizontal",
   direction: "normal",
-  theme: {
-    ...baseTheme,
-    progress: {
-      base: crayon.bgLightBlue.green,
-      focused: crayon.bgCyan.lightGreen,
-      active: crayon.bgBlue.lightYellow,
-    },
-  },
-  value: 50,
+  theme: progressBarTheme,
+  value: progress,
   min: 0,
   max: 100,
   smooth: true,
@@ -128,6 +132,61 @@ const progressBar1 = new ProgressBar({
     row: 3,
     width: 10,
   },
+  zIndex: 0,
+});
+
+new ProgressBar({
+  parent: tui,
+  orientation: "horizontal",
+  direction: "reversed",
+  theme: progressBarTheme,
+  value: progress,
+  min: 0,
+  max: 100,
+  smooth: true,
+  rectangle: {
+    column: 48,
+    height: 2,
+    row: 6,
+    width: 10,
+  },
+  zIndex: 0,
+});
+
+new ProgressBar({
+  parent: tui,
+  orientation: "vertical",
+  direction: "normal",
+  theme: progressBarTheme,
+  value: progress,
+  min: 0,
+  max: 100,
+  smooth: true,
+  rectangle: {
+    column: 48,
+    height: 5,
+    row: 10,
+    width: 2,
+  },
+  zIndex: 0,
+});
+
+new ProgressBar({
+  parent: tui,
+  orientation: "vertical",
+  direction: "reversed",
+  theme: progressBarTheme,
+  value: progress,
+  min: 0,
+  max: 100,
+  smooth: true,
+  rectangle: {
+    column: 52,
+    height: 5,
+    row: 10,
+    width: 2,
+  },
+  zIndex: 0,
 });
 
 new Label({
@@ -139,44 +198,25 @@ new Label({
   rectangle: {
     column: 75,
     row: 3,
+    width: 20,
   },
   theme: { base: tui.style },
   value: "Centered text\nThat automatically adjusts its rectangle size\n!@#!\nSo cool\nWOW",
+  zIndex: 0,
 });
 
-const progressBar2 = new ProgressBar({
-  parent: tui,
-  orientation: "vertical",
-  direction: "normal",
-  theme: {
-    ...baseTheme,
-    progress: {
-      base: crayon.bgLightBlue.green,
-      focused: crayon.bgCyan.lightGreen,
-      active: crayon.bgBlue.lightYellow,
-    },
+const sliderTheme = {
+  ...baseTheme,
+  thumb: {
+    base: crayon.bgMagenta,
   },
-  value: 75,
-  min: 0,
-  max: 100,
-  smooth: true,
-  rectangle: {
-    column: 48,
-    height: 5,
-    row: 10,
-    width: 2,
-  },
-});
+};
 
 new Slider({
   parent: tui,
   orientation: "horizontal",
-  theme: {
-    ...baseTheme,
-    thumb: {
-      base: crayon.bgMagenta,
-    },
-  },
+  theme: sliderTheme,
+  adjustThumbSize: true,
   value: 5,
   min: 1,
   max: 10,
@@ -187,17 +227,14 @@ new Slider({
     row: 3,
     width: 10,
   },
+  zIndex: 0,
 });
 
 new Slider({
   parent: tui,
   orientation: "vertical",
-  theme: {
-    ...baseTheme,
-    thumb: {
-      base: crayon.bgMagenta,
-    },
-  },
+  theme: sliderTheme,
+  adjustThumbSize: true,
   value: 5,
   min: 1,
   max: 10,
@@ -208,80 +245,46 @@ new Slider({
     row: 10,
     width: 2,
   },
+  zIndex: 0,
 });
+
+const cursorBaseTheme = {
+  ...baseTheme,
+  cursor: { base: crayon.invert },
+};
 
 new Input({
   parent: tui,
   placeholder: "type smth",
-  theme: {
-    ...baseTheme,
-    cursor: {
-      base: crayon.invert,
-    },
-    value: {
-      base: crayon.bgBlue.white,
-    },
-    placeholder: {
-      base: crayon.bgLightBlue.lightBlack,
-      focused: crayon.bgCyan.lightBlack,
-      active: crayon.bgBlue.lightBlack,
-    },
-  },
+  theme: cursorBaseTheme,
   rectangle: {
     column: 2,
     row: 11,
-    width: 10,
+    width: 14,
     height: 1,
   },
+  zIndex: 0,
 });
 
-/* new TextboxComponent({
-  tui,
-  theme: baseTheme,
-  multiline: false,
+new Input({
+  parent: tui,
+  placeholder: "smth secret",
+  theme: cursorBaseTheme,
+  password: true,
   rectangle: {
     column: 2,
-    row: 11,
+    row: 13,
+    width: 14,
     height: 1,
-    width: 10,
   },
-  value: "hi",
+  zIndex: 0,
 });
 
-new TextboxComponent({
-  tui,
+new TextBox({
+  parent: tui,
+  zIndex: 0,
   theme: {
-    ...baseTheme,
-    placeholder: crayon.lightBlack,
-  },
-  multiline: false,
-  rectangle: {
-    column: 2,
-    row: 15,
-    height: 1,
-    width: 10,
-  },
-  placeholder: "example",
-});
-
-new TextboxComponent({
-  tui,
-  theme: baseTheme,
-  multiline: false,
-  hidden: true,
-  rectangle: {
-    column: 15,
-    row: 11,
-    height: 1,
-    width: 10,
-  },
-  value: "hi!",
-});
-
-new TextboxComponent({
-  tui,
-  theme: {
-    ...baseTheme,
+    ...cursorBaseTheme,
     lineNumbers: {
       base: crayon.bgBlue.white,
     },
@@ -289,18 +292,15 @@ new TextboxComponent({
       base: crayon.bgLightBlue,
     },
   },
-  multiline: true,
   lineNumbering: true,
   lineHighlighting: true,
-  hidden: false,
   rectangle: {
     column: 29,
     row: 11,
     height: 5,
     width: 12,
   },
-  value: "hello!\nwhats up?",
-}); */
+});
 
 new Table({
   parent: tui,
@@ -333,6 +333,7 @@ new Table({
     ["6", "Hershel Grant"],
   ],
   charMap: "rounded",
+  zIndex: 0,
 });
 
 const view = new View({
@@ -350,12 +351,7 @@ const view = new View({
 
 const viewBackground = new Box({
   parent: tui,
-  rectangle: {
-    column: view.rectangle.column,
-    row: view.rectangle.row,
-    width: view.rectangle.width,
-    height: view.rectangle.height,
-  },
+  rectangle: view.rectangle,
   theme: {
     base: crayon.bgLightBlack,
   },
@@ -388,14 +384,18 @@ const viewScrollbar = new Slider({
 viewScrollbar.NOFRAME = true;
 
 viewScrollbar.on("mouseScroll", ({ scroll }) => {
-  viewScrollbar.value = clamp(viewScrollbar.value + scroll * viewScrollbar.step, viewScrollbar.min, viewScrollbar.max);
+  viewScrollbar.value.value = clamp(
+    viewScrollbar.value.peek() + scroll * viewScrollbar.step.peek(),
+    viewScrollbar.min.peek(),
+    viewScrollbar.max.peek(),
+  );
   viewScrollbar.emit("valueChange", viewScrollbar);
 });
 
 viewScrollbar.on("valueChange", () => {
-  view.offset.rows = viewScrollbar.value;
-  viewBackground.rectangle.row = view.rectangle.row;
-  viewScrollbar.rectangle.row = view.rectangle.row;
+  view.offset.rows = viewScrollbar.value.peek();
+  viewBackground.rectangle.value.row = view.rectangle.row;
+  viewScrollbar.rectangle.value.row = view.rectangle.row;
 });
 
 const box = new Box({
@@ -414,30 +414,38 @@ const box = new Box({
 });
 
 box.interact = () => {
-  box.state = "focused";
+  box.state.value = "focused";
 };
 
 box.on("mousePress", ({ drag, movementX, movementY }) => {
   if (!drag) return;
-  box.rectangle.column += movementX;
-  box.rectangle.row += movementY;
+  const rectangle = box.rectangle.value;
+  rectangle.column += movementX;
+  rectangle.row += movementY;
 });
 
-new Button({
+const moveButton = new Button({
   parent: tui,
-  view,
   rectangle: {
     column: 2,
-    row: 9,
-    width: 4,
+    row: 15,
+    width: 6,
     height: 2,
   },
+  label: { value: "move\nme" },
   theme: {
     base: crayon.bgGreen,
     focused: crayon.bgLightGreen,
     active: crayon.bgMagenta,
   },
   zIndex: 2,
+});
+
+moveButton.on("mousePress", (event) => {
+  if (!event.drag) return;
+  const rectangle = moveButton.rectangle.value;
+  rectangle.column += event.movementX;
+  rectangle.row += event.movementY;
 });
 
 new Text({
@@ -453,20 +461,27 @@ new Text({
 });
 
 // Generate frames and labels for every component
-queueMicrotask(() => {
+tui.canvas.on("render", () => {
   const components: Component[] = [];
+  const tuiStyleTheme = { base: tui.style };
 
   for (const component of tui.components) {
-    // @ts-ignore-
-    if (component.view || component.NOFRAME || component === performanceStats) continue;
+    if (
+      // @ts-expect-error NOFRAME
+      component.view.peek() || component.parent !== tui || component.NOFRAME ||
+      component === performanceStats
+    ) {
+      continue;
+    }
 
     const name = component.constructor.name;
 
-    const { column, row } = component.rectangle;
+    const { column, row } = component.rectangle.peek();
     components.push(
       new Text({
         parent: tui,
-        theme: { base: tui.style },
+        theme: tuiStyleTheme,
+        visible: false,
         rectangle: {
           column: column - 1,
           row: row - 2,
@@ -476,9 +491,10 @@ queueMicrotask(() => {
       }),
       new Frame({
         parent: tui,
-        component,
+        rectangle: component.rectangle,
+        visible: false,
         charMap: "rounded",
-        theme: { base: tui.style },
+        theme: tuiStyleTheme,
         zIndex: component.zIndex,
       }),
     );
@@ -487,26 +503,32 @@ queueMicrotask(() => {
   tui.on("keyPress", ({ ctrl, meta, shift, key }) => {
     if (!ctrl || key !== "f" || meta || shift) return;
     for (const component of components) {
-      component.visible = !component.visible;
+      component.visible.value = !component.visible.value;
     }
   });
+}, true);
+
+const fps = new Signal(60);
+let lastRender = 0;
+
+const performanceStats = new Text({
+  parent: tui,
+  rectangle: { column: 0, row: 0 },
+  theme: baseTheme,
+  value: new Computed(() =>
+    `\
+FPS: ${fps.value.toFixed(2)}\
+ | Components: ${tui.components.size}\
+ | Drawn objects: ${tui.canvas.drawnObjects.length}\
+ | Press CTRL+F to toggle Frame/Label visibility`
+  ),
+  zIndex: 0,
 });
 
-let fps = 60;
-let lastRender = 0;
-let progressBarDir = 1;
 tui.canvas.on("render", () => {
-  fps = 1000 / (performance.now() - lastRender);
+  fps.value = 1000 / (performance.now() - lastRender);
   lastRender = performance.now();
 
-  progressBar1.value = progressBar2.value += progressBarDir;
-  if (progressBar1.value >= progressBar1.max || progressBar1.value <= progressBar1.min) {
-    progressBarDir *= -1;
-  }
-
-  performanceStats.value = `\
-FPS: ${fps.toFixed(2)}\
- | Components: ${tui.components.length}\
- | Drawn objects: ${tui.canvas.drawnObjects.length}\
- | Press CTRL+F to toggle Frame/Label visibility`;
+  progress.value += progressDir;
+  if (progress.peek() >= 100 || progress.peek() <= 0) progressDir *= -1;
 });
