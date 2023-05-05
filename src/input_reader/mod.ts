@@ -47,5 +47,12 @@ export function* decodeBuffer(
   buffer: Uint8Array,
 ): Generator<KeyPressEvent | MouseEvent | MousePressEvent | MouseScrollEvent, void, void> {
   const code = textDecoder.decode(buffer);
-  yield decodeMouseVT_UTF8(buffer, code) ?? decodeMouseSGR(buffer, code) ?? decodeKey(buffer, code);
+
+  const lastIndex = code.lastIndexOf("\x1b");
+  if (code.indexOf("\x1b") !== lastIndex) {
+    yield* decodeBuffer(buffer.subarray(0, lastIndex));
+    yield* decodeBuffer(buffer.subarray(lastIndex));
+  } else {
+    yield decodeMouseVT_UTF8(buffer, code) ?? decodeMouseSGR(buffer, code) ?? decodeKey(buffer, code);
+  }
 }
