@@ -18,8 +18,8 @@ let mouseEvent: MouseEvent = a;
 let lastMouseEvent: MouseEvent = b;
 
 /**
- * Decode SGR mouse mode code sequence to {MousePress} object.
- * If it can't convert specified {code} to {MousePress} it returns undefined.
+ * Decode SGR mouse mode code sequence to {MouseEvent} object.
+ * If it can't convert specified {code} to {MouseEvent} it returns undefined.
  */
 export function decodeMouseSGR(
   buffer: Uint8Array,
@@ -113,8 +113,8 @@ export function decodeMouseSGR(
 }
 
 /**
- * Decode VT and UTF8 mouse mode code sequence to {MousePress} object.
- * If it can't convert specified {code} to {MousePress} it returns undefined.
+ * Decode VT and UTF8 mouse mode code sequence to {MouseEvent} object.
+ * If it can't convert specified {code} to {MouseEvent} it returns undefined.
  */
 export function decodeMouseVT_UTF8(
   buffer: Uint8Array,
