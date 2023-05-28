@@ -92,6 +92,22 @@ export class BaseSignal<T> {
         }
       }
     }
+
+  get value(): T {
+    throw new Error("BaseSignal doesn't actually implement value getter!");
+  }
+  set value(_value: T) {
+    throw new Error("BaseSignal doesn't actually  implement value setter!");
+  }
+
+  /** Get signal's value without being appended as dependency */
+  peek(): T {
+    throw new Error("BaseSignal doesn't actually implement peek()!");
+  }
+
+  /** Set signal's value without being appended as dependency */
+  jink(_value: T): void {
+    throw new Error("BaseSignal doesn't actually implement jink()!");
   }
 }
 
@@ -124,6 +140,13 @@ export class Signal<T> extends BaseSignal<T> {
 
   peek(): T {
     return this.#value;
+  }
+
+  jink(value: T): void {
+    const isTracking = trackSignals;
+    trackSignals = false;
+    this.value = value;
+    trackSignals = isTracking;
   }
 
   valueOf(): T {
@@ -173,6 +196,10 @@ export class Computed<T> extends BaseSignal<T> {
 
   peek(): T {
     return this.#value;
+  }
+
+  jink(_value: T) {
+    throw new Error("Computed is readonly!");
   }
 
   get value(): T {
