@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Computed, Effect, Signal } from "../src/signals.ts";
 import { assertArrayIncludes, assertEquals } from "./deps.ts";
 
