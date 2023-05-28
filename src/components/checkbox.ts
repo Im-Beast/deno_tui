@@ -2,7 +2,7 @@
 import { ComponentOptions } from "../component.ts";
 import { BaseSignal, Computed } from "../signals.ts";
 import { signalify } from "../utils/signals.ts";
-import { Button, ButtonOptions } from "./button.ts";
+import { Button } from "./button.ts";
 
 export enum Mark {
   Check = "✓",
@@ -19,12 +19,13 @@ export class CheckBox extends Button {
   constructor(options: CheckBoxOptions) {
     const checkedSignal = signalify(options.checked);
 
-    (options as ButtonOptions).label = {
-      text: new Computed(() => checkedSignal.value ? Mark.Check : Mark.Cross),
-    };
+    Object.assign(options, {
+      label: {
+        text: new Computed(() => checkedSignal.value ? Mark.Check : Mark.Cross),
+      },
+    });
 
     super(options);
-
     this.checked = checkedSignal;
   }
 

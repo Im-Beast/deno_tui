@@ -23,17 +23,18 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
     const itemsSignal = signalify(options.items, { deepObserve: true });
     const placeholderSignal = signalify(options.placeholder ?? "");
 
-    const buttonOptions: ButtonOptions = options;
-    buttonOptions.label = {
-      text: new Computed(() => {
-        const items = itemsSignal.value;
-        const selectedItem = selectedItemSignal.value;
-        const placeholder = placeholderSignal.value;
-        return selectedItem === undefined ? placeholder : items[selectedItem];
-      }),
-    };
+    Object.assign(options, {
+      label: {
+        text: new Computed(() => {
+          const items = itemsSignal.value;
+          const selectedItem = selectedItemSignal.value;
+          const placeholder = placeholderSignal.value;
+          return selectedItem === undefined ? placeholder : items[selectedItem];
+        }),
+      },
+    });
 
-    super(buttonOptions);
+    super(options);
 
     this.items = itemsSignal;
     this.expanded = new Signal(false);
