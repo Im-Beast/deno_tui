@@ -1,25 +1,26 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import type { MouseEvent, MousePressEvent, MouseScrollEvent } from "../types.ts";
 
-const a: MouseEvent = {
+let mouseEvent: MouseEvent = {
   key: "mouse",
   x: 0,
   y: 0,
   movementX: 0,
   movementY: 0,
-  buffer: new Uint8Array(0),
+  buffer: undefined as unknown as Uint8Array,
   shift: false,
   ctrl: false,
   meta: false,
 };
-const b = structuredClone(a);
-
-let mouseEvent: MouseEvent = a;
-let lastMouseEvent: MouseEvent = b;
+let lastMouseEvent: MouseEvent = { ...mouseEvent };
 
 /**
  * Decode SGR mouse mode code sequence to {MouseEvent} object.
  * If it can't convert specified {code} to {MouseEvent} it returns undefined.
+ *
+ * **Don't hold onto event object reference that gets returned!**
+ *
+ * **It gets reused to save CPU usage and minimize GC.**
  */
 export function decodeMouseSGR(
   buffer: Uint8Array,
@@ -115,6 +116,10 @@ export function decodeMouseSGR(
 /**
  * Decode VT and UTF8 mouse mode code sequence to {MouseEvent} object.
  * If it can't convert specified {code} to {MouseEvent} it returns undefined.
+ *
+ * **Don't hold onto event object reference that gets returned!**
+ *
+ * **It gets reused to save CPU usage and minimize GC.**
  */
 export function decodeMouseVT_UTF8(
   buffer: Uint8Array,

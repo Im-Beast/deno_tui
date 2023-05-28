@@ -5,13 +5,20 @@ import type { Alphabet, Key, KeyPressEvent } from "../types.ts";
 const lowerCaseAlphabet = "abcdefghijklmnopqrstuvwxyz";
 
 const keyPress: KeyPressEvent = {
-  buffer: new Uint8Array(0),
+  buffer: undefined as unknown as Uint8Array,
   key: "-",
   meta: false,
   ctrl: false,
   shift: false,
 };
 
+/**
+ * Decode {buffer} and/or {code} to {KeyPressEvent} object
+ *
+ * **Don't hold onto event object reference that gets returned!**
+ *
+ * **It gets reused to save CPU usage and minimize GC.**
+ */
 export function decodeKey(buffer: Uint8Array, code: string): KeyPressEvent {
   if (code[0] === "\x1b") code = code.slice(1);
   keyPress.buffer = buffer;
