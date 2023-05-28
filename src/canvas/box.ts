@@ -18,6 +18,13 @@ export class BoxObject extends DrawObject<"box"> {
 
     this.rectangle = signalify(options.rectangle);
     this.filler = signalify(options.filler ?? " ");
+
+    this.rectangle.subscribe(() => {
+      this.needsToUpdateIntersections = true;
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.needsToUpdateIntersections = true;
+      }
+    });
   }
 
   rerender(): void {
@@ -48,7 +55,6 @@ export class BoxObject extends DrawObject<"box"> {
       const omitColumns = omitCells[row];
 
       if (omitColumns?.size === rectangle.width) {
-        omitColumns?.clear();
         continue;
       }
 
@@ -65,7 +71,6 @@ export class BoxObject extends DrawObject<"box"> {
       }
 
       rerenderColumns.clear();
-      omitColumns?.clear();
     }
   }
 }

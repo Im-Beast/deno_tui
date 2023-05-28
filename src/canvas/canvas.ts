@@ -28,6 +28,7 @@ export type CanvasEventMap = {
 export class Canvas extends EventEmitter<CanvasEventMap> {
   stdout: Stdout;
   size: BaseSignal<ConsoleSize>;
+  rerenderedObjects?: number;
   frameBuffer: string[][];
   resize: boolean;
   rerenderQueue: Set<number>[];
@@ -45,25 +46,31 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   }
 
   updateIntersections(object: DrawObject): void {
-    if (object.outOfBounds) return;
-
     const { omitCells, objectsUnder } = object;
 
     const zIndex = object.zIndex.peek();
     const rectangle = object.rectangle.peek();
 
-    let objectsUnderPointer = 0;
+    for (const omitRows of omitCells) {
+      omitRows?.clear();
+    }
+
+    objectsUnder.clear();
 
     for (const object2 of this.drawnObjects) {
       if (object === object2 || object2.outOfBounds) continue;
 
       const zIndex2 = object2.zIndex.peek();
+
       if (zIndex2 < zIndex || (zIndex2 === zIndex && object2.id < object.id)) {
-        objectsUnder[objectsUnderPointer++] = object2;
+        if (rectangleIntersection(rectangle, object2.rectangle.peek(), false)) {
+          objectsUnder.add(object2);
+        }
         continue;
       }
 
       const intersection = rectangleIntersection(rectangle, object2.rectangle.peek(), true);
+
       if (!intersection) continue;
 
       const rowRange = intersection.row + intersection.height;
@@ -76,10 +83,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
         }
       }
     }
-
-    if (objectsUnder.length !== objectsUnderPointer) {
-      objectsUnder.splice(objectsUnderPointer);
-    }
   }
 
   render(): void {
@@ -87,7 +90,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     if (resize) this.resize = false;
 
-    // TODO: Recalculate object intersections when their rectangle changes
+    let i = 0;
     for (const object of drawnObjects) {
       object.outOfBounds = false;
 
@@ -111,11 +114,15 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     for (const object of drawnObjects) {
-      if (object.outOfBounds || (object.rendered && object.rerenderCells.length === 0)) {
+      if (object.outOfBounds) {
         continue;
       }
 
-      this.updateIntersections(object);
+      if (object.needsToUpdateIntersections) {
+        ++i;
+        this.updateIntersections(object);
+        object.needsToUpdateIntersections = false;
+      }
 
       if (object.rendered) {
         object.rerender();
@@ -124,6 +131,8 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
         object.rendered = true;
       }
     }
+
+    this.rerenderedObjects = i;
 
     let drawSequence = "";
     let lastRow = -1;

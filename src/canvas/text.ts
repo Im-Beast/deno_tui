@@ -40,13 +40,20 @@ export class TextObject extends DrawObject<"text"> {
       const multiCodePointSupport = this.multiCodePointSupport.value;
       const overwriteRectangle = this.overwriteRectangle.value;
 
+      this.needsToUpdateIntersections = true;
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.needsToUpdateIntersections = true;
+      }
+
       if (!overwriteRectangle) {
         rectangle.width = textWidth(text);
         rectangle.height = 1;
       }
 
       const { valueChars: previousValueChars } = this;
-      const valueChars = this.valueChars = multiCodePointSupport ? text.match(UNICODE_CHAR_REGEXP) ?? [] : text;
+      const valueChars: string | string[] = this.valueChars = multiCodePointSupport
+        ? text.match(UNICODE_CHAR_REGEXP) ?? []
+        : text;
 
       const { row, column, width } = rectangle;
       const barrier = overwriteRectangle
@@ -131,7 +138,6 @@ export class TextObject extends DrawObject<"text"> {
 
     const omitColumns = omitCells[row];
     if (omitColumns?.size === valueChars.length) {
-      omitColumns?.clear();
       return;
     }
 
@@ -153,6 +159,5 @@ export class TextObject extends DrawObject<"text"> {
     }
 
     rerenderColumns.clear();
-    omitColumns?.clear();
   }
 }

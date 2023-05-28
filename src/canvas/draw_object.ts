@@ -35,14 +35,14 @@ export class DrawObject<Type extends string = string> {
   rectangle!: BaseSignal<Rectangle>;
   previousRectangle?: Rectangle;
 
-  objectsUnder: DrawObject[];
-  objectsUnderPointer: number;
+  objectsUnder: Set<DrawObject>;
 
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
   rendered: boolean;
   outOfBounds: boolean;
+  needsToUpdateIntersections: boolean;
 
   constructor(type: Type, options: DrawObjectOptions) {
     this.id = id++;
@@ -55,17 +55,22 @@ export class DrawObject<Type extends string = string> {
     this.omitCells = [];
     this.rerenderCells = [];
 
-    this.objectsUnder = [];
-    this.objectsUnderPointer = 0;
+    this.objectsUnder = new Set();
 
     this.rendered = false;
     this.outOfBounds = false;
+    this.needsToUpdateIntersections = true;
 
     this.view = signalify(options.view);
     this.zIndex = signalify(options.zIndex);
     this.style = signalify(options.style);
+
     this.style.subscribe(() => {
       this.rendered = false;
+      this.needsToUpdateIntersections = true;
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.needsToUpdateIntersections = true;
+      }
     });
   }
 
@@ -152,10 +157,6 @@ export class DrawObject<Type extends string = string> {
           continue;
         }
 
-        for (const objectUnder of objectsUnder) {
-          objectUnder.queueRerender(r, c);
-        }
-
         this.queueRerender(r, c);
       }
     }
@@ -192,7 +193,6 @@ export class DrawObject<Type extends string = string> {
       row > viewRectangle.row + viewRectangle.height ||
       column + width < viewRectangle.column || row + height < viewRectangle.row
     ) {
-      this.updateMovement();
       this.outOfBounds = true;
     }
   }
