@@ -65,7 +65,7 @@ Deno.test("signals.ts", async (t) => {
     assertEquals(subCount, 2); // doesn't run subscribers after being disposed
   });
 
-  await t.step("Effect", async (t) => {
+  await t.step("Effect", async () => {
     let runs = 0;
     let effectOutput = "";
 
