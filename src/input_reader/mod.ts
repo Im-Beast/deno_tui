@@ -23,13 +23,17 @@ export async function emitInputEvents(stdin: Stdin, emitter: EventEmitter<InputE
   } catch {
     // omit
   }
+
   for await (const buffer of stdin.readable) {
     for (const event of decodeBuffer(buffer)) {
       if (event.key === "mouse") {
         emitter.emit("mouseEvent", event);
 
-        if ("button" in event) emitter.emit("mousePress", event);
-        else if ("scroll" in event) emitter.emit("mouseScroll", event);
+        if ("button" in event) {
+          emitter.emit("mousePress", event);
+        } else if ("scroll" in event) {
+          emitter.emit("mouseScroll", event);
+        }
       } else {
         emitter.emit("keyPress", event);
       }
@@ -47,8 +51,8 @@ export function* decodeBuffer(
   buffer: Uint8Array,
 ): Generator<KeyPressEvent | MouseEvent | MousePressEvent | MouseScrollEvent, void, void> {
   const code = textDecoder.decode(buffer);
-
   const lastIndex = code.lastIndexOf("\x1b");
+
   if (code.indexOf("\x1b") !== lastIndex) {
     yield* decodeBuffer(buffer.subarray(0, lastIndex));
     yield* decodeBuffer(buffer.subarray(lastIndex));
