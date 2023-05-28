@@ -342,7 +342,7 @@ export class Table extends Component {
             prevData = dataCell;
           }
 
-          string += " ".repeat(this.rectangle.value.width - 1 - textWidth(string));
+          string += " ".repeat(this.rectangle.value.width - textWidth(string) - 2);
           return string;
         }),
         rectangle: new Computed(() => {
