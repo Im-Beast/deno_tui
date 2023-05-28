@@ -118,6 +118,7 @@ export class Tui extends EventEmitter<
 
     for (const event of ["keyPress", "mouseEvent", "mousePress", "mouseScroll"] as const) {
       this.on(event, (arg) => {
+        // FIXME: This can get behind actual presses, probably will need to reroll back to how it worked
         for (const component of this.focusedComponents) {
           // @ts-expect-error welp
           component.emit(event, arg);
