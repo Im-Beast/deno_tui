@@ -35,7 +35,7 @@ export interface Rectangle {
 export type Range<From extends number, To extends number> = number extends From ? number
   : _Range<From, To, []>;
 type _Range<From extends number, To extends number, R extends unknown[]> = R["length"] extends To ? To
-  : 
+  :
     | (R["length"] extends Range<0, From> ? From : R["length"])
     | _Range<From, To, [To, ...R]>;
 
