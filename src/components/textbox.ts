@@ -209,12 +209,13 @@ export class TextBox extends Box {
 
   #updateLineDrawObjects(): void {
     const { lineNumbers, lines } = this.drawnObjects;
-    if (!lines) return;
 
-    const { canvas } = this.tui;
-    const elements = lines.length;
     const { height } = this.rectangle.value;
     const lineNumbering = this.lineNumbering.value;
+
+    if (!lines) return;
+    const { canvas } = this.tui;
+    const elements = lines.length;
 
     for (let offset = 0; offset < Math.max(height, elements); ++offset) {
       const lineNumber = lineNumbers[offset];
