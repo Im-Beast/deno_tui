@@ -1,8 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 // Inspired by Vue.js Ref and Preact's signal API's
 
-import { sleep } from "../mod.ts";
-
 export type SubscriptionCallback<T> = (value: T) => void;
 
 export interface BaseSignalOptions {
@@ -12,12 +10,14 @@ export interface BaseSignalOptions {
 
 // deno-lint-ignore no-explicit-any
 export type AnySignal = BaseSignal<any>;
+// deno-lint-ignore no-explicit-any
+export type AnySubscriptionCallback = SubscriptionCallback<any>;
 export type AnyEffect = Effect<unknown>;
 export type AnyDependency = AnySignal | AnyEffect;
 
 export class BaseSignal<T> {
   dependencies: Set<AnyDependency>;
-  subscriptions?: SubscriptionCallback<unknown>[];
+  subscriptions?: AnySubscriptionCallback[];
 
   /** Whether value should be deeply observed (needs to be an object) */
   deepObserve: boolean;
@@ -35,25 +35,18 @@ export class BaseSignal<T> {
   */
   watchObjectIndex: boolean;
 
+  /** Whether to force signal to re-emit on next update */
+  forceChange: boolean;
+
   constructor(options?: BaseSignalOptions) {
     this.dependencies = new Set();
+    this.forceChange = false;
     this.deepObserve = options?.deepObserve ?? false;
     this.watchObjectIndex = options?.watchObjectIndex ?? false;
   }
 
-  get value(): T {
-    throw new Error("BaseSignal doesn't actually implement value getter!");
-  }
-  set value(_value: T) {
-    throw new Error("BaseSignal doesn't actually  implement value setter!");
-  }
-
-  peek(): T {
-    throw new Error("BaseSignal doesn't actually implement peek()!");
-  }
-
   subscribe(callback: SubscriptionCallback<T>): void {
-    (this.subscriptions ??= []).push(callback as SubscriptionCallback<unknown>);
+    (this.subscriptions ??= []).push(callback);
   }
 
   updateDependencies(): void {
@@ -72,26 +65,32 @@ export class BaseSignal<T> {
       if (dependency instanceof Effect) {
         dependency.func();
       } else if (dependency instanceof Computed) {
+        dependency.forceChange = true;
         dependency.update();
       }
     }
   }
 
   dispose(): void {
+    Object.defineProperty(this, "value", {
+      value: this.value,
+      configurable: false,
+    });
+
     for (const dependency of this.dependencies) {
       const isEffect = dependency instanceof Effect;
       const isComputed = dependency instanceof Computed;
 
-      if (isEffect || isComputed) {
-        const dependants = dependency.dependants;
-        dependants?.delete(this);
+      if (!isEffect && !isComputed) continue;
 
-        if (!dependants?.size && isComputed) {
-          dependency.dispose();
-          Object.defineProperty(dependency, "value", { value: dependency.peek() });
-        }
+      const dependants = dependency.dependants;
+      dependants?.delete(this);
+
+      if (!dependants?.size && isComputed) {
+        dependency.dispose();
       }
     }
+  }
 
   get value(): T {
     throw new Error("BaseSignal doesn't actually implement value getter!");
@@ -133,7 +132,7 @@ export class Signal<T> extends BaseSignal<T> {
     const oldValue = this.#value;
     this.#value = value;
 
-    if (value !== oldValue) {
+    if (value !== oldValue || this.forceChange) {
       this.updateDependencies();
     }
   }
@@ -163,22 +162,43 @@ export type ComputedFunction<T> = (this: Computed<T>, value: T) => T;
 export class Computed<T> extends BaseSignal<T> {
   #value!: T;
   #updator: ComputedFunction<T>;
-  dependants?: Set<AnySignal>;
+  dependants: Set<AnySignal>;
+  rootSignals: Set<AnySignal>;
 
   constructor(updator: ComputedFunction<T>) {
     super();
-    this.#updator = updator.bind(this);
+    this.dependants = new Set();
+    this.rootSignals = new Set();
+
+    this.#updator = updator;
     this.update();
+
     this.trackDependencies();
   }
 
   async trackDependencies() {
-    const dependants = await trackDependencies(this, this.update);
+    const { dependants } = this;
+
+    await trackDependencies(dependants, this, this.update);
     dependants.delete(this);
-    this.dependants = dependants;
 
     for (const signal of dependants) {
       signal.dependencies.add(this);
+    }
+
+    this.#updateRootSignals(dependants);
+  }
+
+  #updateRootSignals(dependencies: Set<AnyDependency>): void {
+    for (const dependency of dependencies) {
+      if (dependency instanceof Computed) {
+        this.#updateRootSignals(dependency.dependencies);
+        continue;
+      } else if (dependency instanceof Effect) {
+        continue;
+      }
+
+      this.rootSignals.add(dependency);
     }
   }
 
@@ -189,9 +209,18 @@ export class Computed<T> extends BaseSignal<T> {
     const oldValue = this.#value;
     this.#value = this.#updator(oldValue);
 
-    if (this.#value !== oldValue) {
+    if (this.#value !== oldValue || this.forceChange) {
       this.updateDependencies();
     }
+  }
+
+  dispose(): void {
+    super.dispose();
+    const { dependants } = this;
+    for (const dependant of dependants) {
+      dependant.dependencies.delete(this);
+    }
+    dependants.clear();
   }
 
   peek(): T {
@@ -220,23 +249,35 @@ export type EffectFunction<T> = (this: Effect<T>) => unknown;
 
 export class Effect<T> {
   readonly func: EffectFunction<T>;
-  dependants?: Set<BaseSignal<unknown>>;
+  dependants: Set<BaseSignal<unknown>>;
 
   constructor(func: EffectFunction<T>) {
-    this.func = func.bind(this);
+    this.func = func;
+    this.dependants = new Set();
     this.trackDependencies();
   }
 
   async trackDependencies() {
-    this.dependants = await trackDependencies(this, this.func);
-    for (const signal of this.dependants) {
-      signal.dependencies.add(this);
+    const { dependants } = this;
+    await trackDependencies(dependants, this, this.func);
+    for (const signal of dependants) {
+      if (signal instanceof Computed) {
+        dependants.delete(signal);
+
+        for (const rootDependency of signal.rootSignals) {
+          dependants.add(rootDependency);
+          rootDependency.dependencies.add(this);
+        }
+        // signal.dependencies.add(this);
+      } else {
+        signal.dependencies.add(this);
+      }
     }
   }
 
   /** Remove effect from dependants */
   dispose(): void {
-    for (const signal of this.dependants!) {
+    for (const signal of this.dependants) {
       signal.dependencies.delete(this);
     }
   }
@@ -265,7 +306,7 @@ export function makeObjectReactiveToSignal<T>(signal: Signal<T>, watchObjectInde
         const oldValue = target[property];
         target[property] = value;
 
-        if (value !== oldValue) {
+        if (value !== oldValue || signal.forceChange) {
           signal.updateDependencies();
         }
         return true;
@@ -327,7 +368,7 @@ export function makeObjectReactiveToSignal<T>(signal: Signal<T>, watchObjectInde
         const oldValue = object[property];
         object[property] = value;
 
-        if (value !== oldValue) {
+        if (value !== oldValue || signal.forceChange) {
           signal.updateDependencies();
         }
       },
@@ -344,9 +385,9 @@ let $out = 0;
 const activeSignals = new Set<BaseSignal<any>>();
 
 /** Track dependencies of given function */
-export async function trackDependencies(thisArg: unknown, func: () => void) {
+export async function trackDependencies(set: Set<AnyDependency>, thisArg: unknown, func: () => void): Promise<void> {
   while (trackSignals || $in !== $out) {
-    await sleep(0);
+    await Promise.resolve();
   }
 
   trackSignals = true;
@@ -354,7 +395,9 @@ export async function trackDependencies(thisArg: unknown, func: () => void) {
   func.call(thisArg);
   ++$out;
   trackSignals = false;
-  const active = new Set(activeSignals);
+
+  for (const signal of activeSignals) {
+    set.add(signal);
+  }
   activeSignals.clear();
-  return active;
 }
