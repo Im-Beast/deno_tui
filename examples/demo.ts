@@ -481,7 +481,7 @@ tui.canvas.on("render", () => {
       new Frame({
         parent: tui,
         rectangle: component.rectangle,
-        visible: false,
+        visible: true,
         charMap: "rounded",
         theme: tuiStyleTheme,
         zIndex: component.zIndex,
@@ -509,6 +509,7 @@ const performanceStats = new Text({
 FPS: ${fps.value.toFixed(2)}\
  | Components: ${tui.components.size}\
  | Drawn objects: ${tui.canvas.drawnObjects.length}\
+ | Updated objects: ${tui.canvas.rerenderedObjects}\
  | Press CTRL+F to toggle Frame/Label visibility`
   ),
   zIndex: 0,
