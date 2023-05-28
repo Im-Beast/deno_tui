@@ -22,10 +22,10 @@ export interface ButtonOptions extends ComponentOptions {
 export class Button extends Box {
   declare drawnObjects: { box: BoxObject };
   declare subComponents: { label?: Label };
-  label: BaseSignal<{
-    text: BaseSignal<string | undefined>;
+  label: {
+    text: BaseSignal<string>;
     align: BaseSignal<LabelAlign>;
-  }>;
+  };
 
   constructor(options: ButtonOptions) {
     super(options);
@@ -39,8 +39,8 @@ export class Button extends Box {
     label.text = signalify(label.text);
     label.align = signalify(label.align ?? centerAlign);
 
-    this.label = signalify(label as unknown as this["label"], { deepObserve: true });
-    this.label.value.text.subscribe(() => {
+    this.label = label as this["label"];
+    this.label.text.subscribe(() => {
       this.#updateLabelSubcomponent();
     });
   }
@@ -61,8 +61,12 @@ export class Button extends Box {
   }
 
   #updateLabelSubcomponent(): void {
-    if (!this.label.value.text.value) {
+    if (!this.label.text.value) {
       this.subComponents.label?.destroy();
+      return;
+    }
+
+    if (this.subComponents.label) {
       return;
     }
 
@@ -72,8 +76,8 @@ export class Button extends Box {
       zIndex: this.zIndex,
       rectangle: this.rectangle,
       overwriteRectangle: true,
-      text: this.label.value.text as BaseSignal<string>,
-      align: this.label.value.align,
+      text: this.label.text,
+      align: this.label.align,
     });
 
     label.state = this.state;
