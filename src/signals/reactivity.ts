@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Signal } from "./signal.ts";
 
 export const IS_REACTIVE = Symbol("reactive");

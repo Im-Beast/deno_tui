@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { activeSignals } from "./dependency_tracking.ts";
 import { makeMapMethodsReactive, makeObjectPropertiesReactive, makeSetMethodsReactive } from "./reactivity.ts";
 import { Dependant, Dependency, Subscription } from "./types.ts";
