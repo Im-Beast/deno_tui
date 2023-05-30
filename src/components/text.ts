@@ -1,22 +1,22 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { BaseSignal } from "../signals.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
-  text: string | BaseSignal<string>;
-  rectangle: TextRectangle | BaseSignal<TextRectangle>;
-  overwriteWidth?: boolean | BaseSignal<boolean>;
-  multiCodePointSupport?: boolean | BaseSignal<boolean>;
+  text: string | Signal<string>;
+  rectangle: TextRectangle | Signal<TextRectangle>;
+  overwriteWidth?: boolean | Signal<boolean>;
+  multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
 export class Text extends Component {
   declare drawnObjects: { text: TextObject };
 
-  text: BaseSignal<string>;
-  overwriteRectangle: BaseSignal<boolean>;
-  multiCodePointSupport: BaseSignal<boolean>;
+  text: Signal<string>;
+  overwriteRectangle: Signal<boolean>;
+  multiCodePointSupport: Signal<boolean>;
 
   constructor(options: TextOptions) {
     super(options as unknown as ComponentOptions);
@@ -32,7 +32,7 @@ export class Text extends Component {
       value: this.text,
       style: this.style,
       zIndex: this.zIndex,
-      rectangle: this.rectangle,
+      rectangle: this.rectangle as unknown as Signal<TextRectangle>,
       multiCodePointSupport: this.multiCodePointSupport,
       overwriteRectangle: this.overwriteRectangle,
     });

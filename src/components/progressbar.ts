@@ -9,7 +9,7 @@ import { TextObject } from "../canvas/text.ts";
 import { normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
-import { BaseSignal, Computed } from "../signals.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export type ProgressBarCharMapType = {
@@ -30,13 +30,13 @@ export interface ProgressBarTheme extends Theme {
 }
 
 export interface ProgressBarOptions extends ComponentOptions {
-  min: number | BaseSignal<number>;
-  max: number | BaseSignal<number>;
-  value: number | BaseSignal<number>;
-  smooth: boolean | BaseSignal<boolean>;
-  direction: ProgressBarDirection | BaseSignal<ProgressBarDirection>;
-  charMap?: ProgressBarCharMapType | BaseSignal<ProgressBarCharMapType>;
-  orientation: ProgressBarOrientation | BaseSignal<ProgressBarOrientation>;
+  min: number | Signal<number>;
+  max: number | Signal<number>;
+  value: number | Signal<number>;
+  smooth: boolean | Signal<boolean>;
+  direction: ProgressBarDirection | Signal<ProgressBarDirection>;
+  charMap?: ProgressBarCharMapType | Signal<ProgressBarCharMapType>;
+  orientation: ProgressBarOrientation | Signal<ProgressBarOrientation>;
 
   theme: DeepPartial<ProgressBarTheme, "progress">;
 }
@@ -45,13 +45,13 @@ export class ProgressBar extends Box {
   declare drawnObjects: { box: BoxObject; progress: BoxObject | TextObject[] };
   declare theme: ProgressBarTheme;
 
-  min: BaseSignal<number>;
-  max: BaseSignal<number>;
-  value: BaseSignal<number>;
-  smooth: BaseSignal<boolean>;
-  direction: BaseSignal<ProgressBarDirection>;
-  orientation: BaseSignal<ProgressBarOrientation>;
-  charMap: BaseSignal<ProgressBarCharMapType>;
+  min: Signal<number>;
+  max: Signal<number>;
+  value: Signal<number>;
+  smooth: Signal<boolean>;
+  direction: Signal<ProgressBarDirection>;
+  orientation: Signal<ProgressBarOrientation>;
+  charMap: Signal<ProgressBarCharMapType>;
 
   constructor(options: ProgressBarOptions) {
     super(options);

@@ -1,11 +1,11 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { TextObject } from "../canvas/text.ts";
+import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
 
 import { cropToWidth, textWidth } from "../utils/strings.ts";
 
 import type { Rectangle } from "../types.ts";
-import { BaseSignal, Computed, Effect, Signal } from "../signals.ts";
+import { Computed, Effect, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export type LabelRectangle = Omit<Rectangle, "width" | "height"> & {
@@ -19,22 +19,22 @@ export interface LabelAlign {
 }
 
 export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
-  text: string | BaseSignal<string>;
-  rectangle: LabelRectangle | BaseSignal<LabelRectangle>;
-  align?: LabelAlign | BaseSignal<LabelAlign>;
-  multiCodePointSupport?: boolean | BaseSignal<boolean>;
-  overwriteRectangle?: boolean | BaseSignal<boolean>;
+  text: string | Signal<string>;
+  rectangle: LabelRectangle | Signal<LabelRectangle>;
+  align?: LabelAlign | Signal<LabelAlign>;
+  multiCodePointSupport?: boolean | Signal<boolean>;
+  overwriteRectangle?: boolean | Signal<boolean>;
 }
 
 export class Label extends Component {
   declare drawnObjects: { texts: TextObject[] };
 
-  #valueLines: BaseSignal<string[]>;
+  #valueLines: Signal<string[]>;
 
-  text: BaseSignal<string>;
-  align: BaseSignal<LabelAlign>;
-  overwriteRectangle: BaseSignal<boolean>;
-  multiCodePointSupport: BaseSignal<boolean>;
+  text: Signal<string>;
+  align: Signal<LabelAlign>;
+  overwriteRectangle: Signal<boolean>;
+  multiCodePointSupport: Signal<boolean>;
 
   constructor(options: LabelOptions) {
     super(options as ComponentOptions);
@@ -44,11 +44,7 @@ export class Label extends Component {
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
     this.align = signalify(options.align ?? { vertical: "top", horizontal: "left" }, { deepObserve: true });
 
-    // FIXME: This is temporary workaround, Computed should be used after Signal rewrite
-    this.#valueLines = new Signal(this.text.value.split("\n"));
-    this.text.subscribe(() => {
-      this.#valueLines.value = this.text.value.split("\n");
-    });
+    this.#valueLines = new Computed(() => this.text.value.split("\n"));
 
     new Effect(() => {
       const rectangle = this.rectangle.value;
@@ -82,7 +78,7 @@ export class Label extends Component {
     const { drawnObjects } = this;
 
     for (let offset = drawnObjects.texts.length; offset < this.#valueLines.peek().length; ++offset) {
-      const textRectangle = { column: 0, row: 0, width: 0, height: 0 };
+      const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
       const text = new TextObject({
         canvas: this.tui.canvas,
         view: this.view,

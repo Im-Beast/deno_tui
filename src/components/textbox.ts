@@ -3,12 +3,12 @@ import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Theme } from "../theme.ts";
 import { DeepPartial } from "../types.ts";
 import { cropToWidth, insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
-import { BaseSignal, Computed, Effect, Signal } from "../signals.ts";
+import { Computed, Effect, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { KeyPressEvent } from "../input_reader/types.ts";
 
@@ -27,14 +27,14 @@ export interface TextBoxTheme extends Theme {
 }
 
 export interface TextBoxOptions extends ComponentOptions {
-  text?: string | BaseSignal<string>;
-  validator?: RegExp | BaseSignal<RegExp>;
+  text?: string | Signal<string>;
+  validator?: RegExp | Signal<RegExp>;
   theme: DeepPartial<TextBoxTheme, "cursor">;
-  multiCodePointSupport?: boolean | BaseSignal<boolean>;
+  multiCodePointSupport?: boolean | Signal<boolean>;
   /** Whether to highlight currently selected text row */
-  lineHighlighting?: boolean | BaseSignal<boolean>;
+  lineHighlighting?: boolean | Signal<boolean>;
   /** Whether to number textbox rows */
-  lineNumbering?: boolean | BaseSignal<boolean>;
+  lineNumbering?: boolean | Signal<boolean>;
   /** Function that defines what key does what while textbox is focused/active */
   keyboardHandler?: (keyPress: KeyPressEvent) => void;
 }
@@ -50,11 +50,11 @@ export class TextBox extends Box {
 
   #textLines: Computed<string[]>;
 
-  text: BaseSignal<string>;
-  lineNumbering: BaseSignal<boolean>;
-  lineHighlighting: BaseSignal<boolean>;
-  cursorPosition: BaseSignal<CursorPosition>;
-  multiCodePointSupport: BaseSignal<boolean>;
+  text: Signal<string>;
+  lineNumbering: Signal<boolean>;
+  lineHighlighting: Signal<boolean>;
+  cursorPosition: Signal<CursorPosition>;
+  multiCodePointSupport: Signal<boolean>;
 
   constructor(options: TextBoxOptions) {
     super(options);
@@ -169,7 +169,7 @@ export class TextBox extends Box {
 
     this.#updateLineDrawObjects();
 
-    const cursorRectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
     const cursor = new TextObject({
       canvas,
       view: this.view,
@@ -220,7 +220,7 @@ export class TextBox extends Box {
     for (let offset = 0; offset < Math.max(height, elements); ++offset) {
       const lineNumber = lineNumbers[offset];
       if (!lineNumber && lineNumbering) {
-        const lineNumberRectangle = { column: 0, row: 0, width: 0 };
+        const lineNumberRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
         const lineNumber = new TextObject({
           canvas,
           view: this.view,
@@ -253,7 +253,7 @@ export class TextBox extends Box {
 
       const line = lines[offset];
       if (!line) {
-        const lineRectangle = { column: 0, row: 0, width: 0 };
+        const lineRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
         const line = new TextObject({
           canvas,
           view: this.view,

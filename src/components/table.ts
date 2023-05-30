@@ -8,7 +8,7 @@ import type { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
 import { textWidth } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
-import { BaseSignal, Computed, Effect, Signal } from "../signals.ts";
+import { Computed, Effect, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export const TableUnicodeCharacters = {
@@ -71,11 +71,11 @@ export class Table extends Component {
     data: TextObject[];
   };
 
-  data: BaseSignal<string[][]>;
-  headers: BaseSignal<TableHeader<true>[]>;
-  charMap: BaseSignal<TableUnicodeCharactersType>;
-  selectedRow: BaseSignal<number>;
-  offsetRow: BaseSignal<number>;
+  data: Signal<string[][]>;
+  headers: Signal<TableHeader<true>[]>;
+  charMap: Signal<TableUnicodeCharactersType>;
+  selectedRow: Signal<number>;
+  offsetRow: Signal<number>;
 
   constructor(options: TableOptions) {
     super(options as unknown as ComponentOptions);

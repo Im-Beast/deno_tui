@@ -5,7 +5,7 @@ import { Component, ComponentOptions } from "../component.ts";
 import { BoxObject } from "../canvas/box.ts";
 import { TextObject } from "../canvas/text.ts";
 
-import { BaseSignal, Computed } from "../signals.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export const FrameUnicodeCharacters = {
@@ -43,7 +43,7 @@ export class Frame extends Component {
     right: BoxObject;
   };
 
-  charMap: BaseSignal<FrameUnicodeCharactersType>;
+  charMap: Signal<FrameUnicodeCharactersType>;
 
   constructor(options: FrameOptions) {
     super(options);

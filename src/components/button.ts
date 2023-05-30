@@ -3,8 +3,8 @@ import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 
 import type { BoxObject } from "../canvas/box.ts";
-import { Label, LabelAlign } from "./label.ts";
-import { BaseSignal } from "../signals.ts";
+import { Label, LabelAlign, LabelRectangle } from "./label.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 const centerAlign: LabelAlign = {
@@ -14,8 +14,8 @@ const centerAlign: LabelAlign = {
 
 export interface ButtonOptions extends ComponentOptions {
   label?: {
-    text: string | BaseSignal<string>;
-    align?: LabelAlign | BaseSignal<LabelAlign>;
+    text: string | Signal<string>;
+    align?: LabelAlign | Signal<LabelAlign>;
   };
 }
 
@@ -23,8 +23,8 @@ export class Button extends Box {
   declare drawnObjects: { box: BoxObject };
   declare subComponents: { label?: Label };
   label: {
-    text: BaseSignal<string>;
-    align: BaseSignal<LabelAlign>;
+    text: Signal<string>;
+    align: Signal<LabelAlign>;
   };
 
   constructor(options: ButtonOptions) {
@@ -74,7 +74,7 @@ export class Button extends Box {
       parent: this,
       theme: this.theme,
       zIndex: this.zIndex,
-      rectangle: this.rectangle,
+      rectangle: this.rectangle as Signal<LabelRectangle>,
       overwriteRectangle: true,
       text: this.label.text,
       align: this.label.align,

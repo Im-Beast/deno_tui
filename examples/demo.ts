@@ -21,8 +21,7 @@ import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
 import { Component } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
-import { Computed } from "../src/signals.ts";
-import { Signal } from "../src/signals.ts";
+import { Computed, Signal } from "../src/signals/mod.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,

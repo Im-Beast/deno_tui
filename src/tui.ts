@@ -3,7 +3,7 @@ import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
-import { Computed } from "./signals.ts";
+import { Computed } from "./signals/mod.ts";
 import { Style } from "./theme.ts";
 import { Stdin, Stdout } from "./types.ts";
 import { HIDE_CURSOR, SHOW_CURSOR, USE_PRIMARY_BUFFER, USE_SECONDARY_BUFFER } from "./utils/ansi_codes.ts";

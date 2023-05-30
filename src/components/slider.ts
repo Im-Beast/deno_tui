@@ -8,7 +8,7 @@ import { BoxObject } from "../canvas/box.ts";
 import { clamp, normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
-import { BaseSignal, Computed } from "../signals.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export type SliderOrientation = "vertical" | "horizontal";
@@ -18,12 +18,12 @@ export interface SliderTheme extends Theme {
 }
 
 export interface SliderOptions extends ComponentOptions {
-  min: number | BaseSignal<number>;
-  max: number | BaseSignal<number>;
-  step: number | BaseSignal<number>;
-  value: number | BaseSignal<number>;
-  adjustThumbSize: boolean | BaseSignal<boolean>;
-  orientation: SliderOrientation | BaseSignal<SliderOrientation>;
+  min: number | Signal<number>;
+  max: number | Signal<number>;
+  step: number | Signal<number>;
+  value: number | Signal<number>;
+  adjustThumbSize: boolean | Signal<boolean>;
+  orientation: SliderOrientation | Signal<SliderOrientation>;
   theme: DeepPartial<SliderTheme, "thumb">;
 }
 
@@ -31,12 +31,12 @@ export class Slider extends Box {
   declare drawnObjects: { box: BoxObject; thumb: BoxObject };
   declare theme: SliderTheme;
 
-  min: BaseSignal<number>;
-  max: BaseSignal<number>;
-  step: BaseSignal<number>;
-  value: BaseSignal<number>;
-  adjustThumbSize: BaseSignal<boolean>;
-  orientation: BaseSignal<SliderOrientation>;
+  min: Signal<number>;
+  max: Signal<number>;
+  step: Signal<number>;
+  value: Signal<number>;
+  adjustThumbSize: Signal<boolean>;
+  orientation: Signal<SliderOrientation>;
 
   constructor(options: SliderOptions) {
     super(options);

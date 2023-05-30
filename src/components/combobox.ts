@@ -1,22 +1,22 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { BaseSignal, Computed, Signal } from "../signals.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { Button, ButtonOptions } from "./button.ts";
 
 export interface ComboBoxOptions<Items extends string[] = string[]> extends Omit<ButtonOptions, "label"> {
   placeholder?: string;
-  items: Items | BaseSignal<Items>;
-  selectedItem?: number | undefined | BaseSignal<number | undefined>;
+  items: Items | Signal<Items>;
+  selectedItem?: number | undefined | Signal<number | undefined>;
 }
 
 export class ComboBox<Items extends string[] = string[]> extends Button {
   declare subComponents: { [button: number]: Button };
   #subComponentsLength: number;
 
-  items: BaseSignal<Items>;
-  expanded: BaseSignal<boolean>;
-  selectedItem: BaseSignal<number | undefined>;
-  placeholder: BaseSignal<string>;
+  items: Signal<Items>;
+  expanded: Signal<boolean>;
+  selectedItem: Signal<number | undefined>;
+  placeholder: Signal<string>;
 
   constructor(options: ComboBoxOptions<Items>) {
     const selectedItemSignal = signalify(options.selectedItem);

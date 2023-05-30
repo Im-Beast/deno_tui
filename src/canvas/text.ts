@@ -3,30 +3,30 @@ import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
-import { BaseSignal, Effect } from "../signals.ts";
+import { Effect, Signal } from "../signals/mod.ts";
 import { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
 
 export type TextRectangle = { column: number; row: number; width?: number };
 
 export interface TextObjectOptions extends DrawObjectOptions {
-  value: string | BaseSignal<string>;
-  overwriteRectangle?: boolean | BaseSignal<boolean>;
-  rectangle: TextRectangle | BaseSignal<TextRectangle>;
-  multiCodePointSupport?: boolean | BaseSignal<boolean>;
+  value: string | Signal<string>;
+  overwriteRectangle?: boolean | Signal<boolean>;
+  rectangle: TextRectangle | Signal<TextRectangle>;
+  multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
 export class TextObject extends DrawObject<"text"> {
-  text: BaseSignal<string>;
+  text: Signal<string>;
   valueChars: string[] | string;
-  overwriteRectangle: BaseSignal<boolean>;
-  multiCodePointSupport: BaseSignal<boolean>;
+  overwriteRectangle: Signal<boolean>;
+  multiCodePointSupport: Signal<boolean>;
 
   constructor(options: TextObjectOptions) {
     super("text", options);
 
     this.text = signalify(options.value);
-    this.rectangle = signalify(options.rectangle) as BaseSignal<Rectangle>;
+    this.rectangle = signalify(options.rectangle as Rectangle);
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
     this.valueChars = this.multiCodePointSupport.value

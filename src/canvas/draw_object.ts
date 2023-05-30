@@ -5,7 +5,7 @@ import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
-import { BaseSignal } from "../signals.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface DrawObjectOptions {
@@ -14,9 +14,9 @@ export interface DrawObjectOptions {
   omitCells?: number[];
   omitCellsPointer?: number;
 
-  view?: View | BaseSignal<View | undefined>;
-  style: Style | BaseSignal<Style>;
-  zIndex: number | BaseSignal<number>;
+  view?: View | Signal<View | undefined>;
+  style: Style | Signal<Style>;
+  zIndex: number | Signal<number>;
 }
 
 let id = 0;
@@ -26,13 +26,13 @@ export class DrawObject<Type extends string = string> {
 
   canvas: Canvas;
 
-  style: BaseSignal<Style>;
-  zIndex: BaseSignal<number>;
+  style: Signal<Style>;
+  zIndex: Signal<number>;
 
-  view: BaseSignal<View | undefined>;
+  view: Signal<View | undefined>;
   viewOffset: Offset;
 
-  rectangle!: BaseSignal<Rectangle>;
+  rectangle!: Signal<Rectangle>;
   previousRectangle?: Rectangle;
 
   objectsUnder: Set<DrawObject>;

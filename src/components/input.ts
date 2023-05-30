@@ -3,12 +3,12 @@ import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Theme } from "../theme.ts";
 import { DeepPartial } from "../types.ts";
 import { cropToWidth, insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
-import { BaseSignal, Computed, Signal } from "../signals.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface InputTheme extends Theme {
@@ -18,11 +18,11 @@ export interface InputTheme extends Theme {
 }
 
 export interface InputOptions extends ComponentOptions {
-  text?: string | BaseSignal<string>;
-  validator?: RegExp | BaseSignal<RegExp>;
-  password?: boolean | BaseSignal<boolean>;
-  placeholder?: string | BaseSignal<string>;
-  multiCodePointSupport?: boolean | BaseSignal<boolean>;
+  text?: string | Signal<string>;
+  validator?: RegExp | Signal<RegExp | undefined>;
+  password?: boolean | Signal<boolean>;
+  placeholder?: string | Signal<string | undefined>;
+  multiCodePointSupport?: boolean | Signal<boolean>;
 
   theme: DeepPartial<InputTheme, "cursor">;
 }
@@ -35,12 +35,12 @@ export class Input extends Box {
   };
   declare theme: InputTheme;
 
-  text: BaseSignal<string>;
-  password: BaseSignal<boolean>;
-  cursorPosition: BaseSignal<number>;
-  validator: BaseSignal<RegExp | undefined>;
-  multiCodePointSupport: BaseSignal<boolean>;
-  placeholder: BaseSignal<string | undefined>;
+  text: Signal<string>;
+  password: Signal<boolean>;
+  cursorPosition: Signal<number>;
+  validator: Signal<RegExp | undefined>;
+  multiCodePointSupport: Signal<boolean>;
+  placeholder: Signal<string | undefined>;
 
   constructor(options: InputOptions) {
     super(options);
@@ -107,7 +107,7 @@ export class Input extends Box {
 
     const { canvas } = this.tui;
 
-    const textRectangle = { column: 0, row: 0, width: 0 };
+    const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
     const text = new TextObject({
       canvas,
       view: this.view,
@@ -140,7 +140,7 @@ export class Input extends Box {
       }),
     });
 
-    const cursorRectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
     const cursor = new TextObject({
       canvas,
       view: this.view,
