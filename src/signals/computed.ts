@@ -26,6 +26,19 @@ export class Computed<T> extends Signal<T> implements Dependant, Dependency {
     });
   }
 
+  get value(): T {
+    activeSignals?.add(this);
+    return this.$value;
+  }
+
+  set value(_value: T) {
+    throw new ComputedReadOnlyError();
+  }
+
+  jink(_value: T): never {
+    throw new ComputedReadOnlyError();
+  }
+
   update(): void {
     activeSignals?.add(this);
 
