@@ -21,6 +21,7 @@ export interface ComponentOptions {
   view?: View | undefined | Signal<View | undefined>;
 }
 
+/** Type defining last interaction component experienced */
 export interface Interaction {
   time: number;
   method: "keyboard" | "mouse" | undefined;

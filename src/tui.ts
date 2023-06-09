@@ -18,6 +18,22 @@ export interface TuiOptions {
   refreshRate?: number;
 }
 
+/**
+ * Root element of Tui app.
+ *
+ * This keeps elements running and manages Components as children.
+ *
+ * @example
+ * ```ts
+ * const tui = new Tui({
+ *   style: crayon.bgBlack,
+ *   refreshRate: 1000 / 60,
+ * });
+ *
+ * tui.dispatch();
+ * tui.run();
+ * ```
+ */
 export class Tui extends EventEmitter<
   {
     destroy: EmitterEvent<[]>;
