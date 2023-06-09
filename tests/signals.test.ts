@@ -1,7 +1,7 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Computed, Effect, Signal } from "../src/signals/mod.ts";
 import { IS_REACTIVE } from "../src/signals/reactivity.ts";
-import { assertArrayIncludes, assertEquals } from "./deps.ts";
+import { assertArrayIncludes, assertEquals, assertThrows } from "./deps.ts";
 
 Deno.test("signals/mod.ts", async (t) => {
   await t.step("Signal", async (t) => {
@@ -247,10 +247,12 @@ Deno.test("signals/mod.ts", async (t) => {
     // Computed tracks dependencies for one event loop tick
     await Promise.resolve();
 
+    assertThrows(() => computed.value = 10); // You can't change computed's value directly
+
     assertEquals(signal.value, 0);
     assertEquals(computed.value, 0);
     assertEquals(computed2.value, 0);
-    assertEquals(subCount, 0); // subscribers get info after value being changed, not like effect
+    assertEquals(subCount, 0); // Subscribers get info after value being changed, unlike effect
 
     signal.value = 5;
     assertEquals(signal.value, 5);
