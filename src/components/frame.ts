@@ -1,5 +1,4 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-// deno-lint-ignore-file
 import { Component, ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";
@@ -35,6 +34,39 @@ export interface FrameOptions extends ComponentOptions {
   charMap: keyof typeof FrameUnicodeCharacters | FrameUnicodeCharactersType;
 }
 
+/**
+ * Component for creating non-interactive frames
+ *
+ * @example
+ * ```ts
+ * new Frame({
+ *  parent: tui,
+ *  charMap: "rounded",
+ *  theme: {
+ *    base: crayon.bgBlack.white,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    height: 5,
+ *    width: 10,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * If you want frame to follow component just link components rectangle as frame's rectangle.
+ *
+ * @example
+ * ```ts
+ * const box = new Box(...);
+ *
+ * new Frame({
+ *  ...,
+ *  rectangle: box.rectangle,
+ * });
+ * ```
+ */
 export class Frame extends Component {
   declare drawnObjects: {
     top: TextObject;

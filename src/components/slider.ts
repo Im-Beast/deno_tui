@@ -22,11 +22,45 @@ export interface SliderOptions extends ComponentOptions {
   max: number | Signal<number>;
   step: number | Signal<number>;
   value: number | Signal<number>;
+  /**
+   * When false thumb will be 1 cell wide/high.
+   *
+   * If this is set to true, thumb size will adjust so it takes as much space as it can so it looks more natural to interact with.
+   *
+   * Basically when set to true it'll make slider thumb work just like in browsers.
+   */
   adjustThumbSize: boolean | Signal<boolean>;
   orientation: SliderOrientation | Signal<SliderOrientation>;
   theme: DeepPartial<SliderTheme, "thumb">;
 }
 
+/**
+ * Component for creating interactive sliders
+ *
+ * @example
+ * ```ts
+ * new Slider({
+ *  parent: tui,
+ *  min: 1,
+ *  max: 10,
+ *  value: 5,
+ *  step: 1,
+ *  adjustThumbSize: true,
+ *  orientation: "horizontal",
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    height: 2,
+ *    width: 10,
+ *  },
+ *  theme: {
+ *    base: crayon.bgBlue,
+ *    thumb: { base: crayon.bgMagenta },
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ */
 export class Slider extends Box {
   declare drawnObjects: { box: BoxObject; thumb: BoxObject };
   declare theme: SliderTheme;

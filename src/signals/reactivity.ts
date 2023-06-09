@@ -3,6 +3,16 @@ import { Signal } from "./signal.ts";
 
 export const IS_REACTIVE = Symbol("reactive");
 
+/**
+ * Replaces `set`, `delete` and `clear` methods in given map with ones that provide reactivity.
+ *
+ * When map gets in any way updated `propagate` method gets called on provided signal.
+ *
+ * @param watchMapUpdates
+ * Changes method of detecting value changes when `.set()` gets called.
+ *  - When set to `true` it checks whether value changed.
+ *  - When set to `false` it checks whether map size changed (default).
+ */
 export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
   map: T,
   signal: Signal<S>,
@@ -10,26 +20,41 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
 ): T {
   Object.defineProperty(map, IS_REACTIVE, { value: true });
 
-  let previousValue: Parameters<T["get"]>[0];
+  type MapType = T extends Map<infer K, infer V> ? [K, V] : never;
+  type MapKeyType = MapType[0];
+  type MapValueType = MapType[1];
 
   const set = map.set.bind(map);
-  function $set(key: Parameters<T["set"]>[0], value: Parameters<T["delete"]>[1]) {
-    const { size } = map;
-    if (watchMapUpdates) {
-      previousValue = map.get(key);
-    }
 
-    set(key, value);
+  let $set: T["set"];
 
-    if (map.size > size || (watchMapUpdates && value !== previousValue)) {
-      signal.propagate();
-    }
-    return map;
+  if (watchMapUpdates) {
+    $set = function $set(key: MapKeyType, value: MapValueType) {
+      const previousValue = map.get(key);
+
+      set(key, value);
+
+      if (value !== previousValue) {
+        signal.propagate();
+      }
+      return map;
+    };
+  } else {
+    $set = function $step(key: MapKeyType, value: MapValueType) {
+      const { size } = map;
+
+      set(key, value);
+
+      if (map.size > size) {
+        signal.propagate();
+      }
+      return map;
+    };
   }
 
   const del = map.delete.bind(map);
-  function $delete(value: Parameters<T["delete"]>[0]) {
-    const removed = del(value);
+  function $delete(key: MapKeyType) {
+    const removed = del(key);
     if (removed) {
       signal.propagate();
     }
@@ -54,6 +79,11 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
   return map;
 }
 
+/**
+ * Replaces `add`, `delete` and `clear` methods in given set with ones that provide reactivity.
+ *
+ * When set gets in any way updated `propagate` method gets called on provided signal.
+ */
 export function makeSetMethodsReactive<T extends Set<unknown>, S>(set: T, signal: Signal<S>): T {
   Object.defineProperty(set, IS_REACTIVE, { value: true });
 
@@ -98,6 +128,13 @@ export function makeSetMethodsReactive<T extends Set<unknown>, S>(set: T, signal
   return set;
 }
 
+/**
+ * Replaces `push`, `pop`, `sort` and `replace` methods in given array with ones that provide reactivity.
+ *
+ * When map gets in any way updated `propagate` method gets called on provided signal.
+ *
+ * @param watchObjectIndex – When set to `true` it checks whether array got directly modified via index
+ */
 export function makeArrayMethodsReactive<T extends Array<unknown>, S>(
   array: T,
   signal: Signal<S>,
@@ -155,13 +192,22 @@ export function makeArrayMethodsReactive<T extends Array<unknown>, S>(
     push: { value: $push },
     pop: { value: $pop },
     splice: { value: $splice },
-    sot: { value: $sort },
+    sort: { value: $sort },
     reverse: { value: $reverse },
   });
 
   return array;
 }
 
+/**
+ * Watches the object for changes and when they happen `propagate` method gets called on provided signal.
+ *
+ * @param watchObjectIndex – Changes the way reactivity is handled
+ *  - When set to `true` it creates `Proxy` which watches properties, even new ones.
+ *  - When set to `false` it uses `Object.defineProperty` to watch properties that existed at the time of creating signal.
+ *
+ * @returns new object, not direct reference to given object
+ */
 export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>, watchObjectIndex = false): T {
   if (typeof object !== "object") {
     throw new Error("parameter object needs to be typeof 'object'");

@@ -25,6 +25,11 @@ export type CanvasEventMap = {
   render: EmitterEvent<[]>;
 };
 
+/**
+ * Object, which stores data about currently rendered objects.
+ *
+ * It is responsible for outputting to stdout.
+ */
 export class Canvas extends EventEmitter<CanvasEventMap> {
   stdout: Stdout;
   size: Signal<ConsoleSize>;

@@ -19,6 +19,29 @@ export interface ButtonOptions extends ComponentOptions {
   };
 }
 
+/**
+ * Component for creating interactive button
+ *
+ * @example
+ * ```ts
+ * new Button({
+ *  parent: tui,
+ *  label: { text: "click\nme" },
+ *  theme: {
+ *    base: crayon.bgGreen,
+ *    focused: crayon.bgLightGreen,
+ *    active: crayon.bgYellow,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    height: 5,
+ *    width: 10,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ */
 export class Button extends Box {
   declare drawnObjects: { box: BoxObject };
   declare subComponents: { label?: Label };

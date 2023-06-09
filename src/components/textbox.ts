@@ -39,6 +39,51 @@ export interface TextBoxOptions extends ComponentOptions {
   keyboardHandler?: (keyPress: KeyPressEvent) => void;
 }
 
+/**
+ * Component for creating interactive mutliline text input
+ *
+ * If you need singleline input use `Input` component.
+ *
+ * @example
+ * ```ts
+ * new TextBox({
+ *  parent: tui,
+ *  lineNumbering: true,
+ *  lineHighlighting: true,
+ *  theme: {
+ *    base: crayon.bgGreen,
+ *    focused: crayon.bgLightGreen,
+ *    active: crayon.bgYellow,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    width: 10,
+ *    height: 5,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * It supports validating input, e.g. number input would look like this:
+ * @example
+ * ```ts
+ * new TextBox({
+ *  ...,
+ *  validator: /\d+/,
+ * });
+ * ```
+ *
+ * If you need to use emojis or other multi codepoint characters set `multiCodePointSupport` property to true.
+ * @example
+ * ```ts
+ * new TextBox({
+ *  ...,
+ *  placeholder: "🧡",
+ *  multiCodePointCharacter: true,
+ * });
+ * ```
+ */
 export class TextBox extends Box {
   declare drawnObjects: {
     box: BoxObject;

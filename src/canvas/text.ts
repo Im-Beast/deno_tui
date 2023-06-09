@@ -7,6 +7,11 @@ import { Effect, Signal } from "../signals/mod.ts";
 import { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
 
+/**
+ * Type that describes position and size of TextObject
+ *
+ * When `width` isn't set, it gets automatically calculated depending of given `value` text width
+ */
 export type TextRectangle = { column: number; row: number; width?: number };
 
 export interface TextObjectOptions extends DrawObjectOptions {
@@ -16,6 +21,11 @@ export interface TextObjectOptions extends DrawObjectOptions {
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
+/**
+ * DrawObject that's responsible for rendering text.
+ *
+ * Keep in mind its not designed to render mutliline text!
+ */
 export class TextObject extends DrawObject<"text"> {
   text: Signal<string>;
   valueChars: string[] | string;

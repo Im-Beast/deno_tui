@@ -10,6 +10,9 @@ export interface BoxObjectOptions extends DrawObjectOptions {
   filler?: string | Signal<string>;
 }
 
+/**
+ * DrawObject that's responsible for rendering rectangles (boxes).
+ */
 export class BoxObject extends DrawObject<"box"> {
   filler: Signal<string>;
 

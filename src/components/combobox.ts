@@ -9,6 +9,30 @@ export interface ComboBoxOptions<Items extends string[] = string[]> extends Omit
   selectedItem?: number | undefined | Signal<number | undefined>;
 }
 
+/**
+ * Component for creating interactive combobox
+ *
+ * @example
+ * ```ts
+ * new ComboBox({
+ *  parent: tui,
+ *  items: ["one", "two", "three", "four"],
+ *  placeholder: "choose number",
+ *  theme: {
+ *    base: crayon.bgGreen,
+ *    focused: crayon.bgLightGreen,
+ *    active: crayon.bgYellow,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    height: 1,
+ *    width: 14,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ */
 export class ComboBox<Items extends string[] = string[]> extends Button {
   declare subComponents: { [button: number]: Button };
   #subComponentsLength: number;

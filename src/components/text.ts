@@ -11,6 +11,52 @@ export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
+/**
+ * Component for creating single-line, non interactive text
+ *
+ * @example
+ * ```ts
+ * new Text({
+ *  parent: tui,
+ *  text: "Hello there"
+ *  theme: {
+ *    base: crayon.magenta,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * If you need to use emojis or other multi codepoint characters set `multiCodePointSupport` property to true.
+ * @example
+ * ```ts
+ * new Text({
+ *  ...,
+ *  text: "🧡",
+ *  multiCodePointCharacter: true,
+ * });
+ * ```
+ * Rectangle properties – `width` and `height` are calculated automatically by default.
+ * To overwrite that behaviour set `overwriteRectangle` property to true.
+ *
+ * @example
+ * ```ts
+ * new Text({
+ *  ...,
+ *  text: "1 2 3 cut me",
+ *  overwriteRectangle: true,
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    width: 6,
+ *    height: 1,
+ *  },
+ * })
+ * ```
+ */
 export class Text extends Component {
   declare drawnObjects: { text: TextObject };
 

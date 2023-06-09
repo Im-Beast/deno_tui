@@ -1,18 +1,23 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
+import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { Computed, Effect, Signal } from "../signals/mod.ts";
 
+import { signalify } from "../utils/signals.ts";
 import { cropToWidth, textWidth } from "../utils/strings.ts";
 
-import type { Rectangle } from "../types.ts";
-import { Computed, Effect, Signal } from "../signals/mod.ts";
-import { signalify } from "../utils/signals.ts";
-
-export type LabelRectangle = Omit<Rectangle, "width" | "height"> & {
+/**
+ * Type that describes position and size of Label
+ * When `width` or `height` isn't set, they gets automatically calculated depending of given value text width and amount of lines
+ */
+export type LabelRectangle = {
+  column: number;
+  row: number;
   width?: number;
   height?: number;
 };
 
+/** Type that describes text positioning in label */
 export interface LabelAlign {
   vertical: "top" | "center" | "bottom";
   horizontal: "left" | "center" | "right";
@@ -26,6 +31,56 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
   overwriteRectangle?: boolean | Signal<boolean>;
 }
 
+/**
+ * Component for creating multi-line, non interactive text
+ *
+ * @example
+ * ```ts
+ * new Label({
+ *  parent: tui,
+ *  text: "Hello\nthere"
+ *  align: {
+ *    horizontal: "center",
+ *    vertical: "center",
+ *  },
+ *  theme: {
+ *    base: crayon.magenta,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * If you need to use emojis or other multi codepoint characters set `multiCodePointSupport` property to true.
+ * @example
+ * ```ts
+ * new Label({
+ *  ...,
+ *  text: "🧡",
+ *  multiCodePointCharacter: true,
+ * });
+ * ```
+ * Rectangle properties – `width` and `height` are calculated automatically by default.
+ * To overwrite that behaviour set `overwriteRectangle` property to true.
+ *
+ * @example
+ * ```ts
+ * new Label({
+ *  ...,
+ *  text: "1 2 3 cut me",
+ *  overwriteRectangle: true,
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    width: 6,
+ *    height: 1,
+ *  },
+ * })
+ * ```
+ */
 export class Label extends Component {
   declare drawnObjects: { texts: TextObject[] };
 

@@ -41,6 +41,67 @@ export interface ProgressBarOptions extends ComponentOptions {
   theme: DeepPartial<ProgressBarTheme, "progress">;
 }
 
+/**
+ * Component for creating interactive progressbars
+ *
+ * @example
+ * ```ts
+ * new ProgressBar({
+ *  parent: tui,
+ *  orientation: "horizontal",
+ *  direction: "normal",
+ *  theme: {
+ *   base: crayon.bgLightBlue,
+ *   focused: crayon.bgCyan,
+ *   active: crayon.bgBlue,
+ *   progress: {
+ *    base: crayon.bgLightBlue.green,
+ *    focused: crayon.bgCyan.lightGreen,
+ *    active: crayon.bgBlue.lightYellow,
+ *   },
+ *  },
+ *  value: 50,
+ *  min: 0,
+ *  max: 100,
+ *  smooth: false,
+ *  rectangle: {
+ *   column: 48,
+ *   height: 2,
+ *   row: 3,
+ *   width: 10,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * You can make the progressbar vertical by changing `orientation`
+ * @example
+ * ```ts
+ * new ProgressBar({
+ *  ...,
+ *  orientation: "vertical",
+ * });
+ * ```
+ *
+ * You can reverse the flow of progress by changing `direction` to "reversed"
+ * @example
+ * ```ts
+ * new ProgressBar({
+ *  ...,
+ *  direction: "reversed",
+ * });
+ * ```
+ *
+ * You can also make progress seem more granular by taking advantage of special characters.
+ * Set smooth to `true` to do that.
+ * @example
+ * ```ts
+ * new ProgressBar({
+ *  ...,
+ *  smooth: true,
+ * });
+ * ```
+ */
 export class ProgressBar extends Box {
   declare drawnObjects: { box: BoxObject; progress: BoxObject | TextObject[] };
   declare theme: ProgressBarTheme;

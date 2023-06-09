@@ -4,6 +4,9 @@ import type { Dependant, Dependency } from "./types.ts";
 export let activeSignals: Set<Dependency> | undefined;
 let incoming = 0;
 
+/**
+ * Asynchronously tracks used signals for provided function
+ */
 export async function trackDependencies(
   dependencies: Set<Dependency>,
   thisArg: unknown,
@@ -20,6 +23,9 @@ export async function trackDependencies(
   --incoming;
 }
 
+/**
+ * Replaces all dependencies with root dependencies to prevent multiple updates caused by the same change.
+ */
 export function optimizeDependencies(into: Set<Dependency | (Dependency & Dependant)>, from = into): void {
   for (const dependency of from) {
     if ("dependencies" in dependency) {

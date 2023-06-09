@@ -211,7 +211,6 @@ new Label({
   rectangle: {
     column: 17,
     row: 21,
-    width: 20,
   },
   theme: { base: tui.style },
   text: "Centered text\nThat automatically adjusts its size\n!@#!\nSo cool\nWOW",
@@ -274,7 +273,6 @@ new Input({
     column: 2,
     row: 10,
     width: 14,
-    height: 1,
   },
   zIndex: 0,
 });
@@ -329,8 +327,8 @@ new Table({
   },
   rectangle: {
     column: 20,
-    height: 8,
     row: 11,
+    height: 8,
   },
   headers: [
     { title: "ID" },

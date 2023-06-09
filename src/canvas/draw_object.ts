@@ -20,6 +20,11 @@ export interface DrawObjectOptions {
 }
 
 let id = 0;
+
+/**
+ * Base DrawObject which works as a skeleton for creating
+ * draw objects which actually do something
+ */
 export class DrawObject<Type extends string = string> {
   id: number;
   type: Type;

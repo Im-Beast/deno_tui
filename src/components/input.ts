@@ -1,15 +1,18 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Box } from "./box.ts";
+
+import { Theme } from "../theme.ts";
+import { DeepPartial } from "../types.ts";
 import { ComponentOptions } from "../component.ts";
+
+import { Computed, Signal } from "../signals/mod.ts";
 
 import { BoxObject } from "../canvas/box.ts";
 import { TextObject, TextRectangle } from "../canvas/text.ts";
-import { Theme } from "../theme.ts";
-import { DeepPartial } from "../types.ts";
-import { cropToWidth, insertAt } from "../utils/strings.ts";
+
 import { clamp } from "../utils/numbers.ts";
-import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
+import { cropToWidth, insertAt } from "../utils/strings.ts";
 
 export interface InputTheme extends Theme {
   value: Theme;
@@ -17,16 +20,77 @@ export interface InputTheme extends Theme {
   placeholder: Theme;
 }
 
-export interface InputOptions extends ComponentOptions {
+export interface InputRectangle {
+  column: number;
+  row: number;
+  width: number;
+  height?: 1;
+}
+
+export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
   text?: string | Signal<string>;
   validator?: RegExp | Signal<RegExp | undefined>;
   password?: boolean | Signal<boolean>;
   placeholder?: string | Signal<string | undefined>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-
+  rectangle: InputRectangle | Signal<InputRectangle>;
   theme: DeepPartial<InputTheme, "cursor">;
 }
 
+/**
+ * Component for creating interactive text input
+ *
+ * This component is 1 character high only!
+ *
+ * If you need multiline input use `TextBox` component.
+ *
+ * @example
+ * ```ts
+ * new Input({
+ *  parent: tui,
+ *  placeholder: "type here",
+ *  theme: {
+ *    base: crayon.bgGreen,
+ *    focused: crayon.bgLightGreen,
+ *    active: crayon.bgYellow,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    width: 10,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ *
+ * It supports validating input, e.g. number input would look like this:
+ * @example
+ * ```ts
+ * new Input({
+ *  ...,
+ *  validator: /\d+/,
+ * });
+ * ```
+ *
+ * You can also define whether text should be censored with `*` character by specifying `password` property.
+ * @example
+ * ```ts
+ * new Input({
+ *  ...,
+ *  password: true,
+ * });
+ * ```
+ *
+ * If you need to use emojis or other multi codepoint characters set `multiCodePointSupport` property to true.
+ * @example
+ * ```ts
+ * new Input({
+ *  ...,
+ *  placeholder: "🧡",
+ *  multiCodePointCharacter: true,
+ * });
+ * ```
+ */
 export class Input extends Box {
   declare drawnObjects: {
     box: BoxObject;
@@ -43,7 +107,15 @@ export class Input extends Box {
   placeholder: Signal<string | undefined>;
 
   constructor(options: InputOptions) {
-    super(options);
+    const { rectangle } = options;
+
+    if ("value" in rectangle) {
+      rectangle.value.height = 1;
+    } else {
+      rectangle.height = 1;
+    }
+
+    super(options as ComponentOptions);
 
     this.theme.value ??= this.theme;
     this.theme.placeholder ??= this.theme.value;
@@ -96,7 +168,7 @@ export class Input extends Box {
           character = key;
       }
 
-      if (validator && !validator?.test(character)) return;
+      if (validator && !validator.test(character)) return;
       this.text.value = insertAt(value, cursorPosition, character);
       this.cursorPosition.value = clamp(cursorPosition + 1, 0, this.text.value.length);
     });

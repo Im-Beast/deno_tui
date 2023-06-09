@@ -56,6 +56,51 @@ export interface TableOptions extends Omit<ComponentOptions, "rectangle"> {
   charMap: keyof typeof TableUnicodeCharacters | TableUnicodeCharactersType;
 }
 
+/**
+ * Component for creating interactive table
+ *
+ * Rectangle's `width` gets automatically calculcated from given headers.
+ *
+ * You can specify each header's width explicitly or leave it out to let Table to figure it out.
+ *
+ * @example
+ * ```ts
+ * new Table({
+ *   parent: tui,
+ *   theme: {
+ *     base: crayon.bgBlack.white,
+ *     frame: { base: crayon.bgBlack },
+ *     header: { base: crayon.bgBlack.bold.lightBlue },
+ *     selectedRow: {
+ *       base: crayon.bold.bgBlue.white,
+ *       focused: crayon.bold.bgLightBlue.white,
+ *       active: crayon.bold.bgMagenta.black,
+ *     },
+ *   },
+ *   rectangle: {
+ *     column: 1,
+ *     row: 1,
+ *     height: 10,
+ *   },
+ *   headers: [
+ *     { title: "ID" },
+ *     { title: "Name" },
+ *   ],
+ *   data: [
+ *     ["0", "Thomas Jeronimo"],
+ *     ["1", "Jeremy Wanker"],
+ *     ["2", "Julianne James"],
+ *     ["3", "Tommie Moyer"],
+ *     ["4", "Marta Reilly"],
+ *     ["5", "Bernardo Robertson"],
+ *     ["6", "Hershel Grant"],
+ *   ],
+ *   charMap: "rounded",
+ *   zIndex: 0,
+ * });
+ *
+ * ```
+ */
 export class Table extends Component {
   declare theme: TableTheme;
   declare drawnObjects: {

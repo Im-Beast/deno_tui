@@ -13,6 +13,29 @@ export interface CheckBoxOptions extends ComponentOptions {
   checked: boolean | Signal<boolean>;
 }
 
+/**
+ * Component for creating interactive checkbox
+ *
+ * @example
+ * ```ts
+ * new CheckBox({
+ *  parent: tui,
+ *  checked: false,
+ *  theme: {
+ *    base: crayon.bgGreen,
+ *    focused: crayon.bgLightGreen,
+ *    active: crayon.bgYellow,
+ *  },
+ *  rectangle: {
+ *    column: 1,
+ *    row: 1,
+ *    height: 1,
+ *    width: 1,
+ *  },
+ *  zIndex: 0,
+ * });
+ * ```
+ */
 export class CheckBox extends Button {
   checked: Signal<boolean>;
 
