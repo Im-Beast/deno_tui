@@ -25,11 +25,12 @@ export interface Effectable {
  * ```
  */
 export class Effect implements Dependant {
-  update: Effectable;
+  protected $effectable: Effectable;
+
   dependencies: Set<Dependency>;
 
   constructor(effectable: Effectable) {
-    this.update = effectable;
+    this.$effectable = effectable;
     this.dependencies = new Set();
 
     trackDependencies(this.dependencies, this, effectable).then(() => {
@@ -39,6 +40,10 @@ export class Effect implements Dependant {
         dependency.depend(this);
       }
     });
+  }
+
+  update(): void {
+    this.$effectable();
   }
 
   /**
