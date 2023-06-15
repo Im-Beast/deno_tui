@@ -16,9 +16,11 @@ export interface Effectable {
  * ```ts
  * const name = new Signal("Jonathan");
  * const effect = new Effect(() => {
- *  console.log("Your name is", name)
+ *  console.log("Your name is", name.value);
  * });
  * // printed: "Your name is Jonathan"
+ *
+ * await Promise.resolve(); // Dependency tracking is asynchronous read more in `dependency_tracking.ts`
  *
  * name.value = "Brian";
  * // printed: "Your name is Brian"
