@@ -3,7 +3,7 @@ import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
 import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
-import { Effect, Signal } from "../signals/mod.ts";
+import { Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 import { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
 
@@ -17,7 +17,7 @@ export type TextRectangle = { column: number; row: number; width?: number };
 export interface TextObjectOptions extends DrawObjectOptions {
   value: string | Signal<string>;
   overwriteRectangle?: boolean | Signal<boolean>;
-  rectangle: TextRectangle | Signal<TextRectangle>;
+  rectangle: TextRectangle | SignalOfObject<TextRectangle>;
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
 

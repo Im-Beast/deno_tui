@@ -7,7 +7,7 @@ import { rectangleIntersection } from "../utils/numbers.ts";
 
 import type { ConsoleSize, Stdout } from "../types.ts";
 import { DrawObject } from "./draw_object.ts";
-import { Signal } from "../signals/mod.ts";
+import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 const textEncoder = new TextEncoder();
@@ -17,7 +17,7 @@ const textBuffer = new Uint8Array(384 ** 2);
 export interface CanvasOptions {
   /** Stdout to which canvas will render frameBuffer */
   stdout: Stdout;
-  size: ConsoleSize | Signal<ConsoleSize>;
+  size: ConsoleSize | SignalOfObject<ConsoleSize>;
 }
 
 /** Map that contains events that {Canvas} can dispatch */

@@ -1,7 +1,7 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 import { TextObject, TextRectangle } from "../canvas/text.ts";
-import { Computed, Effect, Signal } from "../signals/mod.ts";
+import { Computed, Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 
 import { signalify } from "../utils/signals.ts";
 import { cropToWidth, textWidth } from "../utils/strings.ts";
@@ -25,8 +25,8 @@ export interface LabelAlign {
 
 export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
   text: string | Signal<string>;
-  rectangle: LabelRectangle | Signal<LabelRectangle>;
-  align?: LabelAlign | Signal<LabelAlign>;
+  rectangle: LabelRectangle | SignalOfObject<LabelRectangle>;
+  align?: LabelAlign | SignalOfObject<LabelAlign>;
   multiCodePointSupport?: boolean | Signal<boolean>;
   overwriteRectangle?: boolean | Signal<boolean>;
 }

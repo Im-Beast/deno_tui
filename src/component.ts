@@ -8,7 +8,7 @@ import { SortedArray } from "./utils/sorted_array.ts";
 import { DrawObject } from "./canvas/draw_object.ts";
 import { View } from "./view.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
-import { Computed, Signal } from "./signals/mod.ts";
+import { Computed, Signal, SignalOfObject } from "./signals/mod.ts";
 import { signalify } from "./utils/signals.ts";
 
 export interface ComponentOptions {
@@ -17,8 +17,8 @@ export interface ComponentOptions {
   parent: Component | Tui;
   zIndex: number | Signal<number>;
   visible?: boolean | Signal<boolean>;
-  rectangle: Rectangle | Signal<Rectangle>;
-  view?: View | undefined | Signal<View | undefined>;
+  rectangle: Rectangle | SignalOfObject<Rectangle>;
+  view?: View | undefined | SignalOfObject<View | undefined>;
 }
 
 /** Type defining last interaction component experienced */

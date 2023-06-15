@@ -1,14 +1,14 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { Signal } from "../signals/mod.ts";
+import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
   text: string | Signal<string>;
-  rectangle: TextRectangle | Signal<TextRectangle>;
   overwriteWidth?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
+  rectangle: TextRectangle | SignalOfObject<TextRectangle>;
 }
 
 /**

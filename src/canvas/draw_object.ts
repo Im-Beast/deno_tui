@@ -5,7 +5,7 @@ import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
-import { Signal } from "../signals/mod.ts";
+import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface DrawObjectOptions {
@@ -15,7 +15,7 @@ export interface DrawObjectOptions {
   omitCellsPointer?: number;
 
   view?: View | Signal<View | undefined>;
-  style: Style | Signal<Style>;
+  style: Style | SignalOfObject<Style>;
   zIndex: number | Signal<number>;
 }
 

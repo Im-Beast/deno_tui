@@ -9,7 +9,7 @@ import { TextObject } from "../canvas/text.ts";
 import { normalize } from "../utils/numbers.ts";
 
 import type { DeepPartial } from "../types.ts";
-import { Computed, Signal } from "../signals/mod.ts";
+import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export type ProgressBarCharMapType = {
@@ -35,8 +35,8 @@ export interface ProgressBarOptions extends ComponentOptions {
   value: number | Signal<number>;
   smooth: boolean | Signal<boolean>;
   direction: ProgressBarDirection | Signal<ProgressBarDirection>;
-  charMap?: ProgressBarCharMapType | Signal<ProgressBarCharMapType>;
   orientation: ProgressBarOrientation | Signal<ProgressBarOrientation>;
+  charMap?: ProgressBarCharMapType | SignalOfObject<ProgressBarCharMapType>;
 
   theme: DeepPartial<ProgressBarTheme, "progress">;
 }

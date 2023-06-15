@@ -1,12 +1,12 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
-import { Signal } from "../signals/mod.ts";
+import { Signal, SignalOfObject } from "../signals/mod.ts";
 
 import type { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface BoxObjectOptions extends DrawObjectOptions {
-  rectangle: Rectangle | Signal<Rectangle>;
+  rectangle: Rectangle | SignalOfObject<Rectangle>;
   filler?: string | Signal<string>;
 }
 

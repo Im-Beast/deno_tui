@@ -172,3 +172,27 @@ export class Signal<T> implements Dependency {
     return `${this.$value}`;
   }
 }
+
+/**
+ * Type that defines signal, which doesn't implement any properties that `T` type has.
+ * This is used to enhance DX for typing unions between objects and Signals.
+ *
+ * @example
+ * ```ts
+ * // Don't do that! Autocomplete shows properties of both `Dog` and `SignalDog`
+ * type Dog = { notHuman: true };
+ * type SuperDog = Dog | Signal<Dog>;
+ *
+ * // Do this instead
+ * type SuperDuperDog = Dog | SignalOfObject<Dog>;
+ * ```
+ *
+ * It doesn't matter on primitive types though
+ * @example
+ * ```ts
+ * // These would be exactly the same from DX standpoint
+ * type Foo = number | Signal<number>;
+ * type Bar = number | SignalOfObject<number>;
+ * ```
+ */
+export type SignalOfObject<T> = Signal<T> & { [key in keyof T]?: never };

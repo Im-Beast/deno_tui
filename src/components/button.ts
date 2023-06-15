@@ -4,7 +4,7 @@ import { Box } from "./box.ts";
 
 import type { BoxObject } from "../canvas/box.ts";
 import { Label, LabelAlign, LabelRectangle } from "./label.ts";
-import { Signal } from "../signals/mod.ts";
+import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 const centerAlign: LabelAlign = {
@@ -15,7 +15,7 @@ const centerAlign: LabelAlign = {
 export interface ButtonOptions extends ComponentOptions {
   label?: {
     text: string | Signal<string>;
-    align?: LabelAlign | Signal<LabelAlign>;
+    align?: LabelAlign | SignalOfObject<LabelAlign>;
   };
 }
 
