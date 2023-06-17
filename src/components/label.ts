@@ -175,6 +175,8 @@ export class Label extends Component {
               break;
           }
 
+          // FIXME: Crop text if necessary
+
           return textRectangle;
         }),
       });
