@@ -7,8 +7,8 @@ import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts"
 
 import { Button } from "../src/components/button.ts";
 
-import { Layout } from "../src/layout.ts";
-import { Computed } from "../mod.ts";
+import {} from "../src/layout/mod.ts";
+import { Computed, GridLayout } from "../mod.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -22,15 +22,17 @@ tui.dispatch();
 tui.run();
 
 const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
-const layout = new Layout(
+
+const layout = new GridLayout(
   {
-    pattern: `iaaabb
-iaaabb
-iaaabb
-iccccc
-iddeef
-iddeef
-ighhhh`,
+    elements: [
+      ["top", "top", "top"],
+      ["middle", "middle", "sidebar"],
+      ["middle", "middle", "sidebar"],
+      ["footer", "footer", "sidebar"],
+      ["under", "under", "sidebar"],
+    ],
+    // gap: 1,
     rectangle: new Computed(() => {
       const { columns: width, rows: height } = tui.canvas.size.value;
       layoutRectangle.width = width;
@@ -40,10 +42,13 @@ ighhhh`,
   },
 );
 
-const elements = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+const elements = ["top", "middle", "footer", "sidebar", "under" /* "d", "e", "f", "g", "h", "i" */] as const;
 let h = 0;
+let i = 0;
 for (const layoutId of elements) {
   const rectangle = layout.element(layoutId);
+
+  i++;
   h += 360 / elements.length;
 
   const button = new Button({
