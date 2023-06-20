@@ -7,7 +7,6 @@ import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts"
 
 import { Button } from "../src/components/button.ts";
 
-import {} from "../src/layout/mod.ts";
 import { Computed, GridLayout } from "../mod.ts";
 
 const tui = new Tui({
@@ -22,27 +21,29 @@ tui.dispatch();
 tui.run();
 
 const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
+const layoutRect = new Computed(() => {
+  const { columns: width, rows: height } = tui.canvas.size.value;
+  layoutRectangle.width = width;
+  layoutRectangle.height = height;
+  return layoutRectangle;
+});
 
 const layout = new GridLayout(
   {
-    elements: [
-      ["top", "top", "top"],
-      ["middle", "middle", "sidebar"],
-      ["middle", "middle", "sidebar"],
-      ["footer", "footer", "sidebar"],
-      ["under", "under", "sidebar"],
+    pattern: [
+      ["a", "b", "c"],
+      ["d", "b", "f"],
+      ["g", "h", "f"],
+      ["i", "i", "i"],
+      ["j", "k", "l"],
     ],
-    // gap: 1,
-    rectangle: new Computed(() => {
-      const { columns: width, rows: height } = tui.canvas.size.value;
-      layoutRectangle.width = width;
-      layoutRectangle.height = height;
-      return layoutRectangle;
-    }),
+    gapX: 2,
+    gapY: 1,
+    rectangle: layoutRect,
   },
 );
 
-const elements = ["top", "middle", "footer", "sidebar", "under" /* "d", "e", "f", "g", "h", "i" */] as const;
+const elements = ["a", "b", "c", "d", "f", "g", "h", "i", "j", "k", "l"] as const;
 let h = 0;
 let i = 0;
 for (const layoutId of elements) {
@@ -54,18 +55,12 @@ for (const layoutId of elements) {
   const button = new Button({
     parent: tui,
     theme: {
-      base: crayon.bgHsl(h, 60, 40),
-      focused: crayon.bgHsl(h, 50, 50),
-      active: crayon.bgHsl(h, 100, 70),
+      base: crayon.bgHsl(~~h, 60, 40),
+      focused: crayon.bgHsl(~~h, 50, 50),
+      active: crayon.bgHsl(~~h, 100, 70),
     },
     rectangle,
-    label: {
-      text: new Computed(() => {
-        const rect = rectangle.value;
-        return `${layoutId.toUpperCase()}, c: ${rect.column}, r: ${rect.row}\n w:${rect.width}, h: ${rect.height}`;
-      }),
-    },
-    zIndex: 0,
+    zIndex: 360 - ~~h,
   });
 
   button.on("mousePress", ({ drag, movementX, movementY }) => {
