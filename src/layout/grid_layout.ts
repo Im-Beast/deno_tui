@@ -5,10 +5,13 @@ import { signalify } from "../utils/signals.ts";
 import { LayoutInvalidElementsPatternError, LayoutMissingElementError } from "./errors.ts";
 
 import type { Rectangle } from "../types.ts";
-import type { LayoutElement, LayoutOptions } from "./types.ts";
+import type { Layout, LayoutElement, LayoutOptions } from "./types.ts";
+import { Effect } from "../signals/effect.ts";
 
-export interface GridLayoutOptions<T extends string> extends Omit<LayoutOptions<T>, "elements"> {
-  elements: T[][];
+export interface GridLayoutOptions<T extends string> extends Omit<LayoutOptions<T>, "pattern" | "gap"> {
+  pattern: T[][] | Signal<T[][]>;
+  gapX?: number | Signal<number>;
+  gapY?: number | Signal<number>;
 }
 
 export interface GridLayoutElement<T extends string> extends Omit<LayoutElement<T>, "unitLength"> {
@@ -20,40 +23,78 @@ export interface GridLayoutElement<T extends string> extends Omit<LayoutElement<
   accumulatedX: number;
 }
 
-export class GridLayout<T extends string> {
+export class GridLayout<T extends string> implements Layout<T> {
   rectangle: Signal<Rectangle>;
 
+  gapX: Signal<number>;
+  gapY: Signal<number>;
+
+  pattern: Signal<T[][]>;
   totalUnitLengthX: number;
   totalUnitLengthY: number;
   elements: GridLayoutElement<T>[];
+  elementNameToIndex: Map<T, number>;
 
   constructor(options: GridLayoutOptions<T>) {
-    this.totalUnitLengthY = options.elements.length;
-    this.totalUnitLengthX = options.elements[0].length;
+    this.totalUnitLengthX = 0;
+    this.totalUnitLengthY = 0;
     this.elements = [];
+    this.elementNameToIndex = new Map();
 
-    const elementToIndex = new Map<string, number>();
+    this.pattern = signalify(options.pattern, {
+      deepObserve: true,
+      watchObjectIndex: true,
+    });
+    new Effect(() => this.updatePattern());
+
+    this.gapX = signalify(options.gapX ?? 0);
+    this.gapY = signalify(options.gapY ?? 0);
+
+    this.rectangle = signalify(options.rectangle, { deepObserve: true });
+
+    new Effect(() => this.updateElements());
+  }
+
+  updatePattern(): void {
+    const { elementNameToIndex } = this;
+    elementNameToIndex.clear();
+
+    const pattern = this.pattern.value;
+    this.totalUnitLengthY = pattern.length;
+    this.totalUnitLengthX = pattern[0].length;
 
     const { elements } = this;
-    for (let row = 0; row < options.elements.length; ++row) {
-      const rowElements = options.elements[row];
 
+    let i = 0;
+    for (let row = 0; row < pattern.length; ++row) {
+      const rowElements = pattern[row];
       let column = 0;
 
       for (const name of rowElements) {
-        let key = elementToIndex.get(name);
+        let key = elementNameToIndex.get(name);
         if (key === undefined) {
-          elements.push({
-            name: name,
-            startX: column,
-            startY: row,
-            unitLengthX: 0,
-            unitLengthY: 0,
-            accumulatedX: 0,
-            rectangle: new Signal({ column: 0, height: 0, row: 0, width: 0 }, { deepObserve: true }),
-          });
-          key = elements.length - 1;
-          elementToIndex.set(name, key);
+          if (elements[i]) {
+            const element = elements[i];
+            element.name = name;
+            element.startX = column;
+            element.startY = row;
+            element.unitLengthX = 0;
+            element.unitLengthY = 0;
+            element.accumulatedX = 0;
+          } else {
+            elements[i] = {
+              name: name,
+              startX: column,
+              startY: row,
+              unitLengthX: 0,
+              unitLengthY: 0,
+              accumulatedX: 0,
+              rectangle: new Signal({ column: 0, height: 0, row: 0, width: 0 }, { deepObserve: true }),
+            };
+          }
+
+          key = i++;
+          elementNameToIndex.set(name, key);
         }
 
         const element = elements[key];
@@ -73,27 +114,15 @@ export class GridLayout<T extends string> {
         throw new LayoutInvalidElementsPatternError();
       }
     }
-
-    this.rectangle = signalify(options.rectangle, { deepObserve: true });
-    this.rectangle.subscribe(() => {
-      this.update();
-    });
-    this.update();
   }
 
-  update() {
-    const { elements, totalUnitLengthX, totalUnitLengthY } = this;
+  updateElements(): void {
+    const { elements, totalUnitLengthX, totalUnitLengthY, elementNameToIndex } = this;
+
     const { column, row, width, height } = this.rectangle.value;
-
-    for (const element in elements) {
-      const rectangle = elements[element].rectangle.peek();
-
-      rectangle.width = width;
-      rectangle.column = column;
-      rectangle.row = row;
-    }
-
-    const lastRowElements: GridLayoutElement<T>[] = [];
+    const pattern = this.pattern.value;
+    const gapX = this.gapX.value;
+    const gapY = this.gapY.value;
 
     const elementHeight = Math.round(height / totalUnitLengthY);
     let heightDiff = height;
@@ -102,52 +131,68 @@ export class GridLayout<T extends string> {
     let widthDiff = width;
 
     let lastElement: GridLayoutElement<T> | undefined;
-    let firstElement: GridLayoutElement<T> | undefined;
+    const lastRowElements: GridLayoutElement<T>[] = [];
     for (const i in elements) {
       const element = elements[i];
-
-      if (element.startY + element.unitLengthY === totalUnitLengthY) {
-        lastRowElements.push(element);
-      }
 
       const rectangle = element.rectangle.peek();
 
       const currentElementHeight = elementHeight * element.unitLengthY;
 
-      rectangle.row = element.startY * elementHeight + row;
-      rectangle.height = currentElementHeight;
+      rectangle.row = row + gapY + element.startY * elementHeight;
+      rectangle.height = currentElementHeight - gapY;
+
+      if (element.startY + element.unitLengthY === totalUnitLengthY) {
+        lastRowElements.push(element);
+      }
 
       if (lastElement && element.startY !== lastElement.startY) {
-        if (lastElement !== firstElement) {
-          lastElement.rectangle.value.width += widthDiff;
+        // Row changed
+        const rowElementNames = pattern[lastElement.startY];
+        const lastRowElementName = rowElementNames[rowElementNames.length - 1];
+        const lastRowElement = elements[elementNameToIndex.get(lastRowElementName)!];
+
+        if (rowElementNames[0] === lastRowElementName) {
+          // Element takes whole row
+          lastElement.rectangle.peek().width += widthDiff - gapX;
+        } else if (lastRowElement.startX === lastElement.startX) {
+          // Element appears for the first time
+          const rectangle = lastRowElement.rectangle.peek();
+          rectangle.width -= (rectangle.column + rectangle.width - width) + gapX;
         }
-        heightDiff -= currentElementHeight;
+
         widthDiff = width;
-        firstElement = element;
+        heightDiff -= currentElementHeight;
       }
 
       const currentElementWidth = elementWidth * element.unitLengthX;
 
-      rectangle.column = element.startX * elementWidth;
-      rectangle.width = currentElementWidth;
+      rectangle.column = column + gapX + element.startX * elementWidth;
+      rectangle.width = currentElementWidth - gapX;
       widthDiff -= currentElementWidth;
 
       lastElement = element;
     }
 
-    lastElement = elements.at(-1);
     if (lastElement) {
-      const rectangle = lastElement.rectangle.value;
-      heightDiff -= rectangle.height;
+      heightDiff -= lastElement.rectangle.peek().height / lastElement.unitLengthY;
 
-      if (lastRowElements.length > 1) {
-        widthDiff -= rectangle.width;
+      const rowElementNames = pattern[lastElement.startY];
+      const lastRowElementName = rowElementNames[rowElementNames.length - 1];
+      const lastRowElement = elements[elementNameToIndex.get(lastRowElementName)!];
+      const lastRectangle = lastRowElement.rectangle.peek();
+
+      if (rowElementNames[0] === lastRowElementName) {
+        // Element takes whole row
+        lastRectangle.height += heightDiff - gapY * 2;
+        lastRectangle.width += widthDiff - gapX;
       } else {
-        rectangle.width += widthDiff;
-      }
+        lastRectangle.width -= lastRectangle.column + lastRectangle.width - width + gapX;
 
-      for (const element of lastRowElements) {
-        element.rectangle.value.height += heightDiff;
+        for (const element of lastRowElements) {
+          const rectangle = element.rectangle.peek();
+          rectangle.height += heightDiff - gapY * 2;
+        }
       }
     }
   }
