@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Signal, SignalOfObject } from "../signals/signal.ts";
 import { Rectangle } from "../types.ts";
 

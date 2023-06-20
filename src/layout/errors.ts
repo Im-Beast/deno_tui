@@ -1,3 +1,4 @@
+// Copyright 2023 Im-Beast. All rights reserved. MIT license.
 export class LayoutInvalidElementsPatternError extends Error {
   constructor() {
     super(
