@@ -1,14 +1,26 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { Signal, SignalOfObject } from "../signals/signal.ts";
-import { Rectangle } from "../types.ts";
+import type { Signal, SignalOfObject } from "../signals/signal.ts";
+import type { Rectangle } from "../types.ts";
 
 export interface LayoutOptions<T extends string> {
   rectangle: Rectangle | SignalOfObject<Rectangle>;
-  elements: T[];
+  pattern: T[] | Signal<T[]>;
+  gap?: number | Signal<number>;
 }
 
 export interface LayoutElement<T extends string> {
   name: T;
   unitLength: number;
   rectangle: Signal<Rectangle>;
+}
+
+export interface Layout<T extends string> {
+  element(name: T): Signal<Rectangle>;
+  updatePattern(): void;
+  updateElements(): void;
+
+  rectangle: Signal<Rectangle>;
+  pattern: unknown;
+  elements: unknown[];
+  elementNameToIndex: Map<T, number>;
 }
