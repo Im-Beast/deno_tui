@@ -11,7 +11,8 @@ import { Effect } from "../signals/effect.ts";
 export class VerticalLayout<T extends string> implements Layout<T> {
   rectangle: Signal<Rectangle>;
 
-  gap: Signal<number>;
+  gapX: Signal<number>;
+  gapY: Signal<number>;
 
   pattern: Signal<T[]>;
   totalUnitLength: number;
@@ -30,7 +31,8 @@ export class VerticalLayout<T extends string> implements Layout<T> {
     });
     new Effect(() => this.updatePattern());
 
-    this.gap = signalify(options.gap ?? 0);
+    this.gapX = signalify(options.gapX ?? 0);
+    this.gapY = signalify(options.gapY ?? 0);
 
     this.rectangle = signalify(options.rectangle, { deepObserve: true });
     new Effect(() => this.updateElements());
@@ -76,6 +78,9 @@ export class VerticalLayout<T extends string> implements Layout<T> {
 
   updateElements() {
     const { elements, totalUnitLength } = this;
+    const gapX = this.gapX.value;
+    const gapY = this.gapY.value;
+
     const { column, row, width, height } = this.rectangle.value;
 
     const elementHeight = Math.round(height / totalUnitLength);
@@ -86,19 +91,19 @@ export class VerticalLayout<T extends string> implements Layout<T> {
       const element = elements[i];
       const rectangle = element.rectangle.peek();
 
-      rectangle.width = width;
-      rectangle.column = column;
+      rectangle.width = width - gapX * 2;
+      rectangle.column = column + gapX;
 
       const currentElementHeight = elementHeight * element.unitLength;
 
-      rectangle.height = currentElementHeight;
+      rectangle.height = currentElementHeight - gapY;
       heightDiff -= currentElementHeight;
 
-      rectangle.row = currentRow + row;
-      currentRow += rectangle.height;
+      rectangle.row = gapY + currentRow + row;
+      currentRow += rectangle.height + gapY;
     }
 
-    elements[elements.length - 1].rectangle.peek().height += heightDiff;
+    elements[elements.length - 1].rectangle.peek().height += heightDiff - gapY;
   }
 
   element(name: T): Signal<Rectangle> {

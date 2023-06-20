@@ -11,7 +11,8 @@ import { Effect } from "../signals/effect.ts";
 export class HorizontalLayout<T extends string> implements Layout<T> {
   rectangle: Signal<Rectangle>;
 
-  gap: Signal<number>;
+  gapX: Signal<number>;
+  gapY: Signal<number>;
 
   pattern: Signal<T[]>;
   totalUnitLength: number;
@@ -30,7 +31,8 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
     });
     new Effect(() => this.updatePattern());
 
-    this.gap = signalify(options.gap ?? 0);
+    this.gapX = signalify(options.gapX ?? 0);
+    this.gapY = signalify(options.gapY ?? 0);
 
     this.rectangle = signalify(options.rectangle, { deepObserve: true });
     new Effect(() => this.updateElements());
@@ -76,6 +78,9 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
 
   updateElements() {
     const { elements, totalUnitLength } = this;
+    const gapX = this.gapX.value;
+    const gapY = this.gapY.value;
+
     const { column, row, width, height } = this.rectangle.value;
 
     const elementWidth = Math.round(width / totalUnitLength);
@@ -86,20 +91,19 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
       const element = elements[i];
       const rectangle = element.rectangle.peek();
 
-      rectangle.height = height;
-      rectangle.column = column;
-      rectangle.row = row;
+      rectangle.height = height - gapY * 2;
+      rectangle.row = row + gapY;
 
       const currentElementWidth = elementWidth * element.unitLength;
 
-      rectangle.width = currentElementWidth;
+      rectangle.width = currentElementWidth - gapX;
       widthDiff -= currentElementWidth;
 
-      rectangle.column = currentColumn + column;
-      currentColumn += rectangle.width;
+      rectangle.column = gapX + currentColumn + column;
+      currentColumn += rectangle.width + gapX;
     }
 
-    elements[elements.length - 1].rectangle.peek().width += widthDiff;
+    elements[elements.length - 1].rectangle.peek().width += widthDiff - gapX;
   }
 
   element(name: T): Signal<Rectangle> {
