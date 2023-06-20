@@ -8,10 +8,8 @@ import type { Rectangle } from "../types.ts";
 import type { Layout, LayoutElement, LayoutOptions } from "./types.ts";
 import { Effect } from "../signals/effect.ts";
 
-export interface GridLayoutOptions<T extends string> extends Omit<LayoutOptions<T>, "pattern" | "gap"> {
+export interface GridLayoutOptions<T extends string> extends Omit<LayoutOptions<T>, "pattern"> {
   pattern: T[][] | Signal<T[][]>;
-  gapX?: number | Signal<number>;
-  gapY?: number | Signal<number>;
 }
 
 export interface GridLayoutElement<T extends string> extends Omit<LayoutElement<T>, "unitLength"> {
