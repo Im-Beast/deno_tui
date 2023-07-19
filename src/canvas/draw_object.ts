@@ -172,7 +172,7 @@ export class DrawObject<Type extends string = string> {
     const { column, row, width, height } = this.rectangle.peek();
 
     this.outOfBounds = width === 0 || height === 0 ||
-      column > columns || row > rows ||
+      column >= columns || row >= rows ||
       column + width < 0 || row + height < 0;
   }
 
