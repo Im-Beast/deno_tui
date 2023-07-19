@@ -15,16 +15,23 @@ export type InputEventRecord = {
 
 /**
  * Read keypresses from given stdin, parse them and emit to given emitter.
- * On Windows keys are read by calling `_getch()` in `msvcrt.dll`.
  */
-export async function emitInputEvents(stdin: Stdin, emitter: EventEmitter<InputEventRecord>) {
+export async function emitInputEvents(
+  stdin: Stdin,
+  emitter: EventEmitter<InputEventRecord>,
+  minReadInterval = 1000 / 60,
+) {
   try {
     stdin.setRaw(true, { cbreak: Deno.build.os !== "windows" });
   } catch {
     // omit
   }
 
-  for await (const buffer of stdin.readable) {
+  const maxbuffer = new Uint8Array(1024);
+  async function read() {
+    const size = await stdin.read(maxbuffer);
+    const buffer = maxbuffer.subarray(0, size ?? 0);
+
     for (const event of decodeBuffer(buffer)) {
       if (event.key === "mouse") {
         emitter.emit("mouseEvent", event);
@@ -38,7 +45,10 @@ export async function emitInputEvents(stdin: Stdin, emitter: EventEmitter<InputE
         emitter.emit("keyPress", event);
       }
     }
+
+    setTimeout(read, minReadInterval);
   }
+  await read();
 }
 
 const textDecoder = new TextDecoder();
