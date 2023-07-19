@@ -42,7 +42,6 @@ type _Range<From extends number, To extends number, R extends unknown[]> = R["le
 /** Partial that makes all properties optional, even those within other object properties */
 export type DeepPartial<Object, OmitKeys extends keyof Object = never> =
   & {
-    // deno-lint-ignore ban-types
     [key in Exclude<keyof Object, OmitKeys>]?: Object[key] extends object
       // deno-lint-ignore ban-types
       ? Object[key] extends Function ? Object[key] : DeepPartial<Object[key]>
