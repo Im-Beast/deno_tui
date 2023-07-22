@@ -1,4 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
+
+// TODO; on style change, dont update intersections, just clear current ones
 import { EmitterEvent, EventEmitter } from "../event_emitter.ts";
 
 import { moveCursor } from "../utils/ansi_codes.ts";
@@ -38,6 +40,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   resize: boolean;
   rerenderQueue: Set<number>[];
   drawnObjects: SortedArray<DrawObject>;
+  updateObjects: Set<DrawObject>;
 
   constructor(options: CanvasOptions) {
     super();
@@ -48,6 +51,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.stdout = options.stdout;
     this.size = signalify(options.size, { deepObserve: true });
     this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
+    this.updateObjects = new Set();
   }
 
   updateIntersections(object: DrawObject): void {
@@ -91,9 +95,11 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   }
 
   render(): void {
-    const { frameBuffer, drawnObjects, resize } = this;
+    const { frameBuffer, drawnObjects, updateObjects, resize } = this;
 
     if (resize) this.resize = false;
+
+    updateObjects.clear();
 
     let i = 0;
     for (const object of drawnObjects) {
@@ -116,18 +122,16 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       object.updateMovement();
       object.updatePreviousRectangle();
-    }
-
-    for (const object of drawnObjects) {
-      if (object.outOfBounds) {
-        continue;
-      }
 
       if (object.needsToUpdateIntersections) {
-        ++i;
-        this.updateIntersections(object);
-        object.needsToUpdateIntersections = false;
+        updateObjects.add(object);
       }
+    }
+
+    for (const object of updateObjects) {
+      ++i;
+      this.updateIntersections(object);
+      object.needsToUpdateIntersections = false;
 
       if (object.rendered) {
         object.rerender();
