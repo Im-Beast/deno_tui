@@ -130,7 +130,7 @@ export class ProgressBar extends Box {
   draw(): void {
     super.draw();
 
-    if (this.smooth) {
+    if (this.smooth.peek()) {
       this.drawnObjects.progress = [];
       this.#fillSmoothDrawObjects();
     } else {
