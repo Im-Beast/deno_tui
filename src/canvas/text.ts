@@ -6,6 +6,7 @@ import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../util
 import { Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 import { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
+import { Subscription } from "../signals/types.ts";
 
 /**
  * Type that describes position and size of TextObject
@@ -32,6 +33,9 @@ export class TextObject extends DrawObject<"text"> {
   overwriteRectangle: Signal<boolean>;
   multiCodePointSupport: Signal<boolean>;
 
+  #rectangleSubscription: Subscription<Rectangle>;
+  #updateEffect: Effect;
+
   constructor(options: TextObjectOptions) {
     super("text", options);
 
@@ -43,20 +47,25 @@ export class TextObject extends DrawObject<"text"> {
       ? this.text.value.match(UNICODE_CHAR_REGEXP) ?? ""
       : this.text.value;
 
-    new Effect(() => {
-      const _style = this.style.value;
-      const text = this.text.value;
-      const rectangle = this.rectangle.value;
-      const multiCodePointSupport = this.multiCodePointSupport.value;
-      const overwriteRectangle = this.overwriteRectangle.value;
+    const { updateObjects } = this.canvas;
 
-      this.needsToUpdateIntersections = true;
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.needsToUpdateIntersections = true;
-      }
-
+    const update = (
+      text: string,
+      rectangle: Rectangle,
+      multiCodePointSupport: boolean,
+      overwriteRectangle: boolean,
+    ): void => {
       if (!overwriteRectangle) {
+        const lastWidth = rectangle.width;
         rectangle.width = textWidth(text);
+
+        if (rectangle.width !== lastWidth) {
+          this.moved = true;
+          for (const objectUnder of this.objectsUnder) {
+            objectUnder.moved = true;
+          }
+        }
+
         rectangle.height = 1;
       }
 
@@ -70,16 +79,68 @@ export class TextObject extends DrawObject<"text"> {
         ? (width < previousValueChars.length ? width : -1)
         : (valueChars.length < previousValueChars.length ? valueChars.length : -1);
 
-      for (let c = 0; c < Math.max(valueChars.length, previousValueChars.length); ++c) {
-        if (barrier !== -1 && c >= barrier) {
-          for (const objectUnder of this.objectsUnder) {
-            objectUnder.queueRerender(row, column + c);
+      const columnRange = Math.max(valueChars.length, previousValueChars.length);
+
+      if (barrier !== -1) {
+        for (let c = 0; c < columnRange; ++c) {
+          if (c >= barrier) {
+            for (const objectUnder of this.objectsUnder) {
+              objectUnder.queueRerender(row, column + c);
+            }
+          } else if (valueChars[c] !== previousValueChars[c]) {
+            this.queueRerender(row, column + c);
           }
-        } else if (valueChars[c] !== previousValueChars[c]) {
-          this.queueRerender(row, column + c);
+        }
+      } else {
+        for (let c = 0; c < columnRange; ++c) {
+          if (valueChars[c] !== previousValueChars[c]) {
+            this.queueRerender(row, column + c);
+          }
         }
       }
+    };
+
+    this.#rectangleSubscription = (rectangle) => {
+      const text = this.text.peek();
+      const multiCodePointSupport = this.multiCodePointSupport.peek();
+      const overwriteRectangle = this.overwriteRectangle.peek();
+
+      this.moved = true;
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.moved = true;
+      }
+
+      update(text, rectangle, multiCodePointSupport, overwriteRectangle);
+    };
+
+    this.#updateEffect = new Effect(() => {
+      const text = this.text.value;
+      const rectangle = this.rectangle.peek();
+      const overwriteRectangle = this.overwriteRectangle.value;
+      const multiCodePointSupport = this.multiCodePointSupport.value;
+
+      this.updated = false;
+      updateObjects.push(this);
+
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.updated = false;
+        updateObjects.push(objectUnder);
+      }
+
+      update(text, rectangle, multiCodePointSupport, overwriteRectangle);
     });
+  }
+
+  draw(): void {
+    this.#updateEffect.resume();
+    this.rectangle.subscribe(this.#rectangleSubscription);
+    super.draw();
+  }
+
+  erase(): void {
+    this.#updateEffect.pause();
+    this.rectangle.unsubscribe(this.#rectangleSubscription);
+    super.erase();
   }
 
   updateMovement(): void {

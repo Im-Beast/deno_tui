@@ -4,6 +4,7 @@ import { Signal, SignalOfObject } from "../signals/mod.ts";
 
 import type { Rectangle } from "../types.ts";
 import { signalify } from "../utils/signals.ts";
+import { Subscription } from "../signals/types.ts";
 
 export interface BoxObjectOptions extends DrawObjectOptions {
   rectangle: Rectangle | SignalOfObject<Rectangle>;
@@ -16,18 +17,37 @@ export interface BoxObjectOptions extends DrawObjectOptions {
 export class BoxObject extends DrawObject<"box"> {
   filler: Signal<string>;
 
+  #rectangleSubscription: Subscription<Rectangle>;
+
   constructor(options: BoxObjectOptions) {
     super("box", options);
 
     this.rectangle = signalify(options.rectangle);
     this.filler = signalify(options.filler ?? " ");
 
-    this.rectangle.subscribe(() => {
-      this.needsToUpdateIntersections = true;
+    const { updateObjects } = this.canvas;
+
+    this.#rectangleSubscription = () => {
+      this.moved = true;
+      this.updated = false;
+      updateObjects.push(this);
+
       for (const objectUnder of this.objectsUnder) {
-        objectUnder.needsToUpdateIntersections = true;
+        objectUnder.moved = true;
+        objectUnder.updated = false;
+        updateObjects.push(objectUnder);
       }
-    });
+    };
+  }
+
+  draw(): void {
+    this.rectangle.subscribe(this.#rectangleSubscription);
+    super.draw();
+  }
+
+  erase(): void {
+    this.rectangle.unsubscribe(this.#rectangleSubscription);
+    super.erase();
   }
 
   rerender(): void {

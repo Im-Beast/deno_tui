@@ -13,7 +13,6 @@ import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 const textEncoder = new TextEncoder();
-const textBuffer = new Uint8Array(384 ** 2);
 
 /** Interface defining object that {Canvas}'s constructor can interpret */
 export interface CanvasOptions {
@@ -36,22 +35,20 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   stdout: Stdout;
   size: Signal<ConsoleSize>;
   rerenderedObjects?: number;
-  frameBuffer: string[][];
-  resize: boolean;
+  frameBuffer: (string | Uint8Array)[][];
   rerenderQueue: Set<number>[];
   drawnObjects: SortedArray<DrawObject>;
-  updateObjects: Set<DrawObject>;
+  updateObjects: DrawObject[];
 
   constructor(options: CanvasOptions) {
     super();
 
-    this.resize = true;
     this.frameBuffer = [];
     this.rerenderQueue = [];
     this.stdout = options.stdout;
     this.size = signalify(options.size, { deepObserve: true });
     this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
-    this.updateObjects = new Set();
+    this.updateObjects = [];
   }
 
   updateIntersections(object: DrawObject): void {
@@ -95,23 +92,25 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   }
 
   render(): void {
-    const { frameBuffer, drawnObjects, updateObjects, resize } = this;
+    const { stdout, frameBuffer, updateObjects } = this;
 
-    if (resize) this.resize = false;
-
-    updateObjects.clear();
+    if (!updateObjects.length) return;
 
     let i = 0;
-    for (const object of drawnObjects) {
-      object.outOfBounds = false;
+    updateObjects.sort((a, b) => b.zIndex.peek() - a.zIndex.peek() || b.id - a.id);
 
-      if (resize) {
-        object.rendered = false;
-      }
+    for (const object of updateObjects) {
+      if (object.updated) continue;
+      object.updated = true;
 
+      ++i;
       object.update();
 
-      // DrawObjects might set outOfBounds in update()
+      object.updateMovement();
+      object.updatePreviousRectangle();
+
+      object.outOfBounds = false;
+
       if (!object.outOfBounds) {
         object.updateOutOfBounds();
       }
@@ -120,18 +119,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
         continue;
       }
 
-      object.updateMovement();
-      object.updatePreviousRectangle();
-
-      if (object.needsToUpdateIntersections) {
-        updateObjects.add(object);
+      if (object.moved) {
+        this.updateIntersections(object);
+        object.moved = false;
       }
-    }
-
-    for (const object of updateObjects) {
-      ++i;
-      this.updateIntersections(object);
-      object.needsToUpdateIntersections = false;
 
       if (object.rendered) {
         object.rerender();
@@ -142,17 +133,18 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     this.rerenderedObjects = i;
+    updateObjects.splice(0);
 
     let drawSequence = "";
     let lastRow = -1;
     let lastColumn = -1;
 
-    const { rid } = this.stdout;
     const { rerenderQueue } = this;
 
     for (let row = 0; row < rerenderQueue.length; ++row) {
       const columns = rerenderQueue[row];
       if (!columns?.size) continue;
+
       const rowBuffer = frameBuffer[row] ??= [];
 
       for (const column of columns) {
@@ -160,19 +152,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
           drawSequence += moveCursor(row, column);
         }
 
-        const cell = rowBuffer[column];
-        if (drawSequence.length + cell.length > 1024) {
-          Deno.writeSync(
-            rid,
-            textBuffer.subarray(
-              0,
-              textEncoder.encodeInto(moveCursor(lastRow, lastColumn) + drawSequence, textBuffer).written,
-            ),
-          );
-          drawSequence = moveCursor(row, column);
-        }
-
-        drawSequence += cell;
+        drawSequence += rowBuffer[column];
 
         lastRow = row;
         lastColumn = column;
@@ -182,13 +162,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     // Complete final loop draw sequence
-    Deno.writeSync(
-      rid,
-      textBuffer.subarray(
-        0,
-        textEncoder.encodeInto(moveCursor(lastRow, lastColumn) + drawSequence, textBuffer).written,
-      ),
-    );
+    stdout.writeSync(textEncoder.encode(moveCursor(lastRow, lastColumn) + drawSequence));
 
     this.emit("render");
   }

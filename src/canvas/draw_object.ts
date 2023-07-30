@@ -1,12 +1,15 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
+// FIXME: rename to painters, drawobjects sounds cringe
+
 import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
+import { Subscription } from "../signals/types.ts";
 
 export interface DrawObjectOptions {
   canvas: Canvas;
@@ -47,7 +50,10 @@ export class DrawObject<Type extends string = string> {
 
   rendered: boolean;
   outOfBounds: boolean;
-  needsToUpdateIntersections: boolean;
+  updated: boolean;
+  moved: boolean;
+
+  #styleSubscription: Subscription<Style>;
 
   constructor(type: Type, options: DrawObjectOptions) {
     this.id = id++;
@@ -64,30 +70,73 @@ export class DrawObject<Type extends string = string> {
 
     this.rendered = false;
     this.outOfBounds = false;
-    this.needsToUpdateIntersections = true;
+    this.canvas.updateObjects.push(this);
+    this.updated = true;
+    this.moved = true;
 
     this.view = signalify(options.view);
     this.zIndex = signalify(options.zIndex);
     this.style = signalify(options.style);
 
-    this.style.subscribe(() => {
+    const { updateObjects } = this.canvas;
+
+    this.#styleSubscription = () => {
       this.rendered = false;
-      this.needsToUpdateIntersections = true;
+      this.updated = false;
+      updateObjects.push(this);
+
       for (const objectUnder of this.objectsUnder) {
-        objectUnder.needsToUpdateIntersections = true;
+        objectUnder.updated = false;
+        updateObjects.push(objectUnder);
       }
-    });
+    };
   }
 
   draw(): void {
+    this.style.subscribe(this.#styleSubscription);
+
     this.rendered = false;
+
+    const { objectsUnder } = this;
+    const { updateObjects } = this.canvas;
+
+    this.moved = true;
+    this.updated = false;
+    updateObjects.push(this);
+
+    for (const objectUnder of objectsUnder) {
+      objectUnder.moved = true;
+      objectUnder.updated = false;
+      updateObjects.push(objectUnder);
+    }
+
     this.canvas.drawnObjects.push(this);
   }
 
   erase(): void {
-    this.canvas.drawnObjects.remove(this);
+    this.style.unsubscribe(this.#styleSubscription);
+
+    const { drawnObjects } = this.canvas;
+
+    drawnObjects.remove(this);
+
+    for (const object of drawnObjects) {
+      object.objectsUnder.delete(this);
+    }
 
     const { objectsUnder } = this;
+    const { updateObjects } = this.canvas;
+
+    this.moved = true;
+    this.updated = false;
+    updateObjects.push(this);
+
+    for (const objectUnder of objectsUnder) {
+      objectUnder.moved = true;
+      objectUnder.updated = false;
+      updateObjects.push(objectUnder);
+    }
+
     const { column, row, width, height } = this.rectangle.peek();
 
     const rowRange = row + height;
