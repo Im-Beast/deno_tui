@@ -39,6 +39,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   rerenderQueue: Set<number>[];
   drawnObjects: SortedArray<DrawObject>;
   updateObjects: DrawObject[];
+  resizeNeeded: boolean;
 
   constructor(options: CanvasOptions) {
     super();
@@ -46,9 +47,28 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.frameBuffer = [];
     this.rerenderQueue = [];
     this.stdout = options.stdout;
-    this.size = signalify(options.size, { deepObserve: true });
     this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
     this.updateObjects = [];
+    this.resizeNeeded = false;
+
+    this.size = signalify(options.size, { deepObserve: true });
+
+    this.size.subscribe(() => {
+      this.resizeNeeded = true;
+    });
+  }
+
+  resize() {
+    const { columns, rows } = this.size.peek();
+
+    for (const drawObject of this.drawnObjects) {
+      const { column, row } = drawObject.rectangle.peek();
+      if (column >= columns || row >= rows) continue;
+
+      drawObject.rendered = false;
+      drawObject.updated = false;
+      this.updateObjects.push(drawObject);
+    }
   }
 
   updateIntersections(object: DrawObject): void {
@@ -94,7 +114,14 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   render(): void {
     const { stdout, frameBuffer, updateObjects } = this;
 
-    if (!updateObjects.length) return;
+    if (this.resizeNeeded) {
+      this.resize();
+      this.resizeNeeded = false;
+    }
+
+    if (!updateObjects.length) {
+      return;
+    }
 
     let i = 0;
     updateObjects.sort((a, b) => b.zIndex.peek() - a.zIndex.peek() || b.id - a.id);

@@ -73,7 +73,6 @@ export class Tui extends EventEmitter<
       const size = canvas.size.peek();
 
       if (size.columns !== columns || size.rows !== rows) {
-        canvas.resize = true;
         size.columns = columns;
         size.rows = rows;
       }
