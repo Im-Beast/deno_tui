@@ -81,6 +81,11 @@ export class Signal<T> implements Dependency {
     this.subscriptions.add(subscription);
   }
 
+  /** Unbind function from signal */
+  unsubscribe(subscription: Subscription<T>): void {
+    this.subscriptions?.delete(subscription);
+  }
+
   /** Add `dependant` to signal `dependants` */
   depend(dependant: Dependant): void {
     this.dependants ??= new Set();
@@ -107,7 +112,7 @@ export class Signal<T> implements Dependency {
       if ("forceUpdateValue" in dependant) {
         dependant.forceUpdateValue = true;
       }
-      dependant.update();
+      dependant.update(this);
     }
   }
 
