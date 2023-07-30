@@ -61,7 +61,7 @@ export class Component extends EventEmitter<
     this.parent = options.parent;
 
     const { parent } = this;
-    this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
+    const tui = this.tui = options.tui ?? ("tui" in parent ? parent.tui : parent);
 
     this.parent.children.push(this);
     this.children = new SortedArray();
@@ -97,15 +97,32 @@ export class Component extends EventEmitter<
     this.theme = hierarchizeTheme(options.theme);
     this.style = new Computed(() => {
       const state = this.state.value;
-
-      const { focusedComponents } = this.tui;
-      if (state === "focused" || state === "active") {
-        focusedComponents.add(this);
-      } else {
-        focusedComponents.delete(this);
-      }
-
       return this.theme[state];
+    });
+
+    tui.on("keyPress", (event) => {
+      const state = this.state.peek();
+      if (state === "focused" || state === "active") {
+        this.emit("keyPress", event);
+      }
+    });
+    tui.on("mouseEvent", (event) => {
+      const state = this.state.peek();
+      if (state === "focused" || state === "active") {
+        this.emit("mouseEvent", event);
+      }
+    });
+    tui.on("mousePress", (event) => {
+      const state = this.state.peek();
+      if (state === "focused" || state === "active") {
+        this.emit("mousePress", event);
+      }
+    });
+    tui.on("mouseScroll", (event) => {
+      const state = this.state.peek();
+      if (state === "focused" || state === "active") {
+        this.emit("mouseScroll", event);
+      }
     });
 
     queueMicrotask(() => {
