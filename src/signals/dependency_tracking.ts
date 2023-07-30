@@ -10,7 +10,9 @@ let incoming = 0;
 export async function trackDependencies(
   dependencies: Set<Dependency>,
   thisArg: unknown,
-  func: () => unknown,
+  // this is supposed to mean every function
+  // deno-lint-ignore ban-types
+  func: Function,
 ): Promise<void> {
   while (incoming !== 0) {
     await Promise.resolve();
@@ -18,7 +20,12 @@ export async function trackDependencies(
 
   ++incoming;
   activeSignals = dependencies;
-  func.call(thisArg);
+  try {
+    func.call(thisArg);
+  } catch (error) {
+    incoming = 0;
+    throw error;
+  }
   activeSignals = undefined;
   --incoming;
 }
