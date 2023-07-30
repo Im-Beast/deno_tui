@@ -1,7 +1,25 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Signal } from "./signal.ts";
 
+export type Reactive<T> = T & {
+  [IS_REACTIVE]: true;
+  [CONNECTED_SIGNAL]: Signal<T>;
+};
+
 export const IS_REACTIVE = Symbol("reactive");
+export const CONNECTED_SIGNAL = Symbol("connected_signal");
+
+export function isReactive<T extends object>(input: T): input is Reactive<T> {
+  return IS_REACTIVE in input;
+}
+
+export function getConnectedSignal<T extends object>(input: T | Reactive<T>): Signal<T> {
+  if (isReactive(input)) {
+    return input[CONNECTED_SIGNAL];
+  }
+
+  throw "Failed to get connected signal as input isn't reactive";
+}
 
 /**
  * Replaces `set`, `delete` and `clear` methods in given map with ones that provide reactivity.
@@ -18,7 +36,10 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
   signal: Signal<S>,
   watchMapUpdates = false,
 ): T {
-  Object.defineProperty(map, IS_REACTIVE, { value: true });
+  Object.defineProperties(map, {
+    [IS_REACTIVE]: { value: true },
+    [CONNECTED_SIGNAL]: { value: signal },
+  });
 
   type MapType = T extends Map<infer K, infer V> ? [K, V] : never;
   type MapKeyType = MapType[0];
@@ -85,7 +106,10 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
  * When set gets in any way updated `propagate` method gets called on provided signal.
  */
 export function makeSetMethodsReactive<T extends Set<unknown>, S>(set: T, signal: Signal<S>): T {
-  Object.defineProperty(set, IS_REACTIVE, { value: true });
+  Object.defineProperties(set, {
+    [IS_REACTIVE]: { value: true },
+    [CONNECTED_SIGNAL]: { value: signal },
+  });
 
   const add = set.add.bind(set);
   function $add(value: Parameters<T["add"]>[0]) {
@@ -140,7 +164,10 @@ export function makeArrayMethodsReactive<T extends Array<unknown>, S>(
   signal: Signal<S>,
   watchObjectIndex = false,
 ): T {
-  Object.defineProperty(array, IS_REACTIVE, { value: true });
+  Object.defineProperties(array, {
+    [IS_REACTIVE]: { value: true },
+    [CONNECTED_SIGNAL]: { value: signal },
+  });
 
   if (watchObjectIndex) {
     return makeObjectPropertiesReactive(array, signal, true);
@@ -217,7 +244,10 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
     makeArrayMethodsReactive(object, signal);
     if (!watchObjectIndex) return object;
   } else {
-    Object.defineProperty(object, IS_REACTIVE, { value: true });
+    Object.defineProperties(object, {
+      [IS_REACTIVE]: { value: true },
+      [CONNECTED_SIGNAL]: { value: signal },
+    });
   }
 
   if (watchObjectIndex) {
@@ -235,7 +265,10 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
   }
 
   const interceptor = {} as T;
-  Object.defineProperty(interceptor, IS_REACTIVE, { value: true });
+  Object.defineProperties(interceptor, {
+    [IS_REACTIVE]: { value: true },
+    [CONNECTED_SIGNAL]: { value: signal },
+  });
 
   for (const property in object) {
     Object.defineProperty(interceptor, property, {
