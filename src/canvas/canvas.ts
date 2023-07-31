@@ -160,7 +160,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
 
     this.rerenderedObjects = i;
-    updateObjects.splice(0);
+
+    while (updateObjects.length) {
+      updateObjects.pop();
+    }
 
     let drawSequence = "";
     let lastRow = -1;
