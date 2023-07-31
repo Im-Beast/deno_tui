@@ -129,6 +129,9 @@ export class GridLayout<T extends string> implements Layout<T> {
     let widthDiff = width;
 
     let lastElement: GridLayoutElement<T> | undefined;
+
+    let currentRow = 0;
+    const elementsByRow: GridLayoutElement<T>[][] = [[]];
     const lastRowElements: GridLayoutElement<T>[] = [];
     for (const i in elements) {
       const element = elements[i];
@@ -146,6 +149,7 @@ export class GridLayout<T extends string> implements Layout<T> {
 
       if (lastElement && element.startY !== lastElement.startY) {
         // Row changed
+        elementsByRow[++currentRow] = [];
         const rowElementNames = pattern[lastElement.startY];
         const lastRowElementName = rowElementNames[rowElementNames.length - 1];
         const lastRowElement = elements[elementNameToIndex.get(lastRowElementName)!];
@@ -163,6 +167,8 @@ export class GridLayout<T extends string> implements Layout<T> {
         heightDiff -= currentElementHeight;
       }
 
+      elementsByRow[currentRow].push(element);
+
       const currentElementWidth = elementWidth * element.unitLengthX;
 
       rectangle.column = column + gapX + element.startX * elementWidth;
@@ -173,24 +179,49 @@ export class GridLayout<T extends string> implements Layout<T> {
     }
 
     if (lastElement) {
-      heightDiff -= lastElement.rectangle.peek().height / lastElement.unitLengthY;
+      const lastElementRectangle = lastElement.rectangle.peek();
+      heightDiff -= lastElementRectangle.height / lastElement.unitLengthY;
 
-      const rowElementNames = pattern[lastElement.startY];
-      const lastRowElementName = rowElementNames[rowElementNames.length - 1];
-      const lastRowElement = elements[elementNameToIndex.get(lastRowElementName)!];
-      const lastRectangle = lastRowElement.rectangle.peek();
+      // Actually only fixing width of element that is in the most bottom-right corner is neccessary, because other elements widths adjusted before
+      // This can probably be cleaner though.
+      const lastRowElementNames = pattern[lastElement.startY];
+      const bottomRightElementName = lastRowElementNames[lastRowElementNames.length - 1];
+      const bottomRightElement = elements[elementNameToIndex.get(bottomRightElementName)!];
+      const bottomRightRectangle = bottomRightElement.rectangle.peek();
 
-      if (rowElementNames[0] === lastRowElementName) {
-        // Element takes whole row
-        lastRectangle.height += heightDiff - gapY * 2;
-        lastRectangle.width += widthDiff - gapX;
-      } else {
-        lastRectangle.width -= lastRectangle.column + lastRectangle.width - width + gapX;
+      if (lastRowElementNames[0] === bottomRightElementName) {
+        // Bottom-right element actually spans through whole row
+        bottomRightRectangle.width += widthDiff - gapX;
+      } else if (bottomRightElement.unitLengthY === 1) {
+        // Only adjust if it's 1-unit heigh, otherwise it got adjusted before
+        bottomRightRectangle.width -= lastElementRectangle.column +
+          lastElementRectangle.width - width + gapX;
+      }
 
-        for (const element of lastRowElements) {
+      // Adjust height of elements so that they are fit to rectangle's size
+      // while keeping proper proportions
+      let diff = heightDiff - gapY;
+      const piece = (diff < 0 ? 1 : -1) * Math.ceil(Math.abs(diff) / elementsByRow.length);
+      const amount = Math.abs(diff / piece);
+      for (let i = 1; i <= amount; ++i) {
+        const rowElements = elementsByRow[elementsByRow.length - i];
+        for (const element of rowElements) {
           const rectangle = element.rectangle.peek();
-          rectangle.height += heightDiff - gapY * 2;
+          rectangle.height -= piece + gapY;
+
+          if (amount > 2) {
+            rectangle.row += -(amount - i);
+          } else if (i < amount) {
+            rectangle.row -= piece + gapY;
+          }
         }
+
+        diff += piece;
+      }
+
+      for (const element of lastRowElements) {
+        const rectangle = element.rectangle.peek();
+        rectangle.height += (row + height) - (rectangle.row + rectangle.height) - gapY;
       }
     }
   }
