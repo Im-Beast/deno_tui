@@ -63,6 +63,7 @@ export class Signal<T> implements Dependency {
   // Dependant: something that depends on THIS
   dependants?: Set<Dependant>;
   subscriptions?: Set<Subscription<T>>;
+  whenSubscriptions?: Map<T, Set<Subscription<T>>>;
 
   forceUpdateValue?: boolean;
 
@@ -81,13 +82,42 @@ export class Signal<T> implements Dependency {
     this.$value = value;
   }
 
-  /** Bind function to signal, it'll be called each time signal's value changes with current value as argument */
-  subscribe(subscription: Subscription<T>): void {
-    this.subscriptions ??= new Set();
-    this.subscriptions.add(subscription);
+  /** Bind function to signal, it'll be called each time signal's value changes and is equal to {conditionValues} */
+  when(conditionValue: T, subscription: Subscription<T>, abortSignal?: AbortSignal): void {
+    this.whenSubscriptions ??= new Map();
+
+    const { whenSubscriptions } = this;
+    let set = whenSubscriptions.get(conditionValue);
+
+    if (!set) {
+      set = new Set<Subscription<T>>().add(subscription);
+      whenSubscriptions.set(conditionValue, set);
+    } else {
+      set.add(subscription);
+    }
+
+    abortSignal?.addEventListener("abort", () => {
+      set?.delete(subscription);
+    });
   }
 
-  /** Unbind function from signal */
+  /** Unbind function from signal that has been previously set with `Signal.when` */
+  drop(conditionValue: T, subscription: Subscription<T>): void {
+    const set = this.whenSubscriptions?.get(conditionValue);
+    set?.delete(subscription);
+  }
+
+  /** Bind function to signal, it'll be called each time signal's value changes with current value as argument */
+  subscribe(subscription: Subscription<T>, abortSignal?: AbortSignal): void {
+    this.subscriptions ??= new Set();
+    this.subscriptions.add(subscription);
+
+    abortSignal?.addEventListener("abort", () => {
+      this.subscriptions?.delete(subscription);
+    });
+  }
+
+  /** Unbind function from signal that has been previously set with `Signal.subscribe` */
   unsubscribe(subscription: Subscription<T>): void {
     this.subscriptions?.delete(subscription);
   }
@@ -103,12 +133,20 @@ export class Signal<T> implements Dependency {
    * - Update each dependant in `dependants`
    */
   propagate(): void {
-    const { subscriptions, dependants } = this;
+    const { subscriptions, whenSubscriptions, dependants } = this;
+
+    const value = this.$value;
 
     if (subscriptions?.size) {
-      const value = this.$value;
-      for (const callback of subscriptions) {
-        callback(value);
+      for (const subscription of subscriptions) {
+        subscription(value);
+      }
+    }
+
+    const valueSubscriptions = whenSubscriptions?.get(value);
+    if (valueSubscriptions) {
+      for (const subscription of valueSubscriptions) {
+        subscription(value);
       }
     }
 
