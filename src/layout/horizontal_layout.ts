@@ -17,13 +17,13 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
   pattern: Signal<T[]>;
   totalUnitLength: number;
   elements: LayoutElement<T>[];
-  elementNameToObject: Map<T, number>;
+  elementNameToIndex: Map<T, number>;
 
   constructor(options: LayoutOptions<T>) {
     this.totalUnitLength = 0;
 
     this.elements = [];
-    this.elementNameToObject = new Map();
+    this.elementNameToIndex = new Map();
 
     this.pattern = signalify(options.pattern, {
       deepObserve: true,
@@ -39,8 +39,8 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
   }
 
   updatePattern(): void {
-    const { elementNameToObject } = this;
-    elementNameToObject.clear();
+    const { elementNameToIndex } = this;
+    elementNameToIndex.clear();
 
     const pattern = this.pattern.value;
     this.totalUnitLength = pattern.length;
