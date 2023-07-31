@@ -19,7 +19,7 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { Component } from "../mod.ts";
+import { Component, Rectangle } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed, Signal } from "../src/signals/mod.ts";
 
@@ -371,20 +371,22 @@ const viewBackground = new Box({
 // @ts-ignore-
 viewBackground.NOFRAME = true;
 
+const viewScrollbarRectangle: Rectangle = { column: 0, row: 0, width: 1, height: 0 };
 const viewScrollbar = new Slider({
   parent: tui,
   min: 0,
-  max: view.maxOffset.rows,
+  max: view.maxOffset.peek().rows,
   value: 0,
   step: 1,
   orientation: "vertical",
   adjustThumbSize: true,
-  rectangle: {
-    column: view.rectangle.column + view.rectangle.width - 1,
-    row: view.rectangle.row,
-    height: view.rectangle.height,
-    width: 1,
-  },
+  rectangle: new Computed(() => {
+    const viewRectangle = view.rectangle.value;
+    viewScrollbarRectangle.column = viewRectangle.column + viewRectangle.width - 1;
+    viewScrollbarRectangle.row = viewRectangle.row;
+    viewScrollbarRectangle.height = viewRectangle.height;
+    return viewScrollbarRectangle;
+  }),
   theme: {
     thumb: { base: crayon.bgRed },
     base: crayon.bgLightBlue,
@@ -395,7 +397,7 @@ const viewScrollbar = new Slider({
 viewScrollbar.NOFRAME = true;
 
 viewScrollbar.value.subscribe((value) => {
-  view.offset.rows = value;
+  view.offset.value.rows = value;
 });
 
 const viewBox = new Box({
