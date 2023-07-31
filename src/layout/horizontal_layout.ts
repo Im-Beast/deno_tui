@@ -17,13 +17,13 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
   pattern: Signal<T[]>;
   totalUnitLength: number;
   elements: LayoutElement<T>[];
-  elementNameToIndex: Map<T, number>;
+  elementNameToObject: Map<T, number>;
 
   constructor(options: LayoutOptions<T>) {
     this.totalUnitLength = 0;
 
     this.elements = [];
-    this.elementNameToIndex = new Map();
+    this.elementNameToObject = new Map();
 
     this.pattern = signalify(options.pattern, {
       deepObserve: true,
@@ -39,8 +39,8 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
   }
 
   updatePattern(): void {
-    const { elementNameToIndex } = this;
-    elementNameToIndex.clear();
+    const { elementNameToObject } = this;
+    elementNameToObject.clear();
 
     const pattern = this.pattern.value;
     this.totalUnitLength = pattern.length;
@@ -85,8 +85,10 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
 
     const elementWidth = Math.round(width / totalUnitLength);
 
-    let widthDiff = width;
     let currentColumn = 0;
+    let widthDiff = width - (elementWidth * totalUnitLength) - gapX;
+    let partDiff = (widthDiff < 0 ? 1 : -1) *
+      Math.ceil(Math.abs(widthDiff) / elements.length);
     for (const i in elements) {
       const element = elements[i];
       const rectangle = element.rectangle.peek();
@@ -94,16 +96,18 @@ export class HorizontalLayout<T extends string> implements Layout<T> {
       rectangle.height = height - gapY * 2;
       rectangle.row = row + gapY;
 
-      const currentElementWidth = elementWidth * element.unitLength;
+      const currentElementWidth = (elementWidth - partDiff) * element.unitLength;
+
+      widthDiff += partDiff;
+      if (widthDiff === 0) {
+        partDiff = 0;
+      }
 
       rectangle.width = currentElementWidth - gapX;
-      widthDiff -= currentElementWidth;
 
       rectangle.column = gapX + currentColumn + column;
       currentColumn += rectangle.width + gapX;
     }
-
-    elements[elements.length - 1].rectangle.peek().width += widthDiff - gapX;
   }
 
   element(name: T): Signal<Rectangle> {
