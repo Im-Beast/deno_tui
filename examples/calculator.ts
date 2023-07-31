@@ -95,36 +95,31 @@ for (const elementName of layout.elementNameToIndex.keys()) {
     case "screen":
       break;
     case "off":
-      button.state.subscribe((v) => {
-        if (v === "active") {
-          Deno.exit(0);
-        }
-      });
+      button.state.when("active", () => Deno.exit(0));
       break;
     case "=":
-      button.state.subscribe((v) => {
-        if (v === "active" && lastClickedType === "number") {
-          expression.value = `${eval(expression.peek())}`; // don't use eval in production, it's very very bad!
+      button.state.when("active", () => {
+        if (lastClickedType === "number") {
+          const calc = new Function("", `return ${expression.peek()};`);
+          expression.value = calc().toString();
           lastClickedType = "result";
         }
       });
       break;
     case "clear":
-      button.state.subscribe((v) => {
-        if (v === "active" && lastClickedType === "number") {
+      button.state.when("active", () => {
+        if (lastClickedType === "number") {
           expression.value = "";
         }
       });
       break;
     default:
-      button.state.subscribe((v) => {
-        if (v === "active") {
-          const currentType = /\d/.test(elementName) ? "number" : "action";
+      button.state.when("active", () => {
+        const currentType = /\d/.test(elementName) ? "number" : "action";
 
-          if (currentType !== "action" || (lastClickedType === "number" && currentType === "action")) {
-            expression.value += elementName;
-            lastClickedType = currentType;
-          }
+        if (currentType !== "action" || (lastClickedType === "number" && currentType === "action")) {
+          expression.value += elementName;
+          lastClickedType = currentType;
         }
       });
       break;

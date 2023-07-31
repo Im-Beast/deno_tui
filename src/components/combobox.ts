@@ -108,8 +108,7 @@ export class ComboBox<Items extends string[] = string[]> extends Button {
         }),
       });
 
-      button.state.subscribe(() => {
-        if (button.state.peek() !== "active") return;
+      button.state.when("active", () => {
         this.selectedItem.value = i;
         this.expanded.value = false;
       });

@@ -95,12 +95,9 @@ const button = new Button({
   },
 });
 
-// Subscribe for button state changes
-button.state.subscribe((state) => {
   // If button is active (pressed) make number bigger by one
-  if (state === "active")  {
-    ++number.value;
-  }
+button.state.when("active", (state) => {
+  ++number.value;
 });
 
 // Listen to mousePress event
