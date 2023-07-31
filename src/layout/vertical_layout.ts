@@ -17,13 +17,13 @@ export class VerticalLayout<T extends string> implements Layout<T> {
   pattern: Signal<T[]>;
   totalUnitLength: number;
   elements: LayoutElement<T>[];
-  elementNameToIndex: Map<T, number>;
+  elementNameToObject: Map<T, number>;
 
   constructor(options: LayoutOptions<T>) {
     this.totalUnitLength = 0;
 
     this.elements = [];
-    this.elementNameToIndex = new Map();
+    this.elementNameToObject = new Map();
 
     this.pattern = signalify(options.pattern, {
       deepObserve: true,
@@ -39,8 +39,8 @@ export class VerticalLayout<T extends string> implements Layout<T> {
   }
 
   updatePattern(): void {
-    const { elementNameToIndex } = this;
-    elementNameToIndex.clear();
+    const { elementNameToObject } = this;
+    elementNameToObject.clear();
 
     const pattern = this.pattern.value;
     this.totalUnitLength = pattern.length;
@@ -85,8 +85,9 @@ export class VerticalLayout<T extends string> implements Layout<T> {
 
     const elementHeight = Math.round(height / totalUnitLength);
 
-    let heightDiff = height;
     let currentRow = 0;
+    let heightDiff = height - (elementHeight * totalUnitLength) - gapY;
+    let partDiff = (heightDiff < 0 ? 1 : -1) * Math.ceil(Math.abs(heightDiff) / elements.length);
     for (const i in elements) {
       const element = elements[i];
       const rectangle = element.rectangle.peek();
@@ -94,16 +95,19 @@ export class VerticalLayout<T extends string> implements Layout<T> {
       rectangle.width = width - gapX * 2;
       rectangle.column = column + gapX;
 
-      const currentElementHeight = elementHeight * element.unitLength;
+      const currentElementHeight = (elementHeight - partDiff) * element.unitLength;
+
+      heightDiff += partDiff;
+      if (heightDiff === 0) {
+        partDiff = 0;
+      }
 
       rectangle.height = currentElementHeight - gapY;
-      heightDiff -= currentElementHeight;
 
       rectangle.row = gapY + currentRow + row;
+
       currentRow += rectangle.height + gapY;
     }
-
-    elements[elements.length - 1].rectangle.peek().height += heightDiff - gapY;
   }
 
   element(name: T): Signal<Rectangle> {
