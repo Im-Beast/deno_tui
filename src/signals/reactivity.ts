@@ -3,10 +3,12 @@ import { Signal } from "./signal.ts";
 
 export type Reactive<T> = T & {
   [IS_REACTIVE]: true;
+  [ORIGINAL_REF]: T;
   [CONNECTED_SIGNAL]: Signal<T>;
 };
 
 export const IS_REACTIVE = Symbol("reactive");
+export const ORIGINAL_REF = Symbol("original_ref");
 export const CONNECTED_SIGNAL = Symbol("connected_signal");
 
 export function isReactive<T extends object>(input: T): input is Reactive<T> {
@@ -19,6 +21,14 @@ export function getConnectedSignal<T extends object>(input: T | Reactive<T>): Si
   }
 
   throw "Failed to get connected signal as input isn't reactive";
+}
+
+export function getOriginalRef<T extends object>(input: T | Reactive<T>): T {
+  if (isReactive(input)) {
+    return input[ORIGINAL_REF];
+  }
+
+  throw "Failed to get original referenec as input isn't reactive";
 }
 
 /**
@@ -38,6 +48,7 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
 ): T {
   Object.defineProperties(map, {
     [IS_REACTIVE]: { value: true },
+    [ORIGINAL_REF]: { value: map },
     [CONNECTED_SIGNAL]: { value: signal },
   });
 
@@ -108,6 +119,7 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
 export function makeSetMethodsReactive<T extends Set<unknown>, S>(set: T, signal: Signal<S>): T {
   Object.defineProperties(set, {
     [IS_REACTIVE]: { value: true },
+    [ORIGINAL_REF]: { value: set },
     [CONNECTED_SIGNAL]: { value: signal },
   });
 
@@ -166,6 +178,7 @@ export function makeArrayMethodsReactive<T extends Array<unknown>, S>(
 ): T {
   Object.defineProperties(array, {
     [IS_REACTIVE]: { value: true },
+    [ORIGINAL_REF]: { value: array },
     [CONNECTED_SIGNAL]: { value: signal },
   });
 
@@ -246,6 +259,7 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
   } else {
     Object.defineProperties(object, {
       [IS_REACTIVE]: { value: true },
+      [ORIGINAL_REF]: { value: object },
       [CONNECTED_SIGNAL]: { value: signal },
     });
   }
@@ -267,6 +281,7 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
   const interceptor = {} as T;
   Object.defineProperties(interceptor, {
     [IS_REACTIVE]: { value: true },
+    [ORIGINAL_REF]: { value: object },
     [CONNECTED_SIGNAL]: { value: signal },
   });
 

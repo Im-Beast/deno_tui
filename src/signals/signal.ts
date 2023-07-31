@@ -1,6 +1,12 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { activeSignals } from "./dependency_tracking.ts";
-import { makeMapMethodsReactive, makeObjectPropertiesReactive, makeSetMethodsReactive } from "./reactivity.ts";
+import {
+  makeMapMethodsReactive,
+  makeObjectPropertiesReactive,
+  makeSetMethodsReactive,
+  ORIGINAL_REF,
+  Reactive,
+} from "./reactivity.ts";
 import { Dependant, Dependency, Subscription } from "./types.ts";
 
 // TODO: Make dispose revert reactive value modifications
@@ -124,6 +130,13 @@ export class Signal<T> implements Dependency {
    * - Clears dependants
    */
   dispose(): void {
+    let { $value } = this;
+
+    // Set $value to its original reference to make next property accessess faster
+    if (typeof $value === "object") {
+      $value = ($value as Reactive<T>)?.[ORIGINAL_REF] ?? $value;
+    }
+
     Object.defineProperty(this, "value", {
       value: this.$value,
     });
