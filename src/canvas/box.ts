@@ -62,7 +62,7 @@ export class BoxObject extends DrawObject<"box"> {
     let rowRange = Math.min(rectangle.row + rectangle.height, rows);
     let columnRange = Math.min(rectangle.column + rectangle.width, columns);
 
-    const viewRectangle = this.view.peek()?.rectangle;
+    const viewRectangle = this.view.peek()?.rectangle?.peek();
     if (viewRectangle) {
       rowRange = Math.min(rowRange, viewRectangle.row + viewRectangle.height);
       columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);

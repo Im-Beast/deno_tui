@@ -196,7 +196,7 @@ export class TextObject extends DrawObject<"text"> {
     let rowRange = Math.min(row, rows);
     let columnRange = Math.min(rectangle.column + valueChars.length, columns);
 
-    const viewRectangle = this.view.peek()?.rectangle;
+    const viewRectangle = this.view.peek()?.rectangle?.peek();
     if (viewRectangle) {
       rowRange = Math.min(row, viewRectangle.row + viewRectangle.height);
       columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);

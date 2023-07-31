@@ -129,18 +129,13 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     for (const object of updateObjects) {
       if (object.updated) continue;
       object.updated = true;
-
       ++i;
       object.update();
 
       object.updateMovement();
       object.updatePreviousRectangle();
 
-      object.outOfBounds = false;
-
-      if (!object.outOfBounds) {
-        object.updateOutOfBounds();
-      }
+      object.updateOutOfBounds();
 
       if (object.outOfBounds) {
         continue;

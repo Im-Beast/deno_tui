@@ -10,6 +10,7 @@ import { View } from "../view.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { Subscription } from "../signals/types.ts";
+import { Effect } from "../signals/effect.ts";
 
 export interface DrawObjectOptions {
   canvas: Canvas;
@@ -90,6 +91,38 @@ export class DrawObject<Type extends string = string> {
         updateObjects.push(objectUnder);
       }
     };
+
+    if (this.view.value) {
+      queueMicrotask(() => {
+        new Effect(() => {
+          const view = this.view.value;
+          // FIXME: they might not get watched if view wasnt set by default
+          if (view) {
+            const viewRectangle = view?.rectangle.value;
+            const offset = view?.offset.value;
+            const _maxOffset = view?.maxOffset.value;
+
+            const rectangle = this.rectangle?.peek();
+            if (!rectangle) return;
+            const { viewOffset } = this;
+
+            rectangle.column += viewRectangle.column - offset.columns - viewOffset.columns;
+            rectangle.row += viewRectangle.row - offset.rows - viewOffset.rows;
+
+            viewOffset.columns = viewRectangle.column - offset.columns;
+            viewOffset.rows = viewRectangle.row - offset.rows;
+          }
+
+          this.updated = false;
+          updateObjects.push(this);
+
+          for (const objectUnder of this.objectsUnder) {
+            objectUnder.updated = false;
+            updateObjects.push(objectUnder);
+          }
+        });
+      });
+    }
   }
 
   draw(): void {
@@ -151,7 +184,7 @@ export class DrawObject<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
-    const viewRectangle = this.view.peek()?.rectangle;
+    const viewRectangle = this.view.peek()?.rectangle?.peek();
     if (row < 0 || column < 0) return;
     const { columns, rows } = this.canvas.size.peek();
     if (row >= rows || column >= columns) return;
@@ -223,32 +256,22 @@ export class DrawObject<Type extends string = string> {
     this.outOfBounds = width === 0 || height === 0 ||
       column >= columns || row >= rows ||
       column + width < 0 || row + height < 0;
+
+    if (!this.outOfBounds) {
+      const viewRectangle = this.view.peek()?.rectangle?.peek();
+      if (!viewRectangle) return;
+
+      if (
+        column > viewRectangle.column + viewRectangle.width ||
+        row > viewRectangle.row + viewRectangle.height ||
+        column + width < viewRectangle.column || row + height < viewRectangle.row
+      ) {
+        this.outOfBounds = true;
+      }
+    }
   }
 
   update(): void {
-    const rectangle = this.rectangle.peek();
-    const { column, row, width, height } = rectangle;
-
-    const view = this.view.peek();
-    if (!view) return;
-
-    const viewRectangle = view.rectangle;
-    const { offset } = view;
-    const { viewOffset } = this;
-
-    rectangle.column += viewRectangle.column - offset.columns - viewOffset.columns;
-    rectangle.row += viewRectangle.row - offset.rows - viewOffset.rows;
-
-    viewOffset.columns = viewRectangle.column - offset.columns;
-    viewOffset.rows = viewRectangle.row - offset.rows;
-
-    if (
-      column > viewRectangle.column + viewRectangle.width ||
-      row > viewRectangle.row + viewRectangle.height ||
-      column + width < viewRectangle.column || row + height < viewRectangle.row
-    ) {
-      this.outOfBounds = true;
-    }
   }
 
   render(): void {
