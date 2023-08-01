@@ -2,12 +2,13 @@
 export * from "./src/component.ts";
 export * from "./src/controls.ts";
 export * from "./src/event_emitter.ts";
-export * from "./src/signals/mod.ts";
 export * from "./src/input.ts";
 export * from "./src/theme.ts";
 export * from "./src/types.ts";
 export * from "./src/view.ts";
 export * from "./src/tui.ts";
+
+export * from "./src/signals/mod.ts";
 
 export * from "./src/layout/mod.ts";
 
