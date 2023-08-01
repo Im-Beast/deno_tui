@@ -87,7 +87,9 @@ for (const elementName of layout.elementNameToIndex.keys()) {
     case "screen":
       break;
     case "off":
-      button.state.when("active", () => Deno.exit(0));
+      button.state.when("active", () => {
+        tui.emit("destroy");
+      });
       break;
     case "=":
       button.state.when("active", () => {
@@ -100,9 +102,7 @@ for (const elementName of layout.elementNameToIndex.keys()) {
       break;
     case "clear":
       button.state.when("active", () => {
-        if (lastClickedType === "number") {
-          expression.value = "";
-        }
+        expression.value = "";
       });
       break;
     default:
