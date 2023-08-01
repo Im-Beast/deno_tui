@@ -3,9 +3,9 @@ import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
-import { Computed } from "./signals/mod.ts";
+import { Computed, Signal } from "./signals/mod.ts";
 import { Style } from "./theme.ts";
-import { Stdin, Stdout } from "./types.ts";
+import { Rectangle, Stdin, Stdout } from "./types.ts";
 import { HIDE_CURSOR, SHOW_CURSOR, USE_PRIMARY_BUFFER, USE_SECONDARY_BUFFER } from "./utils/ansi_codes.ts";
 
 const textEncoder = new TextEncoder();
@@ -42,6 +42,7 @@ export class Tui extends EventEmitter<
   stdin: Stdin;
   stdout: Stdout;
   canvas: Canvas;
+  rectangle: Signal<Rectangle>;
   style?: Style;
   children: Component[];
   components: Set<Component>;
@@ -65,6 +66,14 @@ export class Tui extends EventEmitter<
     this.drawnObjects = {};
     this.components = new Set();
     this.children = [];
+
+    const tuiRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    this.rectangle = new Computed(() => {
+      const { columns, rows } = this.canvas.size.value;
+      tuiRectangle.width = columns;
+      tuiRectangle.height = rows;
+      return tuiRectangle;
+    });
 
     const updateCanvasSize = () => {
       const { canvas } = this;
