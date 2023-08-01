@@ -36,6 +36,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
   size: Signal<ConsoleSize>;
   rerenderedObjects?: number;
   frameBuffer: (string | Uint8Array)[][];
+  rerenderRows: Set<number>;
   rerenderQueue: Set<number>[];
   drawnObjects: SortedArray<DrawObject>;
   updateObjects: DrawObject[];
@@ -45,6 +46,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     super();
 
     this.frameBuffer = [];
+    this.rerenderRows = new Set();
     this.rerenderQueue = [];
     this.stdout = options.stdout;
     this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
@@ -164,9 +166,9 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     let lastRow = -1;
     let lastColumn = -1;
 
-    const { rerenderQueue } = this;
+    const { rerenderQueue, rerenderRows } = this;
 
-    for (let row = 0; row < rerenderQueue.length; ++row) {
+    for (const row of rerenderRows) {
       const columns = rerenderQueue[row];
       if (!columns?.size) continue;
 
@@ -193,6 +195,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       columns.clear();
     }
+    rerenderRows.clear();
 
     // Complete final loop draw sequence
     stdout.writeSync(textEncoder.encode(moveCursor(lastRow, lastColumn) + drawSequence));

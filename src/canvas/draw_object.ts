@@ -197,6 +197,7 @@ export class DrawObject<Type extends string = string> {
     ) return;
 
     (this.rerenderCells[row] ??= new Set()).add(column);
+    this.canvas.rerenderRows.add(row);
   }
 
   updatePreviousRectangle(): void {
