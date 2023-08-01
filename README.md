@@ -57,7 +57,7 @@ tui.dispatch(); // Close Tui on CTRL+C
 2. Enable interaction using keyboard and mouse
 
 ```ts
-import { handleInput, handleKeyboardControls, handleMouseControls } from "https://deno.land/x/tui@version/mod.ts";
+import { handleInput, handleKeyboardControls, handleMouseControls } from "https://deno.land/x/tui@$MODULE_VERSION/mod.ts";
 ...
 
 handleInput(tui);
@@ -68,8 +68,8 @@ handleKeyboardControls(tui);
 3. Add some components
 
 ```ts
-import { Button } from "https://deno.land/x/tui@version/src/components/mod.ts";
-import { Signal, Computed } from "https://deno.land/x/tui@version/mod.ts";
+import { Button } from "https://deno.land/x/tui@$MODULE_VERSION/src/components/mod.ts";
+import { Signal, Computed } from "https://deno.land/x/tui@$MODULE_VERSION/mod.ts";
 
 ...
 
