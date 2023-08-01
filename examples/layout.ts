@@ -7,7 +7,7 @@ import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts"
 
 import { Button } from "../src/components/button.ts";
 
-import { Computed, GridLayout, VerticalLayout } from "../mod.ts";
+import { GridLayout } from "../mod.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
