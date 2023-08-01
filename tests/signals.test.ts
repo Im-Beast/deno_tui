@@ -6,9 +6,20 @@ import { assertArrayIncludes, assertEquals, assertThrows } from "./deps.ts";
 Deno.test("signals/mod.ts", async (t) => {
   await t.step("Signal", async (t) => {
     let subCount = 0;
+    let fiveCalls = 0;
+    let tenCalls = 0;
+
+    const abortController = new AbortController();
+    const abortController2 = new AbortController();
+
     const signal = new Signal(0);
 
-    signal.subscribe(() => ++subCount);
+    const subCallback = () => ++subCount;
+    signal.subscribe(subCallback, abortController.signal);
+    // call only when signal is equal to 5
+    const fiveCallback = () => ++fiveCalls;
+    signal.when(5, fiveCallback);
+    signal.when(10, () => ++tenCalls, abortController2.signal);
 
     assertEquals(signal.value, 0);
     assertEquals(subCount, 0); // subscribers get info after value being changed, not like effect
@@ -16,18 +27,55 @@ Deno.test("signals/mod.ts", async (t) => {
     signal.value = 5;
     assertEquals(signal.value, 5);
     assertEquals(subCount, 1);
+    assertEquals(fiveCalls, 1);
+
+    // When unsubscribed it won't call that callback again
+    signal.unsubscribe(subCallback);
+    signal.value = 7;
+    assertEquals(subCount, 1);
+
+    // Re-subscribe
+    signal.subscribe(subCallback);
+
+    // The same effect as unsubscribe can be achieved using AbortSignal when passed as third argument
+    abortController.abort();
+    signal.value = 8;
+    assertEquals(subCount, 1);
+
+    signal.subscribe(subCallback);
+
+    // Re-subscribe again
+    signal.subscribe(subCallback);
 
     signal.value = 10;
     signal.value = 10; // doesnt update when value isnt changed
     assertEquals(signal.value, 10);
     assertEquals(subCount, 2);
+    assertEquals(fiveCalls, 1);
+    assertEquals(tenCalls, 1);
+
+    signal.value = 5;
+    signal.value = 5;
+    assertEquals(fiveCalls, 2);
+
+    abortController2.abort();
+
+    signal.value = 10;
+    assertEquals(tenCalls, 1);
+
+    signal.drop(5, fiveCallback);
+
+    signal.value = 5;
+    assertEquals(fiveCalls, 2);
+
+    signal.value = 10;
 
     signal.dispose();
     try {
       signal.value = 15;
     } catch (_error) {
       assertEquals(signal.value, 10); // value doesn't change after being disposed
-      assertEquals(subCount, 2); // doesn't run subscribers after being disposed
+      assertEquals(subCount, 6); // doesn't run subscribers after being disposed
     }
 
     await t.step("Deep observe", async (t) => {
@@ -304,6 +352,20 @@ Deno.test("signals/mod.ts", async (t) => {
       effectOutput,
       `s1:${1}, c1:${2} | s2: ${1}, c2:${3} | c3: ${6}`,
     );
+
+    // When effect is paused it won't get called on signal changes
+    effect.pause();
+    signal.value = 6;
+    signal2.value = 9;
+
+    assertEquals(runs, 1);
+    assertEquals(
+      effectOutput,
+      `s1:${1}, c1:${2} | s2: ${1}, c2:${3} | c3: ${6}`,
+    );
+
+    // When effect is resumed it will start running its callback again
+    effect.resume();
 
     signal.value = 5;
     signal2.value = 10;
