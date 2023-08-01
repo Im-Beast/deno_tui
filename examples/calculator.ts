@@ -1,5 +1,5 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-// Simple  calculator demo using grid layout
+// Simple calculator demo using grid layout
 
 import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
 
@@ -22,13 +22,13 @@ handleKeyboardControls(tui);
 tui.dispatch();
 tui.run();
 
-const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
+/* const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
 const layoutRect = new Computed(() => {
   const { columns: width, rows: height } = tui.canvas.size.value;
   layoutRectangle.width = width;
   layoutRectangle.height = height;
   return layoutRectangle;
-});
+}); */
 
 const layout = new GridLayout(
   {
@@ -42,7 +42,7 @@ const layout = new GridLayout(
     ],
     gapX: 0,
     gapY: 0,
-    rectangle: layoutRect,
+    rectangle: tui.drawnObjects.background!.rectangle,
   },
 );
 
