@@ -165,9 +165,10 @@ export class Tui extends EventEmitter<
 
     Deno.addSignalListener("SIGINT", destroyDispatcher);
 
-    this.on("destroy", () => {
+    this.on("destroy", async () => {
       this.destroy();
-      queueMicrotask(() => Deno.exit(0));
+      await Promise.resolve();
+      Deno.exit(0);
     });
   }
 }
