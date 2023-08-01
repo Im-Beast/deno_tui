@@ -7,7 +7,7 @@ import { handleKeyboardControls, handleMouseControls } from "../src/controls.ts"
 
 import { Button } from "../src/components/button.ts";
 
-import { Computed, GridLayout } from "../mod.ts";
+import { Computed, GridLayout, VerticalLayout } from "../mod.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack,
@@ -20,14 +20,6 @@ handleKeyboardControls(tui);
 tui.dispatch();
 tui.run();
 
-const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
-const layoutRect = new Computed(() => {
-  const { columns: width, rows: height } = tui.canvas.size.value;
-  layoutRectangle.width = width;
-  layoutRectangle.height = height;
-  return layoutRectangle;
-});
-
 const layout = new GridLayout(
   {
     pattern: [
@@ -39,7 +31,7 @@ const layout = new GridLayout(
     ],
     gapX: 2,
     gapY: 1,
-    rectangle: layoutRect,
+    rectangle: tui.rectangle,
   },
 );
 
