@@ -42,7 +42,7 @@ export class Component extends EventEmitter<
   state: Signal<ComponentState>;
   view: Signal<View | undefined>;
   zIndex: Signal<number>;
-  rectangle: Signal<Rectangle>;
+  rectangle: SignalOfObject<Rectangle>;
   style: Signal<Style>;
 
   tui: Tui;
