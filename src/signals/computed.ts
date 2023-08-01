@@ -65,11 +65,11 @@ export class Computed<T> extends Signal<T> implements Dependant, Dependency {
     throw new ComputedReadOnlyError();
   }
 
-  update(): void {
+  update(cause: Dependency | Dependant): void {
     activeSignals?.add(this);
 
     if (this.$value !== (this.$value = this.computable()) || this.forceUpdateValue) {
-      this.propagate();
+      this.propagate(cause);
     }
   }
 
