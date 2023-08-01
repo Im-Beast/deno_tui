@@ -90,7 +90,7 @@ export class Tui extends EventEmitter<
     updateCanvasSize();
 
     if (Deno.build.os === "windows") {
-      this.canvas.size.subscribe(updateCanvasSize);
+      setInterval(updateCanvasSize, this.refreshRate);
     } else {
       Deno.addSignalListener("SIGWINCH", updateCanvasSize);
     }
