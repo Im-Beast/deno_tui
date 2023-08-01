@@ -132,7 +132,7 @@ export class Signal<T> implements Dependency {
    * - Run all linked subscriptions
    * - Update each dependant in `dependants`
    */
-  propagate(): void {
+  propagate(cause?: Dependency | Dependant): void {
     const { subscriptions, whenSubscriptions, dependants } = this;
 
     const value = this.$value;
@@ -156,7 +156,7 @@ export class Signal<T> implements Dependency {
       if ("forceUpdateValue" in dependant) {
         dependant.forceUpdateValue = true;
       }
-      dependant.update(this);
+      dependant.update(cause ?? this);
     }
   }
 
