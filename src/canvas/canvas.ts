@@ -177,7 +177,15 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
           drawSequence += moveCursor(row, column);
         }
 
-        drawSequence += rowBuffer[column];
+        const cell = rowBuffer[column];
+
+        // This is required to render properly on windows
+        if (drawSequence.length + cell.length > 1024) {
+          stdout.writeSync(textEncoder.encode(moveCursor(lastRow, lastColumn) + drawSequence));
+          drawSequence = moveCursor(row, column);
+        }
+
+        drawSequence += cell;
 
         lastRow = row;
         lastColumn = column;
