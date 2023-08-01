@@ -22,14 +22,6 @@ handleKeyboardControls(tui);
 tui.dispatch();
 tui.run();
 
-/* const layoutRectangle = { column: 0, row: 0, width: 0, height: 0 };
-const layoutRect = new Computed(() => {
-  const { columns: width, rows: height } = tui.canvas.size.value;
-  layoutRectangle.width = width;
-  layoutRectangle.height = height;
-  return layoutRectangle;
-}); */
-
 const layout = new GridLayout(
   {
     pattern: [
