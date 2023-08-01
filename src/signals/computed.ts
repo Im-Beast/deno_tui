@@ -13,7 +13,7 @@ export class ComputedReadOnlyError extends Error {
 
 /** Function that's used to calculate `Computed`'s value */
 export interface Computable<T> {
-  (): T;
+  (cause: Dependency | Dependant): T;
 }
 
 /**
@@ -39,8 +39,10 @@ export class Computed<T> extends Signal<T> implements Dependant, Dependency {
   dependencies: Set<Dependency>;
 
   constructor(computable: Computable<T>) {
-    const value = computable();
-    super(value);
+    super(undefined as T);
+
+    const value = computable(this);
+    super.value = value;
 
     this.computable = computable;
     this.dependencies = new Set();
@@ -68,7 +70,7 @@ export class Computed<T> extends Signal<T> implements Dependant, Dependency {
   update(cause: Dependency | Dependant): void {
     activeSignals?.add(this);
 
-    if (this.$value !== (this.$value = this.computable()) || this.forceUpdateValue) {
+    if (this.$value !== (this.$value = this.computable(cause)) || this.forceUpdateValue) {
       this.propagate(cause);
     }
   }
