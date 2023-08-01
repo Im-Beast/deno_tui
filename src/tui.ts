@@ -111,23 +111,9 @@ export class Tui extends EventEmitter<
 
       background?.erase();
 
-      const { columns, rows } = canvas.size.peek();
-
-      const backgroundRectangle = {
-        column: 0,
-        row: 0,
-        width: columns,
-        height: rows,
-      };
-
       const box = new BoxObject({
         canvas,
-        rectangle: new Computed(() => {
-          const { columns, rows } = this.canvas.size.value;
-          backgroundRectangle.width = columns;
-          backgroundRectangle.height = rows;
-          return backgroundRectangle;
-        }),
+        rectangle: this.rectangle,
         style,
         zIndex: -1,
       });
