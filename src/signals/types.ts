@@ -20,5 +20,5 @@ export interface Dependant {
   /** Destroy dependant, clear its dependencies */
   dispose(): void;
   /** Method which updates Dependants state/value */
-  update(cause: Dependency): void;
+  update(cause: Dependency | Dependant): void;
 }

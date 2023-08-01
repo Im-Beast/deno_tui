@@ -4,7 +4,7 @@ import type { Dependant, Dependency } from "./types.ts";
 
 /** Function that's ran every time `Effect.update` is called */
 export interface Effectable {
-  (cause: Dependency): void;
+  (cause: Dependency | Dependant): void;
 }
 
 /**
@@ -55,7 +55,7 @@ export class Effect implements Dependant {
     });
   }
 
-  update(cause: Dependency): void {
+  update(cause: Dependency | Dependant): void {
     if (this.paused) {
       throw "Something called update() on effect while being paused";
     }
