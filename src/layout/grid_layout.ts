@@ -15,12 +15,55 @@ export interface GridLayoutOptions<T extends string> extends Omit<LayoutOptions<
 export interface GridLayoutElement<T extends string> extends Omit<LayoutElement<T>, "unitLength"> {
   unitLengthX: number;
   unitLengthY: number;
-
   startX: number;
   startY: number;
   accumulatedX: number;
 }
 
+/**
+ * GridLayout allows you to position elements in rows and columns
+ * so that they occupy whole space (GridLayout's `rectangle`)
+ *
+ * @example
+ * ```ts
+ * const layout = new GridLayout({
+ *  // pattern defines how elements will be positioned
+ *  // This pattern tells us that we have elements of id's `"a"`, `"b"` and `"c"`
+ *  // Where `"a"` width and height spans over two units whereas each `"b"` and `"c"` width and height spans over 1 unit
+ *  //
+ *  // You can think of units as proportions:
+ *  //  - This pattern is 3 unit wide (we defined 3 elements in each row array)
+ *  //  - in every row a is defined two times, this means it will be 2 unit wide (2/3, it will take 66.6% of the available horizontal space) and 2 units high (2/2, it will take 100% of the vertical space)
+ *  //  - b and c are each defined one time in just one row, this means they will be 1 unit wide (1/3, they both will take 33.3% of remaining horizontal space) and 1 unit high (1/2, 50% of the vertical space)
+ *  pattern: [
+ *    [ "a", "a", "b" ],
+ *    [ "a", "a", "c" ],
+ *  ],
+ *  // gapX defines a horizontal gap (margin) between every layouts element
+ *  gapX: 0,
+ *  // gapY defines a vertical gap (margin) between every layouts element
+ *  gapY: 0,
+ *  // Size of a GridLayout, `tui.rectangle` means we want to occupy the whole Tui's space
+ *  rectangle: tui.rectangle,
+ * });
+ *
+ * // To make elements use layout, you need to set their rectangle as GridLayout.element(layoutId)
+ * const buttonA = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("a"),
+ * });
+ *
+ * const buttonB = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("b"),
+ * });
+ *
+ * const buttonC = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("c"),
+ * });
+ * ```
+ */
 export class GridLayout<T extends string> implements Layout<T> {
   rectangle: Signal<Rectangle>;
 

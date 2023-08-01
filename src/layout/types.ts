@@ -3,9 +3,13 @@ import type { Signal, SignalOfObject } from "../signals/signal.ts";
 import type { Rectangle } from "../types.ts";
 
 export interface LayoutOptions<T extends string> {
+  /** Position and size of Layout */
   rectangle: Rectangle | SignalOfObject<Rectangle>;
+  /** Arrangement of elements on layout */
   pattern: T[] | Signal<T[]>;
+  /** Horizontal gap between elements */
   gapX?: number | Signal<number>;
+  /** Vertical gap between elements */
   gapY?: number | Signal<number>;
 }
 

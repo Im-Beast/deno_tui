@@ -1,13 +1,54 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Signal } from "../signals/signal.ts";
+import { Effect } from "../signals/effect.ts";
 import { signalify } from "../utils/signals.ts";
 
 import { LayoutInvalidElementsPatternError, LayoutMissingElementError } from "./errors.ts";
 
 import type { Rectangle } from "../types.ts";
 import type { Layout, LayoutElement, LayoutOptions } from "./types.ts";
-import { Effect } from "../signals/effect.ts";
 
+/**
+ * VerticalLayout allows you to position elements in rows
+ * so that they occupy whole space (VerticalLayout's `rectangle`)
+ *
+ * @example
+ * ```ts
+ * const layout = new VerticalLayout({
+ *  // pattern defines how elements will be positioned
+ *  // This pattern tells us that we have elements of id's `"a"`, `"b"` and `"c"`
+ *  // Where `"a"` height spans over two units whereas `"b"` and `"c"` each height's span over 1 unit
+ *  //
+ *  // You can think of units as proportions:
+ *  //  - This pattern is 4 unit wide (we defined 4 elements in array)
+ *  //  - a is defined two times, this means it will be 2 unit wide (2/4, it will take 50% of the available space)
+ *  //  - b and c are each defined one time, this means they will be 1 unit wide(1/4, they both will take 25% of remaining space)
+ *  pattern: [ "a", "a", "b", "c" ],
+ *  // gapX defines a horizontal gap (margin) between vertical layouts rectangle and elements
+ *  gapX: 0,
+ *  // gapY defines a vertical gap (margin) between every vertical layouts element
+ *  gapY: 0,
+ *  // Size of a VerticalLayout, `tui.rectangle` means we want to occupy the whole Tui's space
+ *  rectangle: tui.rectangle,
+ * });
+ *
+ * // To make elements use layout, you need to set their rectangle as VerticalLayout.element(layoutId)
+ * const buttonA = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("a"),
+ * });
+ *
+ * const buttonB = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("b"),
+ * });
+ *
+ * const buttonC = new Button({
+ *   ...properties,
+ *   rectangle: layout.element("c"),
+ * });
+ * ```
+ */
 export class VerticalLayout<T extends string> implements Layout<T> {
   rectangle: Signal<Rectangle>;
 
