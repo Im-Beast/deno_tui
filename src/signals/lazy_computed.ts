@@ -1,12 +1,22 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Computable, Computed } from "./computed.ts";
+import { Dependency } from "./types.ts";
+import { Flusher } from "./flusher.ts";
+
+import type { LazyDependant } from "./types.ts";
 
 // TODO: Tests
 
+interface LazyComputedOptions {
+  interval: number;
+  flusher: Flusher;
+}
+
 /**
- * Computed is a type of signal that depends on other signals and updates when any of them changes
- *
- * If time between updates is smaller than given interval it gets delayed.
+ * LazyComputed is a type of signal that depends on other signals and updates when any of them changes
+ * - If time between updates is smaller than given interval it gets delayed
+ * - If given `Flusher` instead, it will update after `Flusher.flush()` gets called
+ * - Both interval and `Flusher` might be set at the same time.
  *
  * @example
  * ```ts
@@ -27,29 +37,56 @@ import { Computable, Computed } from "./computed.ts";
  * }, 16)
  * ```
  */
-export class LazyComputed<T> extends Computed<T> {
+export class LazyComputed<T> extends Computed<T> implements LazyDependant {
   timeout?: number;
-  interval: number;
+  interval?: number;
+  flusher?: Flusher;
+  #updateCallback?: () => void;
+
   lastFired: number;
 
-  #updateCallback: () => void;
-
-  constructor(computable: Computable<T>, interval: number) {
+  constructor(computable: Computable<T>, interval: number);
+  constructor(computable: Computable<T>, flusher: Flusher);
+  constructor(computable: Computable<T>, options: LazyComputedOptions);
+  constructor(computable: Computable<T>, option: LazyComputedOptions | number | Flusher) {
     super(computable);
 
-    this.interval = interval;
+    if (option instanceof Flusher) {
+      this.flusher = option;
+    } else if (typeof option === "object") {
+      this.flusher = option.flusher;
+      this.interval = option.interval;
+      this.#updateCallback = () => this.update(this);
+    } else {
+      this.interval = option;
+      this.#updateCallback = () => this.update(this);
+    }
+
     this.lastFired = performance.now();
-    this.#updateCallback = () => this.update();
   }
 
-  update(): void {
-    const timeDifference = performance.now() - this.lastFired;
-    if (timeDifference < this.interval) {
-      if (this.timeout) clearTimeout(this.timeout);
-      this.timeout = setTimeout(this.#updateCallback, timeDifference);
-    } else {
-      super.update();
+  update(cause: Dependency): void {
+    const { flusher, interval } = this;
+
+    if (cause === this.flusher) {
+      super.update(cause);
       this.lastFired = performance.now();
+      return;
+    }
+
+    if (flusher) {
+      flusher.depend(this);
+    }
+
+    if (interval) {
+      const timeDifference = performance.now() - this.lastFired;
+      if (timeDifference < interval) {
+        if (this.timeout) clearTimeout(this.timeout);
+        this.timeout = setTimeout(this.#updateCallback!, timeDifference);
+      } else {
+        super.update(cause);
+        this.lastFired = performance.now();
+      }
     }
   }
 }

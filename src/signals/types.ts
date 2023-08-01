@@ -1,4 +1,5 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
+import { Flusher } from "./flusher.ts";
 
 /** Type describing function that gets called each time signal changes */
 export interface Subscription<T> {
@@ -21,4 +22,12 @@ export interface Dependant {
   dispose(): void;
   /** Method which updates Dependants state/value */
   update(cause: Dependency | Dependant): void;
+}
+
+/** Element which relies on dependencies to function and updates either after specified interval or when flusher gets flushed */
+export interface LazyDependant extends Dependant {
+  timeout?: number;
+  interval?: number;
+  flusher?: Flusher;
+  lastFired: number;
 }
