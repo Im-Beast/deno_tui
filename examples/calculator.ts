@@ -34,7 +34,7 @@ const layout = new GridLayout(
     ],
     gapX: 0,
     gapY: 0,
-    rectangle: tui.drawnObjects.background!.rectangle,
+    rectangle: tui.rectangle,
   },
 );
 
