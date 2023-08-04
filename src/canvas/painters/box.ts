@@ -5,6 +5,7 @@ import { Signal, SignalOfObject } from "../../signals/mod.ts";
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Subscription } from "../../signals/types.ts";
+import { Effect } from "../../signals/effect.ts";
 
 export interface BoxPainterOptions extends PainterOptions {
   rectangle: Rectangle | SignalOfObject<Rectangle>;
@@ -16,17 +17,24 @@ export interface BoxPainterOptions extends PainterOptions {
  */
 export class BoxPainter extends Painter<"box"> {
   filler: Signal<string>;
-
   #rectangleSubscription: Subscription<Rectangle>;
+
+  #filler: string;
+
+  #columnStart: number;
+  #columnRange: number;
+
+  #rowStart: number;
+  #rowRange: number;
 
   constructor(options: BoxPainterOptions) {
     super("box", options);
 
     this.rectangle = signalify(options.rectangle);
     this.filler = signalify(options.filler ?? " ");
+    this.#filler = this.style.peek()(this.filler.peek());
 
     const { updateObjects } = this.canvas;
-
     this.#rectangleSubscription = () => {
       this.moved = true;
       this.updated = false;
@@ -38,6 +46,42 @@ export class BoxPainter extends Painter<"box"> {
         updateObjects.push(objectUnder);
       }
     };
+
+    new Effect(() => {
+      const style = this.style.value;
+      const filler = this.filler.value;
+      this.#filler = style(filler);
+    });
+
+    this.#columnStart = 0;
+    this.#columnRange = 0;
+    this.#rowStart = 0;
+    this.#rowRange = 0;
+    new Effect(() => {
+      const size = this.canvas.size.value;
+      const rectangle = this.rectangle.value;
+      const view = this.view.value;
+      const viewRectangle = view?.rectangle.value;
+
+      let rowStart = rectangle.row;
+      let rowRange = Math.min(rectangle.row + rectangle.height, size.rows);
+
+      let columnStart = rectangle.column;
+      let columnRange = Math.min(rectangle.column + rectangle.width, size.columns);
+
+      if (viewRectangle) {
+        rowStart = Math.max(rowStart, viewRectangle.row);
+        columnStart = Math.max(columnStart, viewRectangle.column);
+        rowRange = Math.min(rowRange, viewRectangle.row + viewRectangle.height);
+        columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
+      }
+
+      this.#rowStart = rowStart;
+      this.#rowRange = rowRange;
+
+      this.#columnStart = columnStart;
+      this.#columnRange = columnRange;
+    });
   }
 
   draw(): void {
@@ -52,25 +96,18 @@ export class BoxPainter extends Painter<"box"> {
 
   rerender(): void {
     const { canvas, rerenderCells, omitCells } = this;
-    const { frameBuffer, rerenderQueue } = canvas;
-    const { rows, columns } = canvas.size.peek();
 
     const rectangle = this.rectangle.peek();
-    const style = this.style.peek();
-    const filler = this.filler.peek();
+    const filler = this.#filler;
 
-    let rowRange = Math.min(rectangle.row + rectangle.height, rows);
-    let columnRange = Math.min(rectangle.column + rectangle.width, columns);
+    const rowStart = this.#rowStart;
+    const rowRange = this.#rowRange;
 
-    const viewRectangle = this.view.peek()?.rectangle?.peek();
-    if (viewRectangle) {
-      rowRange = Math.min(rowRange, viewRectangle.row + viewRectangle.height);
-      columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
-    }
+    const columnStart = this.#columnStart;
+    const columnRange = this.#columnRange;
 
-    for (let row = rectangle.row; row < rerenderCells.length; ++row) {
+    for (let row = rowStart; row < rowRange; ++row) {
       if (!(row in rerenderCells)) continue;
-      else if (row >= rowRange) continue;
 
       const rerenderColumns = rerenderCells[row];
       if (!rerenderColumns) break;
@@ -81,15 +118,12 @@ export class BoxPainter extends Painter<"box"> {
         continue;
       }
 
-      const rerenderQueueRow = rerenderQueue[row] ??= new Set();
-
       for (const column of rerenderColumns) {
-        if (omitColumns?.has(column) || column < rectangle.column || column >= columnRange) {
+        if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
           continue;
         }
 
-        canvas.draw(row, column, style(filler));
-        rerenderQueueRow.add(column);
+        canvas.draw(row, column, filler);
       }
 
       rerenderColumns.clear();
