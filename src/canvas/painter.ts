@@ -184,19 +184,9 @@ export class Painter<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
-    const viewRectangle = this.view.peek()?.rectangle?.peek();
-    if (row < 0 || column < 0) return;
-    const { columns, rows } = this.canvas.size.peek();
-    if (row >= rows || column >= columns) return;
+    this.rerenderCells[row] ??= new Set();
 
-    /*   if (
-      viewRectangle && (
-        row < viewRectangle.row || column < viewRectangle.column ||
-        row >= viewRectangle.row + viewRectangle.height || column >= viewRectangle.column + viewRectangle.width
-      )
-    ) return; */
-
-    (this.rerenderCells[row] ??= new Set()).add(column);
+    this.rerenderCells[row].add(column);
   }
 
   updatePreviousRectangle(): void {
