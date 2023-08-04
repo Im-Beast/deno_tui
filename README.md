@@ -43,8 +43,8 @@ page to use UTF-8 encoding.
 1. Create Tui instance
 
 ```ts
-import { crayon } from "https://deno.land/x/crayon@version/mod.ts";
-import { Canvas, Tui } from "https://deno.land/x/tui@version/mod.ts";
+import { crayon } from "https://deno.land/x/crayon@$MODULE_VERSION/mod.ts";
+import { Canvas, Tui } from "https://deno.land/x/tui@$MODULE_VERSION/mod.ts";
 
 const tui = new Tui({
   style: crayon.bgBlack, // Make background black
