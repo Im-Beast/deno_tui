@@ -7,8 +7,8 @@ import { ComponentOptions } from "../component.ts";
 
 import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
 
 import { clamp } from "../utils/numbers.ts";
 import { signalify } from "../utils/signals.ts";
@@ -93,9 +93,9 @@ export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
  */
 export class Input extends Box {
   declare drawnObjects: {
-    box: BoxObject;
-    text: TextObject;
-    cursor: TextObject;
+    box: BoxPainter;
+    text: TextPainter;
+    cursor: TextPainter;
   };
   declare theme: InputTheme;
 
@@ -180,7 +180,7 @@ export class Input extends Box {
     const { canvas } = this.tui;
 
     const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-    const text = new TextObject({
+    const text = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -213,7 +213,7 @@ export class Input extends Box {
     });
 
     const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
-    const cursor = new TextObject({
+    const cursor = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,

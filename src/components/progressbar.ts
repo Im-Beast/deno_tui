@@ -3,8 +3,8 @@ import { Box } from "./box.ts";
 import { Theme } from "../theme.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 
 import { normalize } from "../utils/numbers.ts";
 
@@ -103,7 +103,7 @@ export interface ProgressBarOptions extends ComponentOptions {
  * ```
  */
 export class ProgressBar extends Box {
-  declare drawnObjects: { box: BoxObject; progress: BoxObject | TextObject[] };
+  declare drawnObjects: { box: BoxPainter; progress: BoxPainter | TextPainter[] };
   declare theme: ProgressBarTheme;
 
   min: Signal<number>;
@@ -135,7 +135,7 @@ export class ProgressBar extends Box {
       this.#fillSmoothDrawObjects();
     } else {
       const progressRectangle = { column: 0, row: 0, width: 0, height: 0 };
-      const progress = new BoxObject({
+      const progress = new BoxPainter({
         canvas: this.tui.canvas,
         view: this.view,
         zIndex: this.zIndex,
@@ -191,7 +191,7 @@ export class ProgressBar extends Box {
 
     for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.peek().height; ++offset) {
       const progressLineRectangle = { column: 0, row: 0 };
-      const progressLine = new TextObject({
+      const progressLine = new TextPainter({
         canvas: this.tui.canvas,
         multiCodePointSupport: true,
         view: this.view,

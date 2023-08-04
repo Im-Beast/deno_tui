@@ -1,6 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
 import { Computed, Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 
 import { signalify } from "../utils/signals.ts";
@@ -82,7 +82,7 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
  * ```
  */
 export class Label extends Component {
-  declare drawnObjects: { texts: TextObject[] };
+  declare drawnObjects: { texts: TextPainter[] };
 
   #valueLines: Signal<string[]>;
 
@@ -134,7 +134,7 @@ export class Label extends Component {
 
     for (let offset = drawnObjects.texts.length; offset < this.#valueLines.peek().length; ++offset) {
       const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-      const text = new TextObject({
+      const text = new TextPainter({
         canvas: this.tui.canvas,
         view: this.view,
         style: this.style,

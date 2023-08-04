@@ -12,7 +12,7 @@ import { signalify } from "../utils/signals.ts";
 import { Subscription } from "../signals/types.ts";
 import { Effect } from "../signals/effect.ts";
 
-export interface DrawObjectOptions {
+export interface PainterOptions {
   canvas: Canvas;
 
   omitCells?: number[];
@@ -29,7 +29,7 @@ let id = 0;
  * Base DrawObject which works as a skeleton for creating
  * draw objects which actually do something
  */
-export class DrawObject<Type extends string = string> {
+export class Painter<Type extends string = string> {
   id: number;
   type: Type;
 
@@ -44,7 +44,7 @@ export class DrawObject<Type extends string = string> {
   rectangle!: Signal<Rectangle>;
   previousRectangle?: Rectangle;
 
-  objectsUnder: Set<DrawObject>;
+  objectsUnder: Set<Painter>;
 
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
@@ -56,7 +56,7 @@ export class DrawObject<Type extends string = string> {
 
   #styleSubscription: Subscription<Style>;
 
-  constructor(type: Type, options: DrawObjectOptions) {
+  constructor(type: Type, options: PainterOptions) {
     this.id = id++;
     this.type = type;
 
@@ -189,12 +189,12 @@ export class DrawObject<Type extends string = string> {
     const { columns, rows } = this.canvas.size.peek();
     if (row >= rows || column >= columns) return;
 
-    if (
+    /*   if (
       viewRectangle && (
         row < viewRectangle.row || column < viewRectangle.column ||
         row >= viewRectangle.row + viewRectangle.height || column >= viewRectangle.column + viewRectangle.width
       )
-    ) return;
+    ) return; */
 
     (this.rerenderCells[row] ??= new Set()).add(column);
   }

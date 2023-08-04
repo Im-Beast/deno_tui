@@ -8,7 +8,7 @@ import { SortedArray } from "../utils/sorted_array.ts";
 import { rectangleIntersection } from "../utils/numbers.ts";
 
 import type { ConsoleSize, Stdout } from "../types.ts";
-import { DrawObject } from "./draw_object.ts";
+import { Painter } from "./painter.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
@@ -26,19 +26,23 @@ export type CanvasEventMap = {
   render: EmitterEvent<[]>;
 };
 
+interface Drawable {
+  draw(row: number, column: number, data: string): void;
+}
+
 /**
  * Object, which stores data about currently rendered objects.
  *
  * It is responsible for outputting to stdout.
  */
-export class Canvas extends EventEmitter<CanvasEventMap> {
+export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
   stdout: Stdout;
   size: Signal<ConsoleSize>;
   rerenderedObjects?: number;
-  frameBuffer: (string | Uint8Array)[][];
+  frameBuffer: string[][];
   rerenderQueue: Set<number>[];
-  drawnObjects: SortedArray<DrawObject>;
-  updateObjects: DrawObject[];
+  drawnObjects: SortedArray<Painter>;
+  updateObjects: Painter[];
   resizeNeeded: boolean;
 
   constructor(options: CanvasOptions) {
@@ -58,6 +62,14 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     });
   }
 
+  draw(row: number, column: number, data: string): void {
+    this.frameBuffer[row] ??= [];
+    this.rerenderQueue[row] ??= new Set();
+
+    this.frameBuffer[row][column] = data;
+    this.rerenderQueue[row].add(column);
+  }
+
   resize() {
     const { columns, rows } = this.size.peek();
 
@@ -71,7 +83,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     }
   }
 
-  updateIntersections(object: DrawObject): void {
+  updateIntersections(object: Painter): void {
     const { omitCells, objectsUnder } = object;
 
     const zIndex = object.zIndex.peek();

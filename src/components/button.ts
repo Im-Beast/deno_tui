@@ -2,7 +2,7 @@
 import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 
-import type { BoxObject } from "../canvas/box.ts";
+import type { BoxPainter } from "../canvas/painters/box.ts";
 import { Label, LabelAlign, LabelRectangle } from "./label.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
@@ -43,7 +43,7 @@ export interface ButtonOptions extends ComponentOptions {
  * ```
  */
 export class Button extends Box {
-  declare drawnObjects: { box: BoxObject };
+  declare drawnObjects: { box: BoxPainter };
   declare subComponents: { label?: Label };
   label: {
     text: Signal<string>;

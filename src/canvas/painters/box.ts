@@ -1,12 +1,12 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Painter, PainterOptions } from "../painter.ts";
+import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
-import type { Rectangle } from "../types.ts";
-import { signalify } from "../utils/signals.ts";
-import { Subscription } from "../signals/types.ts";
+import type { Rectangle } from "../../types.ts";
+import { signalify } from "../../utils/signals.ts";
+import { Subscription } from "../../signals/types.ts";
 
-export interface BoxObjectOptions extends DrawObjectOptions {
+export interface BoxPainterOptions extends PainterOptions {
   rectangle: Rectangle | SignalOfObject<Rectangle>;
   filler?: string | Signal<string>;
 }
@@ -14,12 +14,12 @@ export interface BoxObjectOptions extends DrawObjectOptions {
 /**
  * DrawObject that's responsible for rendering rectangles (boxes).
  */
-export class BoxObject extends DrawObject<"box"> {
+export class BoxPainter extends Painter<"box"> {
   filler: Signal<string>;
 
   #rectangleSubscription: Subscription<Rectangle>;
 
-  constructor(options: BoxObjectOptions) {
+  constructor(options: BoxPainterOptions) {
     super("box", options);
 
     this.rectangle = signalify(options.rectangle);
@@ -81,7 +81,6 @@ export class BoxObject extends DrawObject<"box"> {
         continue;
       }
 
-      const rowBuffer = frameBuffer[row] ??= [];
       const rerenderQueueRow = rerenderQueue[row] ??= new Set();
 
       for (const column of rerenderColumns) {
@@ -89,7 +88,7 @@ export class BoxObject extends DrawObject<"box"> {
           continue;
         }
 
-        rowBuffer[column] = style(filler);
+        canvas.draw(row, column, style(filler));
         rerenderQueueRow.add(column);
       }
 

@@ -3,7 +3,7 @@ import { Box } from "./box.ts";
 import { Theme } from "../theme.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
 
 import { clamp, normalize } from "../utils/numbers.ts";
 
@@ -62,7 +62,7 @@ export interface SliderOptions extends ComponentOptions {
  * ```
  */
 export class Slider extends Box {
-  declare drawnObjects: { box: BoxObject; thumb: BoxObject };
+  declare drawnObjects: { box: BoxPainter; thumb: BoxPainter };
   declare theme: SliderTheme;
 
   min: Signal<number>;
@@ -124,7 +124,7 @@ export class Slider extends Box {
     super.draw();
 
     const thumbRectangle = { column: 0, row: 0, width: 0, height: 0 };
-    const thumb = new BoxObject({
+    const thumb = new BoxPainter({
       view: this.view,
       zIndex: this.zIndex,
       canvas: this.tui.canvas,

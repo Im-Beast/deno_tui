@@ -5,7 +5,7 @@ import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
 import type { Rectangle } from "./types.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
-import { DrawObject } from "./canvas/draw_object.ts";
+import { Painter } from "./canvas/painter.ts";
 import { View } from "./view.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
 import { Computed, Signal, SignalOfObject } from "./signals/mod.ts";
@@ -49,7 +49,7 @@ export class Component extends EventEmitter<
   theme: Theme;
   parent: Component | Tui;
   children: SortedArray<Component>;
-  drawnObjects: Record<string, DrawObject | DrawObject[]>;
+  drawnObjects: Record<string, Painter | Painter[]>;
   subComponents: Record<string, Component>;
   lastInteraction: Interaction;
 

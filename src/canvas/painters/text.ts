@@ -1,7 +1,7 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
 
-import { getMultiCodePointCharacters, textWidth } from "../utils/strings.ts";
+import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 import { Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 import { Rectangle } from "../types.ts";
@@ -43,7 +43,9 @@ export class TextObject extends DrawObject<"text"> {
     this.rectangle = signalify(options.rectangle as Rectangle);
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
-    this.valueChars = this.multiCodePointSupport.value ? getMultiCodePointCharacters(this.text.value) : this.text.value;
+    this.valueChars = this.multiCodePointSupport.value
+      ? this.text.value.match(UNICODE_CHAR_REGEXP) ?? ""
+      : this.text.value;
 
     const { updateObjects } = this.canvas;
 
@@ -69,7 +71,7 @@ export class TextObject extends DrawObject<"text"> {
 
       const { valueChars: previousValueChars } = this;
       const valueChars: string | string[] = this.valueChars = multiCodePointSupport
-        ? getMultiCodePointCharacters(text)
+        ? text.match(UNICODE_CHAR_REGEXP) ?? []
         : text;
 
       const { row, column, width } = rectangle;

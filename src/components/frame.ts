@@ -1,8 +1,8 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 
 import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
@@ -69,10 +69,10 @@ export interface FrameOptions extends ComponentOptions {
  */
 export class Frame extends Component {
   declare drawnObjects: {
-    top: TextObject;
-    bottom: TextObject;
-    left: BoxObject;
-    right: BoxObject;
+    top: TextPainter;
+    bottom: TextPainter;
+    left: BoxPainter;
+    right: BoxPainter;
   };
 
   charMap: Signal<FrameUnicodeCharactersType>;
@@ -90,7 +90,7 @@ export class Frame extends Component {
     const { canvas } = this.tui;
 
     const topRectangle = { column: 0, row: 0 };
-    const top = new TextObject({
+    const top = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
@@ -108,7 +108,7 @@ export class Frame extends Component {
     });
 
     const bottomRectangle = { column: 0, row: 0 };
-    const bottom = new TextObject({
+    const bottom = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
@@ -128,7 +128,7 @@ export class Frame extends Component {
     const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const left = new BoxObject({
+    const left = new BoxPainter({
       canvas,
       view: this.view,
       style: this.style,
@@ -144,7 +144,7 @@ export class Frame extends Component {
     });
 
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const right = new BoxObject({
+    const right = new BoxPainter({
       canvas,
       view: this.view,
       style: this.style,

@@ -2,8 +2,8 @@
 import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
 import { Theme } from "../theme.ts";
 import { DeepPartial } from "../types.ts";
 import { cropToWidth, insertAt } from "../utils/strings.ts";
@@ -86,10 +86,10 @@ export interface TextBoxOptions extends ComponentOptions {
  */
 export class TextBox extends Box {
   declare drawnObjects: {
-    box: BoxObject;
-    lines: TextObject[];
-    lineNumbers: TextObject[];
-    cursor: TextObject;
+    box: BoxPainter;
+    lines: TextPainter[];
+    lineNumbers: TextPainter[];
+    cursor: TextPainter;
   };
   declare theme: TextBoxTheme;
 
@@ -215,7 +215,7 @@ export class TextBox extends Box {
     this.#updateLineDrawObjects();
 
     const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
-    const cursor = new TextObject({
+    const cursor = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -266,7 +266,7 @@ export class TextBox extends Box {
       const lineNumber = lineNumbers[offset];
       if (!lineNumber && lineNumbering) {
         const lineNumberRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-        const lineNumber = new TextObject({
+        const lineNumber = new TextPainter({
           canvas,
           view: this.view,
           zIndex: this.zIndex,
@@ -299,7 +299,7 @@ export class TextBox extends Box {
       const line = lines[offset];
       if (!line) {
         const lineRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-        const line = new TextObject({
+        const line = new TextPainter({
           canvas,
           view: this.view,
           zIndex: this.zIndex,
