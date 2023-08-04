@@ -22,18 +22,14 @@ Simple [Deno](https://github.com/denoland/deno/) module that allows easy creatio
 
 ## 🖥️ OS Support
 
-| Operating system     | Linux | macOS | Windows¹<sup>,</sup>² | WSL  |
-| -------------------- | ----- | ----- | --------------------- | ---- |
-| Base                 | ✔️     | ✔️     | ✔️                     | ✔️    |
-| Keyboard support     | ✔️     | ✔️     | ✔️                     | ✔️    |
-| Mouse support        | ✔️     | ✔️     | ✔️                     | ✔️    |
-| Required permissions | none  | none  | none                  | none |
+| Operating system     | Linux | macOS | Windows¹ | WSL  |
+| -------------------- | ----- | ----- | -------- | ---- |
+| Base                 | ✔️     | ✔️     | ✔️        | ✔️    |
+| Keyboard support     | ✔️     | ✔️     | ✔️        | ✔️    |
+| Mouse support        | ✔️     | ✔️     | ✔️        | ✔️    |
+| Required permissions | none  | none  | none     | none |
 
-¹ - [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) is a heavily recommended way to run Tui on Windows, if
-you need to stick to clean Windows, please consider using [Windows Terminal](https://github.com/Microsoft/Terminal).
-Windows without WSL is slower at writing to the console, so performance might be worse on it.
-
-² - If unicode characters are displayed incorrectly type `chcp 65001` into the console to change active console code
+¹ - If unicode characters are displayed incorrectly type `chcp 65001` into the console to change active console code
 page to use UTF-8 encoding.
 
 ## 🎓 Get started
