@@ -77,7 +77,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
       const { column, row } = drawObject.rectangle.peek();
       if (column >= columns || row >= rows) continue;
 
-      drawObject.rendered = false;
+      drawObject.painted = false;
       drawObject.updated = false;
       this.updateObjects.push(drawObject);
     }

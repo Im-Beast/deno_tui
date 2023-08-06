@@ -183,7 +183,7 @@ export class TextObject extends DrawObject<"text"> {
   }
 
   paint(): void {
-    const { canvas, valueChars, omitCells, rerenderCells, rendered } = this;
+    const { canvas, valueChars, omitCells, rerenderCells, painted } = this;
 
     const { columns, rows } = canvas.size.peek();
 
@@ -204,14 +204,14 @@ export class TextObject extends DrawObject<"text"> {
     if (row > rowRange) return;
 
     const rerenderColumns = rerenderCells[row];
-    if (!rerenderColumns && rendered) return;
+    if (!rerenderColumns && painted) return;
 
     const omitColumns = omitCells[row];
     if (omitColumns?.size === valueChars.length) {
       return;
     }
 
-    if (rendered) {
+    if (painted) {
       for (const column of rerenderColumns) {
         if (
           column >= columnRange ||
@@ -235,6 +235,6 @@ export class TextObject extends DrawObject<"text"> {
       }
     }
 
-    this.rendered = true;
+    this.painted = true;
   }
 }

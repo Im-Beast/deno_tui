@@ -95,7 +95,7 @@ export class BoxPainter extends Painter<"box"> {
   }
 
   paint(): void {
-    const { canvas, rerenderCells, omitCells, rendered } = this;
+    const { canvas, rerenderCells, omitCells, painted } = this;
 
     const rectangle = this.rectangle.peek();
     const filler = this.#filler;
@@ -107,17 +107,17 @@ export class BoxPainter extends Painter<"box"> {
     const columnRange = this.#columnRange;
 
     for (let row = rowStart; row < rowRange; ++row) {
-      if (!(row in rerenderCells) && rendered) continue;
+      if (!(row in rerenderCells) && painted) continue;
 
       const rerenderColumns = rerenderCells[row];
-      if (!rerenderColumns && rendered) break;
+      if (!rerenderColumns && painted) break;
 
       const omitColumns = omitCells[row];
       if (omitColumns?.size === rectangle.width) {
         continue;
       }
 
-      if (rendered) {
+      if (painted) {
         for (const column of rerenderColumns) {
           if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
             continue;
@@ -138,6 +138,6 @@ export class BoxPainter extends Painter<"box"> {
       }
     }
 
-    this.rendered = true;
+    this.painted = true;
   }
 }

@@ -49,7 +49,7 @@ export class Painter<Type extends string = string> {
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
-  rendered: boolean;
+  painted: boolean;
   outOfBounds: boolean;
   updated: boolean;
   moved: boolean;
@@ -69,7 +69,7 @@ export class Painter<Type extends string = string> {
 
     this.objectsUnder = new Set();
 
-    this.rendered = false;
+    this.painted = false;
     this.outOfBounds = false;
     this.canvas.updateObjects.push(this);
     this.updated = true;
@@ -82,7 +82,7 @@ export class Painter<Type extends string = string> {
     const { updateObjects } = this.canvas;
 
     this.#styleSubscription = () => {
-      this.rendered = false;
+      this.painted = false;
       this.updated = false;
       updateObjects.push(this);
 
@@ -128,7 +128,7 @@ export class Painter<Type extends string = string> {
   draw(): void {
     this.style.subscribe(this.#styleSubscription);
 
-    this.rendered = false;
+    this.painted = false;
 
     const { objectsUnder } = this;
     const { updateObjects } = this.canvas;
