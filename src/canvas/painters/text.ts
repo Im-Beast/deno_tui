@@ -234,5 +234,7 @@ export class TextObject extends DrawObject<"text"> {
         canvas.draw(row, column, style(valueChars[column - rectangle.column]));
       }
     }
+
+    this.rendered = true;
   }
 }
