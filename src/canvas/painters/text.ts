@@ -182,10 +182,9 @@ export class TextObject extends DrawObject<"text"> {
     }
   }
 
-  rerender(): void {
-    const { canvas, valueChars, omitCells, rerenderCells } = this;
+  paint(): void {
+    const { canvas, valueChars, omitCells, rerenderCells, rendered } = this;
 
-    const { frameBuffer, rerenderQueue } = canvas;
     const { columns, rows } = canvas.size.peek();
 
     const rectangle = this.rectangle.peek();
@@ -205,30 +204,35 @@ export class TextObject extends DrawObject<"text"> {
     if (row > rowRange) return;
 
     const rerenderColumns = rerenderCells[row];
-    if (!rerenderColumns) return;
+    if (!rerenderColumns && rendered) return;
 
     const omitColumns = omitCells[row];
     if (omitColumns?.size === valueChars.length) {
       return;
     }
 
-    const rowBuffer = frameBuffer[row] ??= [];
+    if (rendered) {
+      for (const column of rerenderColumns) {
+        if (
+          column >= columnRange ||
+          column < rectangle.column ||
+          omitColumns?.has(column)
+        ) {
+          continue;
+        }
 
-    const rerenderQueueRow = rerenderQueue[row] ??= new Set();
-
-    for (const column of rerenderColumns) {
-      if (
-        column >= columnRange ||
-        column < rectangle.column ||
-        omitColumns?.has(column)
-      ) {
-        continue;
+        canvas.draw(row, column, style(valueChars[column - rectangle.column]));
       }
 
-      rowBuffer[column] = style(valueChars[column - rectangle.column]);
-      rerenderQueueRow.add(column);
-    }
+      rerenderColumns.clear();
+    } else {
+      for (let column = rectangle.column; column < columnRange; ++column) {
+        if (omitColumns?.has(column)) {
+          continue;
+        }
 
-    rerenderColumns.clear();
+        canvas.draw(row, column, style(valueChars[column - rectangle.column]));
+      }
+    }
   }
 }

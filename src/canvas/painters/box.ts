@@ -94,8 +94,8 @@ export class BoxPainter extends Painter<"box"> {
     super.erase();
   }
 
-  rerender(): void {
-    const { canvas, rerenderCells, omitCells } = this;
+  paint(): void {
+    const { canvas, rerenderCells, omitCells, rendered } = this;
 
     const rectangle = this.rectangle.peek();
     const filler = this.#filler;
@@ -107,26 +107,37 @@ export class BoxPainter extends Painter<"box"> {
     const columnRange = this.#columnRange;
 
     for (let row = rowStart; row < rowRange; ++row) {
-      if (!(row in rerenderCells)) continue;
+      if (!(row in rerenderCells) && rendered) continue;
 
       const rerenderColumns = rerenderCells[row];
-      if (!rerenderColumns) break;
+      if (!rerenderColumns && rendered) break;
 
       const omitColumns = omitCells[row];
-
       if (omitColumns?.size === rectangle.width) {
         continue;
       }
 
-      for (const column of rerenderColumns) {
-        if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
-          continue;
+      if (rendered) {
+        for (const column of rerenderColumns) {
+          if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
+            continue;
+          }
+
+          canvas.draw(row, column, filler);
         }
 
-        canvas.draw(row, column, filler);
-      }
+        rerenderColumns.clear();
+      } else {
+        for (let column = columnStart; column < columnRange; ++column) {
+          if (omitColumns?.has(column)) {
+            continue;
+          }
 
-      rerenderColumns.clear();
+          canvas.draw(row, column, filler);
+        }
+      }
     }
+
+    this.rendered = true;
   }
 }

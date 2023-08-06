@@ -158,12 +158,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
         object.moved = false;
       }
 
-      if (object.rendered) {
-        object.rerender();
-      } else {
-        object.render();
-        object.rendered = true;
-      }
+      object.paint();
     }
 
     this.rerenderedObjects = i;

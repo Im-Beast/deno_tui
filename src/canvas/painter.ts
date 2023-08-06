@@ -240,6 +240,7 @@ export class Painter<Type extends string = string> {
   }
 
   updateOutOfBounds(): void {
+    // TODO: Make views work as Drawable's
     const { columns, rows } = this.canvas.size.peek();
     const { column, row, width, height } = this.rectangle.peek();
 
@@ -261,21 +262,7 @@ export class Painter<Type extends string = string> {
     }
   }
 
-  update(): void {
-  }
+  update(): void {}
 
-  render(): void {
-    const { column, row, width, height } = this.rectangle.peek();
-
-    const rowRange = row + height;
-    const columnRange = column + width;
-    for (let r = row; r < rowRange; ++r) {
-      for (let c = column; c < columnRange; ++c) {
-        this.queueRerender(r, c);
-      }
-    }
-    this.rerender();
-  }
-
-  rerender(): void {}
+  paint(): void {}
 }
