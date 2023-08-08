@@ -1,237 +1,194 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { DrawObject, DrawObjectOptions } from "./draw_object.ts";
+import { Painter, PainterOptions } from "../painter.ts";
+import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
-import { textWidth, UNICODE_CHAR_REGEXP } from "../utils/strings.ts";
-import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
-import { Effect, Signal, SignalOfObject } from "../signals/mod.ts";
-import { Rectangle } from "../types.ts";
-import { signalify } from "../utils/signals.ts";
-import { Subscription } from "../signals/types.ts";
+import type { Rectangle } from "../../types.ts";
+import { signalify } from "../../utils/signals.ts";
+import { Subscription } from "../../signals/types.ts";
+import { Effect } from "../../signals/effect.ts";
+import { textWidth } from "../../utils/strings.ts";
 
-/**
- * Type that describes position and size of TextObject
- *
- * When `width` isn't set, it gets automatically calculated depending of given `value` text width
- */
-export type TextRectangle = { column: number; row: number; width?: number };
-
-export interface TextObjectOptions extends DrawObjectOptions {
-  value: string | Signal<string>;
-  overwriteRectangle?: boolean | Signal<boolean>;
-  rectangle: TextRectangle | SignalOfObject<TextRectangle>;
+export interface TextPainterOptions extends PainterOptions {
+  text: string[] | Signal<string[]>;
+  rectangle: Rectangle | SignalOfObject<Rectangle>;
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
 /**
- * DrawObject that's responsible for rendering text.
- *
- * Keep in mind its not designed to render mutliline text!
+ * DrawObject that's responsible for rendering rectangles (boxes).
  */
-export class TextObject extends DrawObject<"text"> {
-  text: Signal<string>;
-  valueChars: string[] | string;
-  overwriteRectangle: Signal<boolean>;
+export class TextPainter extends Painter<"box"> {
+  text: Signal<string[]>;
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
-  #updateEffect: Effect;
 
-  constructor(options: TextObjectOptions) {
-    super("text", options);
+  #text: string[];
 
-    this.text = signalify(options.value);
-    this.rectangle = signalify(options.rectangle as Rectangle);
-    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
+  #columnStart: number;
+  #columnRange: number;
+
+  #rowStart: number;
+  #rowRange: number;
+
+  constructor(options: TextPainterOptions) {
+    super("box", options);
+
+    this.text = signalify(options.text);
+    this.rectangle = signalify(options.rectangle);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
-    this.valueChars = this.multiCodePointSupport.value
-      ? this.text.value.match(UNICODE_CHAR_REGEXP) ?? ""
-      : this.text.value;
 
     const { updateObjects } = this.canvas;
-
-    const update = (
-      text: string,
-      rectangle: Rectangle,
-      multiCodePointSupport: boolean,
-      overwriteRectangle: boolean,
-    ): void => {
-      if (!overwriteRectangle) {
-        const lastWidth = rectangle.width;
-        rectangle.width = textWidth(text);
-
-        if (rectangle.width !== lastWidth) {
-          this.moved = true;
-          for (const objectUnder of this.objectsUnder) {
-            objectUnder.moved = true;
-          }
-        }
-
-        rectangle.height = 1;
-      }
-
-      const { valueChars: previousValueChars } = this;
-      const valueChars: string | string[] = this.valueChars = multiCodePointSupport
-        ? text.match(UNICODE_CHAR_REGEXP) ?? []
-        : text;
-
-      const { row, column, width } = rectangle;
-      const barrier = overwriteRectangle
-        ? (width < previousValueChars.length ? width : -1)
-        : (valueChars.length < previousValueChars.length ? valueChars.length : -1);
-
-      const columnRange = Math.max(valueChars.length, previousValueChars.length);
-
-      if (barrier !== -1) {
-        for (let c = 0; c < columnRange; ++c) {
-          if (c >= barrier) {
-            for (const objectUnder of this.objectsUnder) {
-              objectUnder.queueRerender(row, column + c);
-            }
-          } else if (valueChars[c] !== previousValueChars[c]) {
-            this.queueRerender(row, column + c);
-          }
-        }
-      } else {
-        for (let c = 0; c < columnRange; ++c) {
-          if (valueChars[c] !== previousValueChars[c]) {
-            this.queueRerender(row, column + c);
-          }
-        }
-      }
-    };
-
-    this.#rectangleSubscription = (rectangle) => {
-      const text = this.text.peek();
-      const multiCodePointSupport = this.multiCodePointSupport.peek();
-      const overwriteRectangle = this.overwriteRectangle.peek();
-
+    this.#rectangleSubscription = () => {
       this.moved = true;
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.moved = true;
-      }
-
-      update(text, rectangle, multiCodePointSupport, overwriteRectangle);
-    };
-
-    this.#updateEffect = new Effect(() => {
-      const text = this.text.value;
-      const rectangle = this.rectangle.peek();
-      const overwriteRectangle = this.overwriteRectangle.value;
-      const multiCodePointSupport = this.multiCodePointSupport.value;
-
       this.updated = false;
       updateObjects.push(this);
 
       for (const objectUnder of this.objectsUnder) {
+        objectUnder.moved = true;
         objectUnder.updated = false;
         updateObjects.push(objectUnder);
       }
+    };
 
-      update(text, rectangle, multiCodePointSupport, overwriteRectangle);
+    this.#text = Array.from(this.text.peek());
+    this.text.subscribe((text) => {
+      const currentText = this.#text;
+      const rectangle = this.rectangle.peek();
+
+      rectangle.height = text.length;
+      rectangle.width = text.reduce((p, n) => {
+        const w = textWidth(n);
+        return p > w ? p : w;
+      }, 0);
+
+      const { column, row } = rectangle;
+
+      for (const [r, line] of text.entries()) {
+        const currentLine = currentText[r];
+        if (line !== currentLine) {
+          for (const c in line) {
+            if (line[c] !== currentLine[c]) {
+              this.queueRerender(row + r, column + +c);
+            }
+          }
+
+          currentText[r] = line;
+        }
+      }
+    });
+
+    this.#columnStart = 0;
+    this.#columnRange = 0;
+    this.#rowStart = 0;
+    this.#rowRange = 0;
+    let i = 0;
+    new Effect(() => {
+      ++i;
+      const text = this.text.value;
+      const size = this.canvas.size.value;
+      const rectangle = this.rectangle.value;
+      const view = this.view.value;
+      const viewRectangle = view?.rectangle.value;
+
+      rectangle.height = text.length;
+      rectangle.width = text.reduce((p, n) => {
+        const w = textWidth(n);
+        return p > w ? p : w;
+      }, 0);
+
+      let rowStart = rectangle.row;
+      let rowRange = Math.min(rectangle.row + rectangle.height, size.rows);
+
+      let columnStart = rectangle.column;
+      let columnRange = Math.min(rectangle.column + rectangle.width, size.columns);
+
+      if (viewRectangle) {
+        rowStart = Math.max(rowStart, viewRectangle.row);
+        columnStart = Math.max(columnStart, viewRectangle.column);
+        rowRange = Math.min(rowRange, viewRectangle.row + viewRectangle.height);
+        columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
+      }
+
+      this.#rowStart = rowStart;
+      this.#rowRange = rowRange;
+
+      this.#columnStart = columnStart;
+      this.#columnRange = columnRange;
+
+      this.moved = true;
+      this.updated = false;
+      updateObjects.push(this);
+
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.moved = true;
+        objectUnder.updated = false;
+        updateObjects.push(objectUnder);
+      }
     });
   }
 
   draw(): void {
-    this.#updateEffect.resume();
     this.rectangle.subscribe(this.#rectangleSubscription);
     super.draw();
   }
 
   erase(): void {
-    this.#updateEffect.pause();
     this.rectangle.unsubscribe(this.#rectangleSubscription);
     super.erase();
   }
 
-  updateMovement(): void {
-    const { objectsUnder, previousRectangle } = this;
-    const rectangle = this.rectangle.peek();
-
-    // Rerender cells that changed because objects position changed
-    if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
-
-    const intersection = rectangleIntersection(rectangle, previousRectangle, true);
-
-    const previousRow = previousRectangle.row;
-    const previousColumnRange = previousRectangle.column + previousRectangle.width;
-    for (let column = previousRectangle.column; column < previousColumnRange; ++column) {
-      if (intersection && fitsInRectangle(column, previousRow, intersection)) {
-        continue;
-      }
-
-      for (const objectUnder of objectsUnder) {
-        objectUnder.queueRerender(previousRow, column);
-      }
-    }
-
-    const hasOriginMoved = rectangle.column !== previousRectangle.column || rectangle.row !== previousRectangle.row;
-
-    const { row } = rectangle;
-    const columnRange = rectangle.column + rectangle.width;
-    for (let column = rectangle.column; column < columnRange; ++column) {
-      // When text moves it needs to be rerendered completely because of text continuity
-      if (hasOriginMoved) this.queueRerender(row, column);
-
-      if (intersection && fitsInRectangle(column, row, intersection)) {
-        continue;
-      }
-
-      for (const objectUnder of objectsUnder) {
-        objectUnder.queueRerender(row, column);
-      }
-    }
-  }
-
   paint(): void {
-    const { canvas, valueChars, omitCells, rerenderCells, painted } = this;
-
-    const { columns, rows } = canvas.size.peek();
+    const { canvas, rerenderCells, omitCells, painted } = this;
 
     const rectangle = this.rectangle.peek();
     const style = this.style.peek();
+    const text = this.#text;
 
-    const { row } = rectangle;
+    const rowStart = this.#rowStart;
+    const rowRange = this.#rowRange;
 
-    let rowRange = Math.min(row, rows);
-    let columnRange = Math.min(rectangle.column + valueChars.length, columns);
+    const columnStart = this.#columnStart;
+    const columnRange = this.#columnRange;
 
-    const viewRectangle = this.view.peek()?.rectangle?.peek();
-    if (viewRectangle) {
-      rowRange = Math.min(row, viewRectangle.row + viewRectangle.height);
-      columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
-    }
+    for (let row = rowStart; row < rowRange; ++row) {
+      if (!(row in rerenderCells) && painted) continue;
 
-    if (row > rowRange) return;
+      const rerenderColumns = rerenderCells[row];
+      if (!rerenderColumns && painted) break;
 
-    const rerenderColumns = rerenderCells[row];
-    if (!rerenderColumns && painted) return;
-
-    const omitColumns = omitCells[row];
-    if (omitColumns?.size === valueChars.length) {
-      return;
-    }
-
-    if (painted) {
-      for (const column of rerenderColumns) {
-        if (
-          column >= columnRange ||
-          column < rectangle.column ||
-          omitColumns?.has(column)
-        ) {
-          continue;
-        }
-
-        canvas.draw(row, column, style(valueChars[column - rectangle.column]));
+      const omitColumns = omitCells[row];
+      if (omitColumns?.size === rectangle.width) {
+        continue;
       }
 
-      rerenderColumns.clear();
-    } else {
-      for (let column = rectangle.column; column < columnRange; ++column) {
-        if (omitColumns?.has(column)) {
-          continue;
+      const lineIndex = row - rowStart;
+      const line = text[lineIndex];
+
+      if (painted) {
+        for (const column of rerenderColumns) {
+          if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
+            continue;
+          }
+
+          const char = line[column - columnStart];
+          if (!char) continue;
+
+          canvas.draw(row, column, style(char));
         }
 
-        canvas.draw(row, column, style(valueChars[column - rectangle.column]));
+        rerenderColumns.clear();
+      } else {
+        for (let column = columnStart; column < columnRange; ++column) {
+          if (omitColumns?.has(column)) {
+            continue;
+          }
+
+          const char = line[column - columnStart];
+          if (!char) continue;
+
+          canvas.draw(row, column, style(char));
+        }
       }
     }
 
