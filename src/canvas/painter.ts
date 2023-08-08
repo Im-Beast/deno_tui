@@ -1,8 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
-// FIXME: rename to painters, drawobjects sounds cringe
-
 import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
@@ -185,7 +183,6 @@ export class Painter<Type extends string = string> {
 
   queueRerender(row: number, column: number): void {
     this.rerenderCells[row] ??= new Set();
-
     this.rerenderCells[row].add(column);
   }
 
