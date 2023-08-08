@@ -67,6 +67,7 @@ export class TextPainter extends Painter<"box"> {
       for (const [r, line] of text.entries()) {
         const currentLine = currentText[r];
         if (line !== currentLine) {
+          // @ts-expect-error -
           for (const c in line) {
             if (line[c] !== currentLine[c]) {
               this.queueRerender(row + r, column + +c);
