@@ -190,7 +190,8 @@ export class ProgressBar extends Box {
     }
 
     for (let offset = this.drawnObjects.progress.length; offset < this.rectangle.peek().height; ++offset) {
-      const progressLineRectangle = { column: 0, row: 0 };
+      const progressLineRectangle = { column: 0, row: 0, width: 0, height: 0 };
+      const progressText = [""];
       const progressLine = new TextPainter({
         canvas: this.tui.canvas,
         multiCodePointSupport: true,
@@ -203,7 +204,7 @@ export class ProgressBar extends Box {
           progressLineRectangle.row = row + offset;
           return progressLineRectangle;
         }),
-        value: new Computed(() => {
+        text: new Computed(() => {
           let normalizedValue = normalize(this.value.value, this.min.value, this.max.value);
           if (this.direction.value === "reversed") normalizedValue = 1 - normalizedValue;
 
@@ -215,7 +216,7 @@ export class ProgressBar extends Box {
           if (this.orientation.value === "horizontal") {
             const steps = normalizedValue * width;
             const remainder = steps % 1;
-            return charMap[0].repeat(steps) +
+            progressText[0] = charMap[0].repeat(steps) +
               (
                 remainder < step ? "" : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)]
               );
@@ -225,15 +226,16 @@ export class ProgressBar extends Box {
             const remainder = steps % 1;
 
             if (offset - 1 >= steps - remainder) {
-              return "";
+              progressText[0] = "";
             } else if (offset < steps - remainder) {
-              return charMap[0].repeat(width);
+              progressText[0] = charMap[0].repeat(width);
             } else {
-              return remainder < step
+              progressText[0] = remainder < step
                 ? ""
                 : charMap[charMap.length - Math.max(Math.round(remainder / step), 1)].repeat(width);
             }
           }
+          return progressText;
         }),
       });
 

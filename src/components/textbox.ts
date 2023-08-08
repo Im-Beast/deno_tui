@@ -3,9 +3,9 @@ import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 
 import { BoxPainter } from "../canvas/painters/box.ts";
-import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 import { Theme } from "../theme.ts";
-import { DeepPartial } from "../types.ts";
+import { DeepPartial, Rectangle } from "../types.ts";
 import { cropToWidth, insertAt } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
 import { Computed, Effect, Signal } from "../signals/mod.ts";
@@ -214,16 +214,18 @@ export class TextBox extends Box {
 
     this.#updateLineDrawObjects();
 
-    const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
+    const cursorRectangle: Rectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursorText = [""];
     const cursor = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
       multiCodePointSupport: this.multiCodePointSupport,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const cursorPosition = this.cursorPosition.value;
         const value = this.#textLines.value[cursorPosition.y];
-        return value?.[cursorPosition.x] ?? " ";
+        cursorText[0] = value?.[cursorPosition.x] ?? " ";
+        return cursorText;
       }),
       style: new Computed(() => this.theme.cursor[this.state.value]),
       rectangle: new Computed(() => {
@@ -265,21 +267,23 @@ export class TextBox extends Box {
     for (let offset = 0; offset < Math.max(height, elements); ++offset) {
       const lineNumber = lineNumbers[offset];
       if (!lineNumber && lineNumbering) {
-        const lineNumberRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
+        const lineNumberRectangle = { column: 0, row: 0, width: 0, height: 0 };
+        const text = [""];
         const lineNumber = new TextPainter({
           canvas,
           view: this.view,
           zIndex: this.zIndex,
           multiCodePointSupport: this.multiCodePointSupport,
           style: new Computed(() => this.theme.lineNumbers[this.state.value]),
-          value: new Computed(() => {
+          text: new Computed(() => {
             const { height } = this.rectangle.value;
             const cursorPosition = this.cursorPosition.value;
 
             const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0) + 1;
             const maxLineNumber = this.#textLines.value.length;
 
-            return `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");
+            text[0] = `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");
+            return text;
           }),
           rectangle: new Computed(() => {
             const { row, column } = this.rectangle.value;
@@ -298,7 +302,8 @@ export class TextBox extends Box {
 
       const line = lines[offset];
       if (!line) {
-        const lineRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
+        const lineRectangle = { column: 0, row: 0, width: 0, height: 0 };
+        const text = [""];
         const line = new TextPainter({
           canvas,
           view: this.view,
@@ -319,7 +324,7 @@ export class TextBox extends Box {
               return this.theme.highlightedLine[state];
             } else return this.theme.value[state];
           }),
-          value: new Computed(() => {
+          text: new Computed(() => {
             const cursorPosition = this.cursorPosition.value;
 
             let { width, height } = this.rectangle.value;
@@ -333,7 +338,11 @@ export class TextBox extends Box {
 
             const value = this.#textLines.value[offset + offsetY]?.replace("\t", " ") ?? "";
 
-            return cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value, width).padEnd(width, " ");
+            text[0] = cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value, width).padEnd(
+              width,
+              " ",
+            );
+            return text;
           }),
           rectangle: new Computed(() => {
             // associate computed with this.lineNumbering and this.#textLines

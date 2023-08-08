@@ -1,14 +1,13 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
-export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
+export interface TextOptions {
   text: string | Signal<string>;
   overwriteWidth?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-  rectangle: TextRectangle | SignalOfObject<TextRectangle>;
 }
 
 /**
@@ -75,12 +74,15 @@ export class Text extends Component {
     const text = new TextPainter({
       canvas: this.tui.canvas,
       view: this.view,
-      value: this.text,
+      text: new Computed(() => {
+        const text = this.text.value;
+        return text.split("\n");
+      }),
       style: this.style,
       zIndex: this.zIndex,
-      rectangle: this.rectangle as unknown as Signal<TextRectangle>,
+      rectangle: this.rectangle,
       multiCodePointSupport: this.multiCodePointSupport,
-      overwriteRectangle: this.overwriteRectangle,
+      // overwriteRectangle: this.overwriteRectangle,
     });
 
     this.drawnObjects.text = text;

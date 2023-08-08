@@ -89,15 +89,17 @@ export class Frame extends Component {
 
     const { canvas } = this.tui;
 
-    const topRectangle = { column: 0, row: 0 };
+    const topRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const topText = ["hello"];
     const top = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
       zIndex: this.zIndex,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { topLeft, horizontal, topRight } = this.charMap.value;
-        return topLeft + horizontal.repeat(this.rectangle.value.width) + topRight;
+        topText[0] = topLeft + horizontal.repeat(this.rectangle.value.width) + topRight;
+        return topText;
       }),
       rectangle: new Computed(() => {
         const { column, row } = this.rectangle.value;
@@ -107,15 +109,17 @@ export class Frame extends Component {
       }),
     });
 
-    const bottomRectangle = { column: 0, row: 0 };
+    const bottomRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const bottomText = [""];
     const bottom = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
       zIndex: this.zIndex,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
-        return bottomLeft + horizontal.repeat(this.rectangle.value.width) + bottomRight;
+        bottomText[0] = bottomLeft + horizontal.repeat(this.rectangle.value.width) + bottomRight;
+        return bottomText;
       }),
       rectangle: new Computed(() => {
         const { column, row, height } = this.rectangle.value;

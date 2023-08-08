@@ -1,6 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
-import { TextPainter, TextRectangle } from "../canvas/painters/text.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 import { Computed, Effect, Signal, SignalOfObject } from "../signals/mod.ts";
 
 import { signalify } from "../utils/signals.ts";
@@ -133,16 +133,18 @@ export class Label extends Component {
     const { drawnObjects } = this;
 
     for (let offset = drawnObjects.texts.length; offset < this.#valueLines.peek().length; ++offset) {
-      const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
+      const textRectangle = { column: 0, row: 0, width: 0, height: 0 };
+      const textText = [""];
       const text = new TextPainter({
         canvas: this.tui.canvas,
         view: this.view,
         style: this.style,
         zIndex: this.zIndex,
         multiCodePointSupport: this.multiCodePointSupport,
-        value: new Computed(() => {
+        text: new Computed(() => {
           const value = this.#valueLines.value[offset];
-          return cropToWidth(value, this.rectangle.value.width);
+          textText[0] = cropToWidth(value, this.rectangle.value.width);
+          return textText;
         }),
         rectangle: new Computed(() => {
           const valueLines = this.#valueLines.value;
