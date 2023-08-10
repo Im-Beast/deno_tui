@@ -57,6 +57,10 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
       let changed = false;
 
       if (typeof text === "string") {
+        if (text.includes("\n")) {
+          throw new Error("TextPainter doesn't support newlines with string TextType, use array string instead");
+        }
+
         const currentText = this.#text as string | undefined;
         if (text === currentText) {
           return;
@@ -209,7 +213,9 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
     const previousRow = previousRectangle.row;
     for (let row = previousRectangle.row; row < previousRectangle.row + previousRectangle.height; ++row) {
       for (
-        let column = previousRectangle.column; column < previousRectangle.column + previousRectangle.width; ++column
+        let column = previousRectangle.column;
+        column < previousRectangle.column + previousRectangle.width;
+        ++column
       ) {
         if (intersection && fitsInRectangle(column, previousRow, intersection)) {
           continue;
