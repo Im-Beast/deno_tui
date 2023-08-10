@@ -157,3 +157,31 @@ export function characterWidth(character: string): number {
 export function capitalize<T extends string>(text: T): Capitalize<T> {
   return (text[0].toUpperCase() + text.slice(1)) as Capitalize<T>;
 }
+
+/** Split a string into substrings using the specified separator to given array */
+export function splitToArray(string: string, splitter: string, array: string[], clean = true): void {
+  if (clean && array.length > 0) {
+    while (array.length > 0) {
+      array.pop();
+    }
+  }
+
+  let index = string.indexOf(splitter);
+
+  if (index === -1) {
+    array.push(string);
+    return;
+  }
+
+  const skip = splitter.length;
+  let previousIndex = -skip;
+
+  while (index !== -1) {
+    array.push(string.slice(previousIndex + skip, index));
+
+    previousIndex = index;
+    index = string.indexOf(splitter, index + skip);
+  }
+
+  array.push(string.slice(previousIndex + skip));
+}
