@@ -11,6 +11,7 @@ import { Effect } from "../../signals/effect.ts";
 import { textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { cloneArrayContents } from "../../utils/arrays.ts";
+import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 
 export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
   text: TextType | Signal<TextType>;
@@ -148,6 +149,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
     let i = 0;
     new Effect(() => {
       ++i;
+      this.text.value; // FIXME: this is temporary
       const size = this.canvas.size.value;
       const rectangle = this.rectangle.value;
       const view = this.view.value;
@@ -192,6 +194,50 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
   erase(): void {
     this.rectangle.unsubscribe(this.#rectangleSubscription);
     super.erase();
+  }
+
+  // TODO: I'm pretty sure this can be optimized
+  updateMovement(): void {
+    const { objectsUnder, previousRectangle } = this;
+    const rectangle = this.rectangle.peek();
+
+    // Rerender cells that changed because objects position changed
+    if (!previousRectangle || rectangleEquals(rectangle, previousRectangle)) return;
+
+    const intersection = rectangleIntersection(rectangle, previousRectangle, true);
+
+    const previousRow = previousRectangle.row;
+    for (let row = previousRectangle.row; row < previousRectangle.row + previousRectangle.height; ++row) {
+      for (
+        let column = previousRectangle.column; column < previousRectangle.column + previousRectangle.width; ++column
+      ) {
+        if (intersection && fitsInRectangle(column, previousRow, intersection)) {
+          continue;
+        }
+
+        for (const objectUnder of objectsUnder) {
+          objectUnder.queueRerender(previousRow, column);
+        }
+      }
+    }
+
+    const hasOriginMoved = rectangle.column !== previousRectangle.column || rectangle.row !== previousRectangle.row;
+
+    for (let row = rectangle.row; row < rectangle.row + rectangle.height; ++row) {
+      for (let column = rectangle.column; column < rectangle.column + rectangle.width; ++column) {
+        if (hasOriginMoved) {
+          this.queueRerender(row, column);
+        }
+
+        if (intersection && fitsInRectangle(column, row, intersection)) {
+          continue;
+        }
+
+        for (const objectUnder of objectsUnder) {
+          objectUnder.queueRerender(row, column);
+        }
+      }
+    }
   }
 
   paint(): void {
