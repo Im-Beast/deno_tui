@@ -84,10 +84,12 @@ export class Painter<Type extends string = string> {
       this.updated = false;
       updateObjects.push(this);
 
+      /*
+      TODO: check if this is actually needed
       for (const objectUnder of this.objectsUnder) {
         objectUnder.updated = false;
         updateObjects.push(objectUnder);
-      }
+      } */
     };
 
     if (this.view.value) {

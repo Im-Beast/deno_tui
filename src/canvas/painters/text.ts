@@ -2,14 +2,18 @@
 import { Painter, PainterOptions } from "../painter.ts";
 import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
+// TODO: allow string | string[]
+
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 import { textWidth } from "../../utils/strings.ts";
+import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
+import { cloneArrayContents } from "../../utils/arrays.ts";
 
-export interface TextPainterOptions extends PainterOptions {
-  text: string[] | Signal<string[]>;
+export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
+  text: TextType | Signal<TextType>;
   rectangle: Rectangle | SignalOfObject<Rectangle>;
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
@@ -17,13 +21,14 @@ export interface TextPainterOptions extends PainterOptions {
 /**
  * DrawObject that's responsible for rendering rectangles (boxes).
  */
-export class TextPainter extends Painter<"box"> {
-  text: Signal<string[]>;
+export class TextPainter<TextType extends string | string[]> extends Painter<"box"> {
+  text: Signal<TextType>;
+  textType: TextType extends string ? "string" : "object";
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
 
-  #text: string[];
+  #text?: TextType;
 
   #columnStart: number;
   #columnRange: number;
@@ -31,14 +36,99 @@ export class TextPainter extends Painter<"box"> {
   #rowStart: number;
   #rowRange: number;
 
-  constructor(options: TextPainterOptions) {
+  constructor(options: TextPainterOptions<TextType>) {
     super("box", options);
 
     this.text = signalify(options.text);
-    this.rectangle = signalify(options.rectangle);
+    this.textType = (typeof this.text.peek()) as TextType extends string ? "string" : "object";
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
 
     const { updateObjects } = this.canvas;
+
+    const updateText = (text: TextType) => {
+      const textType = typeof text;
+      if (textType !== this.textType) {
+        throw new Error("You can't change TextPainter's TextType on the fly");
+      }
+
+      const rectangle = this.rectangle.peek();
+      const { column, row, width, height } = rectangle;
+      let changed = false;
+
+      if (typeof text === "string") {
+        const currentText = this.#text as string | undefined;
+        if (text === currentText) {
+          return;
+        }
+
+        jinkReactiveObject(rectangle);
+        rectangle.height = 1;
+        rectangle.width = textWidth(text);
+        unjinkReactiveObject(rectangle);
+
+        if (currentText && currentText !== text) {
+          const maxLength = Math.max(text.length, currentText.length);
+          for (let c = 0; c < maxLength; ++c) {
+            if (text[c] !== currentText[c]) {
+              changed = true;
+              this.queueRerender(row, column + c);
+            }
+          }
+        }
+
+        this.#text = text;
+      } else {
+        const currentText = this.#text as string[] | undefined;
+
+        jinkReactiveObject(rectangle);
+        rectangle.height = text.length;
+        rectangle.width = text.reduce((p, n) => {
+          const w = textWidth(n);
+          return p > w ? p : w;
+        }, 0);
+        unjinkReactiveObject(rectangle);
+
+        if (currentText) {
+          for (const [r, line] of text.entries()) {
+            const currentLine = currentText[r];
+            if (line !== currentLine) {
+              const maxLength = Math.max(line.length, currentLine.length);
+
+              for (let c = 0; c < maxLength; ++c) {
+                if (line[c] !== currentLine[c]) {
+                  changed = true;
+                  this.queueRerender(row + r, column + c);
+                }
+              }
+            }
+
+            cloneArrayContents(text, currentText);
+          }
+        } else {
+          this.#text = Array.from(text) as TextType;
+        }
+      }
+
+      const moved = rectangle.width !== width || rectangle.height !== height;
+      if (changed || moved) {
+        this.updated = false;
+        this.moved = true;
+        updateObjects.push(this);
+
+        for (const objectUnder of this.objectsUnder) {
+          objectUnder.moved = true;
+          objectUnder.updated = false;
+          updateObjects.push(objectUnder);
+        }
+      }
+    };
+
+    this.text.subscribe(updateText);
+
+    this.rectangle = signalify(options.rectangle);
+
+    updateText(this.text.peek());
+
     this.#rectangleSubscription = () => {
       this.moved = true;
       this.updated = false;
@@ -51,34 +141,6 @@ export class TextPainter extends Painter<"box"> {
       }
     };
 
-    this.#text = Array.from(this.text.peek());
-    this.text.subscribe((text) => {
-      const currentText = this.#text;
-      const rectangle = this.rectangle.peek();
-
-      rectangle.height = text.length;
-      rectangle.width = text.reduce((p, n) => {
-        const w = textWidth(n);
-        return p > w ? p : w;
-      }, 0);
-
-      const { column, row } = rectangle;
-
-      for (const [r, line] of text.entries()) {
-        const currentLine = currentText[r];
-        if (line !== currentLine) {
-          // @ts-expect-error -
-          for (const c in line) {
-            if (line[c] !== currentLine[c]) {
-              this.queueRerender(row + r, column + +c);
-            }
-          }
-
-          currentText[r] = line;
-        }
-      }
-    });
-
     this.#columnStart = 0;
     this.#columnRange = 0;
     this.#rowStart = 0;
@@ -86,17 +148,10 @@ export class TextPainter extends Painter<"box"> {
     let i = 0;
     new Effect(() => {
       ++i;
-      const text = this.text.value;
       const size = this.canvas.size.value;
       const rectangle = this.rectangle.value;
       const view = this.view.value;
       const viewRectangle = view?.rectangle.value;
-
-      rectangle.height = text.length;
-      rectangle.width = text.reduce((p, n) => {
-        const w = textWidth(n);
-        return p > w ? p : w;
-      }, 0);
 
       let rowStart = rectangle.row;
       let rowRange = Math.min(rectangle.row + rectangle.height, size.rows);
@@ -152,19 +207,16 @@ export class TextPainter extends Painter<"box"> {
     const columnStart = this.#columnStart;
     const columnRange = this.#columnRange;
 
-    for (let row = rowStart; row < rowRange; ++row) {
-      if (!(row in rerenderCells) && painted) continue;
+    if (typeof text === "string") {
+      const row = rowStart;
 
       const rerenderColumns = rerenderCells[row];
-      if (!rerenderColumns && painted) break;
+      if (!rerenderColumns && painted) return;
 
       const omitColumns = omitCells[row];
       if (omitColumns?.size === rectangle.width) {
-        continue;
+        return;
       }
-
-      const lineIndex = row - rowStart;
-      const line = text[lineIndex];
 
       if (painted) {
         for (const column of rerenderColumns) {
@@ -172,7 +224,7 @@ export class TextPainter extends Painter<"box"> {
             continue;
           }
 
-          const char = line[column - columnStart];
+          const char = text[column - columnStart];
           if (!char) continue;
 
           canvas.draw(row, column, style(char));
@@ -185,10 +237,51 @@ export class TextPainter extends Painter<"box"> {
             continue;
           }
 
-          const char = line[column - columnStart];
+          const char = text[column - columnStart];
           if (!char) continue;
 
           canvas.draw(row, column, style(char));
+        }
+      }
+    } else {
+      for (let row = rowStart; row < rowRange; ++row) {
+        if (!(row in rerenderCells) && painted) continue;
+
+        const rerenderColumns = rerenderCells[row];
+        if (!rerenderColumns && painted) break;
+
+        const omitColumns = omitCells[row];
+        if (omitColumns?.size === rectangle.width) {
+          continue;
+        }
+
+        const lineIndex = row - rowStart;
+        const line = text![lineIndex];
+
+        if (painted) {
+          for (const column of rerenderColumns) {
+            if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
+              continue;
+            }
+
+            const char = line[column - columnStart];
+            if (!char) continue;
+
+            canvas.draw(row, column, style(char));
+          }
+
+          rerenderColumns.clear();
+        } else {
+          for (let column = columnStart; column < columnRange; ++column) {
+            if (omitColumns?.has(column)) {
+              continue;
+            }
+
+            const char = line[column - columnStart];
+            if (!char) continue;
+
+            canvas.draw(row, column, style(char));
+          }
         }
       }
     }
