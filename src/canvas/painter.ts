@@ -184,6 +184,8 @@ export class Painter<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
+    if (row < 0 || column < 0) return;
+
     this.rerenderCells[row] ??= new Set();
     this.rerenderCells[row].add(column);
   }
