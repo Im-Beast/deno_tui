@@ -103,7 +103,7 @@ export interface ProgressBarOptions extends ComponentOptions {
  * ```
  */
 export class ProgressBar extends Box {
-  declare drawnObjects: { box: BoxPainter; progress: BoxPainter | TextPainter[] };
+  declare drawnObjects: { box: BoxPainter; progress: BoxPainter | TextPainter<string[]>[] };
   declare theme: ProgressBarTheme;
 
   min: Signal<number>;

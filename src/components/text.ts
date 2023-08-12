@@ -4,7 +4,7 @@ import { Component, ComponentOptions } from "../component.ts";
 import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
-export interface TextOptions {
+export interface TextOptions extends ComponentOptions {
   text: string | Signal<string>;
   overwriteWidth?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
@@ -57,7 +57,7 @@ export interface TextOptions {
  * ```
  */
 export class Text extends Component {
-  declare drawnObjects: { text: TextPainter };
+  declare drawnObjects: { text: TextPainter<string> };
 
   text: Signal<string>;
   overwriteRectangle: Signal<boolean>;
@@ -76,7 +76,7 @@ export class Text extends Component {
       view: this.view,
       text: new Computed(() => {
         const text = this.text.value;
-        return text.split("\n");
+        return text;
       }),
       style: this.style,
       zIndex: this.zIndex,

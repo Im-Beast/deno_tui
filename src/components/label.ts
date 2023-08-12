@@ -82,7 +82,7 @@ export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
  * ```
  */
 export class Label extends Component {
-  declare drawnObjects: { texts: TextPainter[] };
+  declare drawnObjects: { texts: TextPainter<string[]>[] };
 
   #valueLines: Signal<string[]>;
 

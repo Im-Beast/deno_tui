@@ -105,15 +105,15 @@ export class Table extends Component {
   declare theme: TableTheme;
   declare drawnObjects: {
     frame: [
-      top: TextPainter,
-      bottom: TextPainter,
-      spacer: TextPainter,
+      top: TextPainter<string[]>,
+      bottom: TextPainter<string[]>,
+      spacer: TextPainter<string[]>,
       left: BoxPainter,
       right: BoxPainter,
     ];
 
-    header: TextPainter;
-    data: TextPainter[];
+    header: TextPainter<string[]>;
+    data: TextPainter<string[]>[];
   };
 
   data: Signal<string[][]>;

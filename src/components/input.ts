@@ -94,8 +94,8 @@ export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
 export class Input extends Box {
   declare drawnObjects: {
     box: BoxPainter;
-    text: TextPainter;
-    cursor: TextPainter;
+    text: TextPainter<string[]>;
+    cursor: TextPainter<string[]>;
   };
   declare theme: InputTheme;
 
