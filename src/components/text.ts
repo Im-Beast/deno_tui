@@ -1,7 +1,7 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { TextPainter } from "../canvas/painters/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { Computed, Signal } from "../signals/mod.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 export interface TextOptions extends ComponentOptions {
@@ -74,10 +74,7 @@ export class Text extends Component {
     const text = new TextPainter({
       canvas: this.tui.canvas,
       view: this.view,
-      text: new Computed(() => {
-        const text = this.text.value;
-        return text;
-      }),
+      text: this.text,
       style: this.style,
       zIndex: this.zIndex,
       rectangle: this.rectangle,

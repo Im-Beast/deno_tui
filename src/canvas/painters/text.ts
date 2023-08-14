@@ -2,7 +2,7 @@
 import { Painter, PainterOptions } from "../painter.ts";
 import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
-// TODO: allow string | string[]
+// FIXME: it renders even when object isn't drawn
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
@@ -17,14 +17,20 @@ export interface TextPainterOptions<TextType extends string | string[]> extends 
   text: TextType | Signal<TextType>;
   rectangle: Rectangle | SignalOfObject<Rectangle>;
   multiCodePointSupport?: boolean | Signal<boolean>;
+  alignHorizontally?: number;
+  alignVertically?: number;
 }
 
 /**
  * DrawObject that's responsible for rendering rectangles (boxes).
  */
-export class TextPainter<TextType extends string | string[]> extends Painter<"box"> {
+export class TextPainter<TextType extends string | string[]> extends Painter<"text"> {
   text: Signal<TextType>;
   textType: TextType extends string ? "string" : "object";
+
+  alignVertically: number;
+  alignHorizontally: number;
+
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
@@ -38,13 +44,30 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
   #rowRange: number;
 
   constructor(options: TextPainterOptions<TextType>) {
-    super("box", options);
+    super("text", options);
 
     this.text = signalify(options.text);
     this.textType = (typeof this.text.peek()) as TextType extends string ? "string" : "object";
+
+    this.alignVertically = options.alignVertically ?? 0;
+    this.alignHorizontally = options.alignHorizontally ?? 0;
+
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
 
     const { updateObjects } = this.canvas;
+
+    this.rectangle = signalify(options.rectangle);
+    this.#rectangleSubscription = () => {
+      this.moved = true;
+      this.updated = false;
+      updateObjects.push(this);
+
+      for (const objectUnder of this.objectsUnder) {
+        objectUnder.moved = true;
+        objectUnder.updated = false;
+        updateObjects.push(objectUnder);
+      }
+    };
 
     const updateText = (text: TextType) => {
       const textType = typeof text;
@@ -129,22 +152,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
     };
 
     this.text.subscribe(updateText);
-
-    this.rectangle = signalify(options.rectangle);
-
     updateText(this.text.peek());
-
-    this.#rectangleSubscription = () => {
-      this.moved = true;
-      this.updated = false;
-      updateObjects.push(this);
-
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.moved = true;
-        objectUnder.updated = false;
-        updateObjects.push(objectUnder);
-      }
-    };
 
     this.#columnStart = 0;
     this.#columnRange = 0;
@@ -210,19 +218,18 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
 
     const intersection = rectangleIntersection(rectangle, previousRectangle, true);
 
-    const previousRow = previousRectangle.row;
     for (let row = previousRectangle.row; row < previousRectangle.row + previousRectangle.height; ++row) {
       for (
         let column = previousRectangle.column;
         column < previousRectangle.column + previousRectangle.width;
         ++column
       ) {
-        if (intersection && fitsInRectangle(column, previousRow, intersection)) {
+        if (intersection && fitsInRectangle(column, row, intersection)) {
           continue;
         }
 
         for (const objectUnder of objectsUnder) {
-          objectUnder.queueRerender(previousRow, column);
+          objectUnder.queueRerender(row, column);
         }
       }
     }
@@ -316,8 +323,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
               continue;
             }
 
-            const char = line[column - columnStart];
-            if (!char) continue;
+            const char = line[column - columnStart] ?? " ";
 
             canvas.draw(row, column, style(char));
           }
@@ -329,9 +335,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"bo
               continue;
             }
 
-            const char = line[column - columnStart];
-            if (!char) continue;
-
+            const char = line[column - columnStart] ?? " ";
             canvas.draw(row, column, style(char));
           }
         }

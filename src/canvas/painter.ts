@@ -13,9 +13,6 @@ import { Effect } from "../signals/effect.ts";
 export interface PainterOptions {
   canvas: Canvas;
 
-  omitCells?: number[];
-  omitCellsPointer?: number;
-
   view?: View | Signal<View | undefined>;
   style: Style | SignalOfObject<Style>;
   zIndex: number | Signal<number>;
@@ -143,17 +140,17 @@ export class Painter<Type extends string = string> {
       updateObjects.push(objectUnder);
     }
 
-    this.canvas.drawnObjects.push(this);
+    this.canvas.painters.push(this);
   }
 
   erase(): void {
     this.style.unsubscribe(this.#styleSubscription);
 
-    const { drawnObjects } = this.canvas;
+    const { painters } = this.canvas;
 
-    drawnObjects.remove(this);
+    painters.remove(this);
 
-    for (const object of drawnObjects) {
+    for (const object of painters) {
       object.objectsUnder.delete(this);
     }
 
@@ -262,8 +259,6 @@ export class Painter<Type extends string = string> {
       }
     }
   }
-
-  update(): void {}
 
   paint(): void {}
 }

@@ -41,7 +41,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
   rerenderedObjects?: number;
   frameBuffer: string[][];
   rerenderQueue: Set<number>[];
-  drawnObjects: SortedArray<Painter>;
+  painters: SortedArray<Painter>;
   updateObjects: Painter[];
   resizeNeeded: boolean;
 
@@ -51,7 +51,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
     this.frameBuffer = [];
     this.rerenderQueue = [];
     this.stdout = options.stdout;
-    this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
+    this.painters = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
     this.updateObjects = [];
     this.resizeNeeded = false;
 
@@ -73,7 +73,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
   resize() {
     const { columns, rows } = this.size.peek();
 
-    for (const drawObject of this.drawnObjects) {
+    for (const drawObject of this.painters) {
       const { column, row } = drawObject.rectangle.peek();
       if (column >= columns || row >= rows) continue;
 
@@ -95,7 +95,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
 
     objectsUnder.clear();
 
-    for (const object2 of this.drawnObjects) {
+    for (const object2 of this.painters) {
       if (object === object2 || object2.outOfBounds) continue;
 
       const zIndex2 = object2.zIndex.peek();
@@ -111,12 +111,14 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
 
       if (!intersection) continue;
 
+      const rowStart = intersection.row;
       const rowRange = intersection.row + intersection.height;
+      const columnStart = intersection.column;
       const columnRange = intersection.column + intersection.width;
-      for (let row = intersection.row; row < rowRange; ++row) {
+      for (let row = rowStart; row < rowRange; ++row) {
         const omitColumns = omitCells[row] ??= new Set();
 
-        for (let column = intersection.column; column < columnRange; ++column) {
+        for (let column = columnStart; column < columnRange; ++column) {
           omitColumns.add(column);
         }
       }
@@ -142,7 +144,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
       if (object.updated) continue;
       object.updated = true;
       ++i;
-      object.update();
 
       object.updateMovement();
       object.updatePreviousRectangle();
