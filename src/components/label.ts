@@ -120,6 +120,8 @@ export class Label extends Component {
       rectangle: this.rectangle,
       text: this.#textLines,
       alignHorizontally: 0.5,
+      alignVertically: 0.5,
+      overwriteRectangle: this.overwriteRectangle,
     });
 
     this.drawnObjects.text = text;

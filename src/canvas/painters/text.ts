@@ -10,7 +10,6 @@ import { Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 import { textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
-import { cloneArrayContents } from "../../utils/arrays.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 
 export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
@@ -132,53 +131,78 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
         }
 
         if (currentText) {
+          const textLength = text.length;
+          const lacksTop = Math.round((rectangle.height - textLength) * alignVertically);
+          const lacksBottom = rectangle.height - textLength - lacksTop;
+
+          const wholeSpaceWidth = " ".repeat(rectangle.width);
+          for (let i = 0; i < lacksTop; ++i) {
+            currentText[i] = wholeSpaceWidth;
+          }
+
+          for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
+            currentText[i] = wholeSpaceWidth;
+          }
+
           for (const [r, line] of text.entries()) {
-            const currentLine = currentText[r];
+            const actualLineRow = r + lacksTop;
+            const currentLine = currentText[actualLineRow];
+
             if (line !== currentLine) {
               const maxLength = Math.max(line.length, currentLine.length);
 
               for (let c = 0; c < maxLength; ++c) {
                 if (line[c] !== currentLine[c]) {
                   changed = true;
-                  this.queueRerender(row + r, column + c);
+                  this.queueRerender(row + actualLineRow, column + c);
                 }
               }
             }
-          }
-
-          for (const i in text) {
-            const line = text[i];
 
             if (alignHorizontally === 0) {
-              currentText[i] = line;
+              currentText[actualLineRow] = line;
             } else {
               const lineWidth = textWidth(line);
 
               const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
               const lacksRight = width - lineWidth - lacksLeft;
 
-              currentText[i] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+              currentText[actualLineRow] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
             }
           }
 
-          while (currentText.length > text.length) {
+          while (currentText.length > rectangle.height) {
             currentText.pop();
           }
         } else {
           const currentText: string[] = [];
 
-          for (const line of text) {
+          const textLength = text.length;
+          const lacksTop = Math.round((rectangle.height - textLength) * alignVertically);
+          const lacksBottom = rectangle.height - textLength - lacksTop;
+
+          const wholeSpaceWidth = " ".repeat(rectangle.width);
+          for (let i = 0; i < lacksTop; ++i) {
+            currentText[i] = wholeSpaceWidth;
+          }
+
+          for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
+            currentText[i] = wholeSpaceWidth;
+          }
+
+          for (const [i, line] of text.entries()) {
             if (alignHorizontally === 0) {
-              currentText.push(line);
+              currentText[i + lacksTop] = line;
             } else {
               const lineWidth = textWidth(line);
 
               const lacksLeft = Math.round((rectangle.width - lineWidth) * alignHorizontally);
               const lacksRight = rectangle.width - lineWidth - lacksLeft;
 
-              currentText.push(" ".repeat(lacksLeft) + line + " ".repeat(lacksRight));
+              currentText[i + lacksTop] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
             }
           }
+
           this.#text = currentText as TextType;
         }
       }
