@@ -3,6 +3,7 @@ import { Painter, PainterOptions } from "../painter.ts";
 import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
 // FIXME: it renders even when object isn't drawn
+// FIXME: support for characters of different width than 1
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
@@ -38,7 +39,14 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
   #rectangleSubscription: Subscription<Rectangle>;
 
-  #text?: string | string[] | string[][];
+  #text?:
+    // Single line text, no newlines
+    | string
+    // Single line text with `multiCodePointSupport` enabled
+    // Multiline text with `multiCodePointSupport` disabled
+    | string[]
+    // Multiline text with `multiCodePointSupport` enabled
+    | string[][];
 
   #columnStart: number;
   #columnRange: number;
