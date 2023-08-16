@@ -16,9 +16,12 @@ import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../u
 export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
   text: TextType | Signal<TextType>;
   rectangle: Rectangle | SignalOfObject<Rectangle>;
+
+  alignVertically?: number | Signal<number>;
+  alignHorizontally?: number | Signal<number>;
+
+  overwriteRectangle?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-  alignHorizontally?: number;
-  alignVertically?: number;
 }
 
 /**
@@ -28,9 +31,10 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
   text: Signal<TextType>;
   textType: TextType extends string ? "string" : "object";
 
-  alignVertically: number;
-  alignHorizontally: number;
+  alignVertically: Signal<number>;
+  alignHorizontally: Signal<number>;
 
+  overwriteRectangle: Signal<boolean>;
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
@@ -49,10 +53,11 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     this.text = signalify(options.text);
     this.textType = (typeof this.text.peek()) as TextType extends string ? "string" : "object";
 
-    this.alignVertically = options.alignVertically ?? 0;
-    this.alignHorizontally = options.alignHorizontally ?? 0;
+    this.alignVertically = signalify(options.alignVertically ?? 0);
+    this.alignHorizontally = signalify(options.alignHorizontally ?? 0);
 
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
+    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
 
     const { updateObjects } = this.canvas;
 
@@ -75,6 +80,12 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
         throw new Error("You can't change TextPainter's TextType on the fly");
       }
 
+      const alignVertically = this.alignVertically.peek();
+      const alignHorizontally = this.alignHorizontally.peek();
+
+      const overwriteRectangle = this.overwriteRectangle.peek();
+      const multiCodePointSupport = this.multiCodePointSupport.peek();
+
       const rectangle = this.rectangle.peek();
       const { column, row, width, height } = rectangle;
       let changed = false;
@@ -89,10 +100,12 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           return;
         }
 
-        jinkReactiveObject(rectangle);
-        rectangle.height = 1;
-        rectangle.width = textWidth(text);
-        unjinkReactiveObject(rectangle);
+        if (!overwriteRectangle) {
+          jinkReactiveObject(rectangle);
+          rectangle.height = 1;
+          rectangle.width = textWidth(text);
+          unjinkReactiveObject(rectangle);
+        }
 
         if (currentText && currentText !== text) {
           const maxLength = Math.max(text.length, currentText.length);
@@ -108,13 +121,15 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       } else {
         const currentText = this.#text as string[] | undefined;
 
-        jinkReactiveObject(rectangle);
-        rectangle.height = text.length;
-        rectangle.width = text.reduce((p, n) => {
-          const w = textWidth(n);
-          return p > w ? p : w;
-        }, 0);
-        unjinkReactiveObject(rectangle);
+        if (!overwriteRectangle) {
+          jinkReactiveObject(rectangle);
+          rectangle.height = text.length;
+          rectangle.width = text.reduce((p, n) => {
+            const w = textWidth(n);
+            return p > w ? p : w;
+          }, 0);
+          unjinkReactiveObject(rectangle);
+        }
 
         if (currentText) {
           for (const [r, line] of text.entries()) {
@@ -129,11 +144,42 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
                 }
               }
             }
+          }
 
-            cloneArrayContents(text, currentText);
+          for (const i in text) {
+            const line = text[i];
+
+            if (alignHorizontally === 0) {
+              currentText[i] = line;
+            } else {
+              const lineWidth = textWidth(line);
+
+              const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
+              const lacksRight = width - lineWidth - lacksLeft;
+
+              currentText[i] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+            }
+          }
+
+          while (currentText.length > text.length) {
+            currentText.pop();
           }
         } else {
-          this.#text = Array.from(text) as TextType;
+          const currentText: string[] = [];
+
+          for (const line of text) {
+            if (alignHorizontally === 0) {
+              currentText.push(line);
+            } else {
+              const lineWidth = textWidth(line);
+
+              const lacksLeft = Math.round((rectangle.width - lineWidth) * alignHorizontally);
+              const lacksRight = rectangle.width - lineWidth - lacksLeft;
+
+              currentText.push(" ".repeat(lacksLeft) + line + " ".repeat(lacksRight));
+            }
+          }
+          this.#text = currentText as TextType;
         }
       }
 

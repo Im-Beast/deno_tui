@@ -89,7 +89,7 @@ export class TextBox extends Box {
     box: BoxPainter;
     lines: TextPainter[];
     lineNumbers: TextPainter[];
-    cursor: TextPainter;
+    cursor: TextPainter<string>;
   };
   declare theme: TextBoxTheme;
 
