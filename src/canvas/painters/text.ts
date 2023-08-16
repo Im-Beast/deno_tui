@@ -8,7 +8,7 @@ import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
-import { cropToWidth, textWidth } from "../../utils/strings.ts";
+import { cropToWidth, getMultiCodePointCharacters, textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 
@@ -38,7 +38,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
   #rectangleSubscription: Subscription<Rectangle>;
 
-  #text?: TextType;
+  #text?: string | string[] | string[][];
 
   #columnStart: number;
   #columnRange: number;
@@ -118,7 +118,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
         this.#text = text;
       } else {
-        const currentText = this.#text as string[] | undefined;
+        const currentText = this.#text as string[] | string[][] | undefined;
 
         if (!overwriteRectangle) {
           jinkReactiveObject(rectangle);
@@ -164,14 +164,19 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             }
 
             if (alignHorizontally === 0) {
-              currentText[actualLineRow] = line;
+              currentText[actualLineRow] = multiCodePointSupport ? getMultiCodePointCharacters(line) : line;
             } else {
               const lineWidth = textWidth(line);
 
               const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
               const lacksRight = width - lineWidth - lacksLeft;
 
-              currentText[actualLineRow] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+              let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+              if (multiCodePointSupport) {
+                alignedLine = getMultiCodePointCharacters(alignedLine);
+              }
+
+              currentText[actualLineRow] = alignedLine as string;
             }
           }
 
@@ -179,7 +184,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             currentText.pop();
           }
         } else {
-          const currentText: string[] = [];
+          const currentText: string[] | string[][] = [];
 
           const textLength = text.length;
           const lacksTop = Math.round((rectangle.height - textLength) * alignVertically);
@@ -207,11 +212,16 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               const lacksLeft = Math.round((rectangle.width - lineWidth) * alignHorizontally);
               const lacksRight = rectangle.width - lineWidth - lacksLeft;
 
-              currentText[i + lacksTop] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+              let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+              if (multiCodePointSupport) {
+                alignedLine = getMultiCodePointCharacters(alignedLine);
+              }
+
+              currentText[i + lacksTop] = alignedLine;
             }
           }
 
-          this.#text = currentText as TextType;
+          this.#text = currentText;
         }
       }
 
