@@ -8,7 +8,7 @@ import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
-import { textWidth } from "../../utils/strings.ts";
+import { cropToWidth, textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 
@@ -144,9 +144,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             currentText[i] = wholeSpaceWidth;
           }
 
-          for (const [r, line] of text.entries()) {
+          for (let [r, line] of text.entries()) {
             const actualLineRow = r + lacksTop;
             const currentLine = currentText[actualLineRow];
+
+            if (overwriteRectangle) {
+              line = cropToWidth(line, rectangle.width);
+            }
 
             if (line !== currentLine) {
               const maxLength = Math.max(line.length, currentLine.length);
@@ -190,7 +194,11 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             currentText[i] = wholeSpaceWidth;
           }
 
-          for (const [i, line] of text.entries()) {
+          for (let [i, line] of text.entries()) {
+            if (overwriteRectangle) {
+              line = cropToWidth(line, rectangle.width);
+            }
+
             if (alignHorizontally === 0) {
               currentText[i + lacksTop] = line;
             } else {
