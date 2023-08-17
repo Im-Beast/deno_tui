@@ -94,8 +94,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       const multiCodePointSupport = this.multiCodePointSupport.peek();
 
       const rectangle = this.rectangle.peek();
-      const { column, row, width, height } = rectangle;
-      let changed = false;
+      const { column, row } = rectangle;
+      let { width, height } = rectangle;
 
       if (typeof text === "string") {
         if (text.includes("\n")) {
@@ -109,8 +109,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
         if (!overwriteRectangle) {
           jinkReactiveObject(rectangle);
-          rectangle.height = 1;
-          rectangle.width = textWidth(text);
+          rectangle.height = height = 1;
+          rectangle.width = width = textWidth(text);
           unjinkReactiveObject(rectangle);
         }
 
@@ -118,7 +118,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           const maxLength = Math.max(text.length, currentText.length);
           for (let c = 0; c < maxLength; ++c) {
             if (text[c] !== currentText[c]) {
-              changed = true;
               this.queueRerender(row, column + c);
             }
           }
@@ -130,8 +129,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
         if (!overwriteRectangle) {
           jinkReactiveObject(rectangle);
-          rectangle.height = text.length;
-          rectangle.width = text.reduce((p, n) => {
+          rectangle.height = height = text.length;
+          rectangle.width = width = text.reduce((p, n) => {
             const w = textWidth(n);
             return p > w ? p : w;
           }, 0);
@@ -140,10 +139,10 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
         if (currentText) {
           const textLength = text.length;
-          const lacksTop = Math.round((rectangle.height - textLength) * alignVertically);
-          const lacksBottom = rectangle.height - textLength - lacksTop;
+          const lacksTop = Math.round((height - textLength) * alignVertically);
+          const lacksBottom = height - textLength - lacksTop;
 
-          const wholeSpaceWidth = " ".repeat(rectangle.width);
+          const wholeSpaceWidth = " ".repeat(width);
           for (let i = 0; i < lacksTop; ++i) {
             currentText[i] = wholeSpaceWidth;
           }
@@ -157,7 +156,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             const currentLine = currentText[actualLineRow];
 
             if (overwriteRectangle) {
-              line = cropToWidth(line, rectangle.width);
+              line = cropToWidth(line, width);
             }
 
             if (line !== currentLine) {
@@ -165,7 +164,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
               for (let c = 0; c < maxLength; ++c) {
                 if (line[c] !== currentLine[c]) {
-                  changed = true;
                   this.queueRerender(row + actualLineRow, column + c);
                 }
               }
@@ -188,17 +186,17 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             }
           }
 
-          while (currentText.length > rectangle.height) {
+          while (currentText.length > height) {
             currentText.pop();
           }
         } else {
           const currentText: string[] | string[][] = [];
 
           const textLength = text.length;
-          const lacksTop = Math.round((rectangle.height - textLength) * alignVertically);
-          const lacksBottom = rectangle.height - textLength - lacksTop;
+          const lacksTop = Math.round((height - textLength) * alignVertically);
+          const lacksBottom = height - textLength - lacksTop;
 
-          const wholeSpaceWidth = " ".repeat(rectangle.width);
+          const wholeSpaceWidth = " ".repeat(width);
           for (let i = 0; i < lacksTop; ++i) {
             currentText[i] = wholeSpaceWidth;
           }
@@ -209,7 +207,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
           for (let [i, line] of text.entries()) {
             if (overwriteRectangle) {
-              line = cropToWidth(line, rectangle.width);
+              line = cropToWidth(line, width);
             }
 
             if (alignHorizontally === 0) {
@@ -217,8 +215,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             } else {
               const lineWidth = textWidth(line);
 
-              const lacksLeft = Math.round((rectangle.width - lineWidth) * alignHorizontally);
-              const lacksRight = rectangle.width - lineWidth - lacksLeft;
+              const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
+              const lacksRight = width - lineWidth - lacksLeft;
 
               let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
               if (multiCodePointSupport) {
@@ -230,19 +228,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           }
 
           this.#text = currentText;
-        }
-      }
-
-      const moved = rectangle.width !== width || rectangle.height !== height;
-      if (changed || moved) {
-        this.updated = false;
-        this.moved = true;
-        updateObjects.push(this);
-
-        for (const objectUnder of this.objectsUnder) {
-          objectUnder.moved = true;
-          objectUnder.updated = false;
-          updateObjects.push(objectUnder);
         }
       }
     };
@@ -276,21 +261,26 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
         columnRange = Math.min(columnRange, viewRectangle.column + viewRectangle.width);
       }
 
+      if (
+        this.#rowStart !== rowStart || this.#rowRange !== rowRange ||
+        this.#columnStart !== columnStart || this.#columnRange !== columnRange
+      ) {
+        this.moved = true;
+        this.updated = false;
+        updateObjects.push(this);
+
+        for (const objectUnder of this.objectsUnder) {
+          objectUnder.moved = true;
+          objectUnder.updated = false;
+          updateObjects.push(objectUnder);
+        }
+      }
+
       this.#rowStart = rowStart;
       this.#rowRange = rowRange;
 
       this.#columnStart = columnStart;
       this.#columnRange = columnRange;
-
-      this.moved = true;
-      this.updated = false;
-      updateObjects.push(this);
-
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.moved = true;
-        objectUnder.updated = false;
-        updateObjects.push(objectUnder);
-      }
     });
   }
 
