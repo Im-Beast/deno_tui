@@ -7,11 +7,12 @@ import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
-import { Subscription } from "../../signals/types.ts";
+import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 import { cropToWidth, getMultiCodePointCharacters, textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
+import { Computed } from "../../signals/computed.ts";
 
 export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
   text: TextType | Signal<TextType>;
@@ -239,10 +240,9 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     this.#columnRange = 0;
     this.#rowStart = 0;
     this.#rowRange = 0;
-    let i = 0;
-    new Effect(() => {
-      ++i;
-      this.text.value; // FIXME: this is temporary
+    new Effect((cause) => {
+      const textSignal = this.text;
+      const _text = textSignal.value;
       const size = this.canvas.size.value;
       const rectangle = this.rectangle.value;
       const view = this.view.value;
@@ -262,8 +262,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       }
 
       if (
+        // When it moved
         this.#rowStart !== rowStart || this.#rowRange !== rowRange ||
-        this.#columnStart !== columnStart || this.#columnRange !== columnRange
+        this.#columnStart !== columnStart || this.#columnRange !== columnRange ||
+        // When text signal caused the change
+        cause === textSignal ||
+        // When any of text signal dependencies caused the change
+        (textSignal instanceof Computed && textSignal.dependencies.has(cause as Dependency))
       ) {
         this.moved = true;
         this.updated = false;
@@ -274,13 +279,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           objectUnder.updated = false;
           updateObjects.push(objectUnder);
         }
+
+        this.#rowStart = rowStart;
+        this.#rowRange = rowRange;
+
+        this.#columnStart = columnStart;
+        this.#columnRange = columnRange;
       }
-
-      this.#rowStart = rowStart;
-      this.#rowRange = rowRange;
-
-      this.#columnStart = columnStart;
-      this.#columnRange = columnRange;
     });
   }
 
