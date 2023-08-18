@@ -119,9 +119,10 @@ export class Label extends Component {
       zIndex: this.zIndex,
       rectangle: this.rectangle,
       text: this.#textLines,
+      overwriteRectangle: this.overwriteRectangle,
+      multiCodePointSupport: this.multiCodePointSupport,
       alignHorizontally: 0.5,
       alignVertically: 0.5,
-      overwriteRectangle: this.overwriteRectangle,
     });
 
     this.drawnObjects.text = text;

@@ -19,7 +19,7 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { Component, Rectangle } from "../mod.ts";
+import { Component, Rectangle, textWidth } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed, Signal } from "../src/signals/mod.ts";
 
@@ -431,10 +431,27 @@ const moveButton = new Button({
   rectangle: {
     column: 2,
     row: 16,
-    width: 6,
-    height: 2,
+    width: 18,
+    height: 6,
   },
-  label: { text: "move\nme" },
+  label: { text: "move\nnme\n１２３" },
+  theme: {
+    base: crayon.bgGreen,
+    focused: crayon.bgLightGreen,
+    active: crayon.bgMagenta,
+  },
+  zIndex: 2,
+});
+
+const moveButton2 = new Button({
+  parent: tui,
+  rectangle: {
+    column: 2,
+    row: 16,
+    width: 18,
+    height: 6,
+  },
+  label: { text: "🔥🔥🔥 move\n🥵\n｢｣､･ｦｧ\n🥵🥵🥵\nme\n１２３" },
   theme: {
     base: crayon.bgGreen,
     focused: crayon.bgLightGreen,
@@ -450,12 +467,21 @@ moveButton.on("mousePress", (event) => {
   rectangle.row += event.movementY;
 });
 
+moveButton2.on("mousePress", (event) => {
+  if (!event.drag) return;
+  const rectangle = moveButton2.rectangle.value;
+  rectangle.column += event.movementX;
+  rectangle.row += event.movementY;
+});
+
 new Text({
   parent: tui,
   view,
   rectangle: {
     column: 2,
     row: 13,
+    width: 0,
+    height: 0,
   },
   theme: baseTheme,
   text: "wopa",
@@ -501,7 +527,7 @@ let lastRender = 0;
 
 const performanceStats = new Text({
   parent: tui,
-  rectangle: { column: 0, row: 0 },
+  rectangle: { column: 0, row: 0, width: 0, height: 0 },
   theme: baseTheme,
   text: new Computed(() =>
     `\

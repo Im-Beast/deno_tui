@@ -4,12 +4,13 @@ import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
 // FIXME: it renders even when object isn't drawn
 // FIXME: support for characters of different width than 1
+// TODO: if multiCodePointSupport is not set, try to determine whether its needed in constructor
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
-import { cropToWidth, getMultiCodePointCharacters, textWidth } from "../../utils/strings.ts";
+import { cropToWidth, getMultiCodePointCharacters, spacifyChars, textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
@@ -119,6 +120,9 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           const maxLength = Math.max(text.length, currentText.length);
           for (let c = 0; c < maxLength; ++c) {
             if (text[c] !== currentText[c]) {
+              for (const under of this.objectsUnder) {
+                under.queueRerender(row, column + c);
+              }
               this.queueRerender(row, column + c);
             }
           }
@@ -140,16 +144,20 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
         if (currentText) {
           const textLength = text.length;
-          const lacksTop = Math.round((height - textLength) * alignVertically);
-          const lacksBottom = height - textLength - lacksTop;
 
-          const wholeSpaceWidth = " ".repeat(width);
-          for (let i = 0; i < lacksTop; ++i) {
-            currentText[i] = wholeSpaceWidth;
-          }
+          let lacksTop = 0;
+          if (textLength !== height) {
+            lacksTop = Math.round((height - textLength) * alignVertically);
+            const lacksBottom = height - textLength - lacksTop;
 
-          for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
-            currentText[i] = wholeSpaceWidth;
+            const wholeSpaceWidth = " ".repeat(width);
+            for (let i = 0; i < lacksTop; ++i) {
+              currentText[i] = wholeSpaceWidth;
+            }
+
+            for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
+              currentText[i] = wholeSpaceWidth;
+            }
           }
 
           for (let [r, line] of text.entries()) {
@@ -165,22 +173,30 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
               for (let c = 0; c < maxLength; ++c) {
                 if (line[c] !== currentLine[c]) {
+                  /*  for (const under of this.objectsUnder) {
+                    under.queueRerender(row + actualLineRow, column + c);
+                  } */
                   this.queueRerender(row + actualLineRow, column + c);
                 }
               }
             }
 
             if (alignHorizontally === 0) {
-              currentText[actualLineRow] = multiCodePointSupport ? getMultiCodePointCharacters(line) : line;
+              currentText[actualLineRow] = multiCodePointSupport
+                ? spacifyChars(getMultiCodePointCharacters(line))
+                : line;
             } else {
               const lineWidth = textWidth(line);
 
-              const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
-              const lacksRight = width - lineWidth - lacksLeft;
+              const lackingSpace = width - lineWidth;
+              const lacksLeft = Math.round(lackingSpace * alignHorizontally);
+              const lacksRight = lackingSpace - lacksLeft;
 
               let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+
               if (multiCodePointSupport) {
-                alignedLine = getMultiCodePointCharacters(alignedLine);
+                // FIXME: add variableCharWidthSupport option and spacify when it's set to true
+                alignedLine = spacifyChars(getMultiCodePointCharacters(alignedLine));
               }
 
               currentText[actualLineRow] = alignedLine as string;
@@ -216,12 +232,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             } else {
               const lineWidth = textWidth(line);
 
-              const lacksLeft = Math.round((width - lineWidth) * alignHorizontally);
-              const lacksRight = width - lineWidth - lacksLeft;
+              const lackingSpace = width - lineWidth;
+              const lacksLeft = Math.round(lackingSpace * alignHorizontally);
+              const lacksRight = lackingSpace - lacksLeft;
 
               let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
               if (multiCodePointSupport) {
-                alignedLine = getMultiCodePointCharacters(alignedLine);
+                alignedLine = spacifyChars(getMultiCodePointCharacters(alignedLine));
               }
 
               currentText[i + lacksTop] = alignedLine;
@@ -414,7 +431,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               continue;
             }
 
-            const char = line[column - columnStart] ?? " ";
+            const char = line[column - columnStart] ?? "";
 
             canvas.draw(row, column, style(char));
           }
@@ -426,7 +443,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               continue;
             }
 
-            const char = line[column - columnStart] ?? " ";
+            const char = line[column - columnStart] ?? "";
+
             canvas.draw(row, column, style(char));
           }
         }

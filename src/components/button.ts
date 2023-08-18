@@ -101,6 +101,7 @@ export class Button extends Box {
       overwriteRectangle: true,
       text: this.label.text,
       align: this.label.align,
+      multiCodePointSupport: true,
     });
 
     label.state = this.state;

@@ -8,6 +8,21 @@
 export const UNICODE_CHAR_REGEXP =
   /\ud83c[\udffb-\udfff](?=\ud83c[\udffb-\udfff])|(?:(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40(?:\udc65|\udc73|\udc77)\udb40(?:\udc6e|\udc63|\udc6c)\udb40(?:\udc67|\udc74|\udc73)\udb40\udc7f)|[^\ud800-\udfff][\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]?|[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?(?:\u200d(?:[^\ud800-\udfff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?)*/g;
 
+export function spacifyChars(input: string[]): string[] {
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+
+    const charWidth = textWidth(char);
+    if (charWidth > 1 && input.length > i + 1) {
+      for (let j = 1; j < charWidth; ++j) {
+        input.splice(i + j, 0, "");
+      }
+      i += charWidth - 1;
+    }
+  }
+  return input;
+}
+
 const empty: string[] = [];
 /** Converts given text to array of strings which consist of sequences which represent a single character */
 export function getMultiCodePointCharacters(text: string): string[] {
@@ -124,7 +139,7 @@ export function cropToWidth(text: string, width: number): string {
 export function characterWidth(character: string): number {
   const codePoint = character.charCodeAt(0);
 
-  if (codePoint === 0xD83E || codePoint === 0x200B) {
+  if (codePoint === 0x200B) {
     return 0;
   }
 
