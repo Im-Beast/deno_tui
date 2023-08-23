@@ -19,7 +19,7 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { Component, Rectangle, textWidth } from "../mod.ts";
+import { Component, Rectangle } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed, Signal } from "../src/signals/mod.ts";
 
