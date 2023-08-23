@@ -34,7 +34,6 @@ export interface TextPainterOptions<TextType extends string | string[]> extends 
  */
 export class TextPainter<TextType extends string | string[]> extends Painter<"text"> {
   text: Signal<TextType>;
-  textType: TextType extends string ? "string" : "object";
 
   alignVertically: Signal<number>;
   alignHorizontally: Signal<number>;
@@ -63,7 +62,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     super("text", options);
 
     this.text = signalify(options.text);
-    this.textType = (typeof this.text.peek()) as TextType extends string ? "string" : "object";
 
     this.alignVertically = signalify(options.alignVertically ?? 0);
     this.alignHorizontally = signalify(options.alignHorizontally ?? 0);
@@ -89,11 +87,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     };
 
     const updateText = (text: TextType) => {
-      const textType = typeof text;
-      if (textType !== this.textType) {
-        throw new Error("You can't change TextPainter's TextType on the fly");
-      }
-
       const alignVertically = this.alignVertically.peek();
       const alignHorizontally = this.alignHorizontally.peek();
 
