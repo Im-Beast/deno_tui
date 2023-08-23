@@ -3,14 +3,17 @@ import { Painter, PainterOptions } from "../painter.ts";
 import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
 // FIXME: it renders even when object isn't drawn
-// FIXME: support for characters of different width than 1
-// TODO: if multiCodePointSupport is not set, try to determine whether its needed in constructor
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
-import { cropToWidth, getMultiCodePointCharacters, textWidth } from "../../utils/strings.ts";
+import {
+  cropToWidth,
+  getMultiCodePointCharacters,
+  textWidth,
+  usesMultiCodePointCharacters,
+} from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
@@ -65,7 +68,9 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     this.alignVertically = signalify(options.alignVertically ?? 0);
     this.alignHorizontally = signalify(options.alignHorizontally ?? 0);
 
-    this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
+    this.multiCodePointSupport = signalify(
+      options.multiCodePointSupport ?? usesMultiCodePointCharacters(this.text.peek()),
+    );
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
 
     const { updateObjects } = this.canvas;
