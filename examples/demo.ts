@@ -434,24 +434,7 @@ const moveButton = new Button({
     width: 18,
     height: 6,
   },
-  label: { text: "move\nnme\n１２３" },
-  theme: {
-    base: crayon.bgGreen,
-    focused: crayon.bgLightGreen,
-    active: crayon.bgMagenta,
-  },
-  zIndex: 2,
-});
-
-const moveButton2 = new Button({
-  parent: tui,
-  rectangle: {
-    column: 2,
-    row: 16,
-    width: 18,
-    height: 6,
-  },
-  label: { text: "🔥🔥🔥 move\n🥵\n｢｣､･ｦｧ\n🥵🥵🥵\nme\n１２３" },
+  label: { text: "🔥🔥🔥 movey\n🥵\n｢｣､･ｦｧ\n🥵🥵🥵\nme\n１２３" },
   theme: {
     base: crayon.bgGreen,
     focused: crayon.bgLightGreen,
@@ -463,13 +446,6 @@ const moveButton2 = new Button({
 moveButton.on("mousePress", (event) => {
   if (!event.drag) return;
   const rectangle = moveButton.rectangle.value;
-  rectangle.column += event.movementX;
-  rectangle.row += event.movementY;
-});
-
-moveButton2.on("mousePress", (event) => {
-  if (!event.drag) return;
-  const rectangle = moveButton2.rectangle.value;
   rectangle.column += event.movementX;
   rectangle.row += event.movementY;
 });

@@ -10,7 +10,7 @@ import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
-import { cropToWidth, getMultiCodePointCharacters, spacifyChars, textWidth } from "../../utils/strings.ts";
+import { cropToWidth, getMultiCodePointCharacters, textWidth } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
@@ -99,6 +99,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       const { column, row } = rectangle;
       let { width, height } = rectangle;
 
+      const { objectsUnder } = this;
+
       if (typeof text === "string") {
         if (text.includes("\n")) {
           throw new Error("TextPainter doesn't support newlines with string TextType, use array string instead");
@@ -120,9 +122,6 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           const maxLength = Math.max(text.length, currentText.length);
           for (let c = 0; c < maxLength; ++c) {
             if (text[c] !== currentText[c]) {
-              for (const under of this.objectsUnder) {
-                under.queueRerender(row, column + c);
-              }
               this.queueRerender(row, column + c);
             }
           }
@@ -173,18 +172,19 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
               for (let c = 0; c < maxLength; ++c) {
                 if (line[c] !== currentLine[c]) {
-                  /*  for (const under of this.objectsUnder) {
-                    under.queueRerender(row + actualLineRow, column + c);
-                  } */
+                  for (const objectUnder of objectsUnder) {
+                    objectUnder.queueRerender(row, column);
+                  }
+
                   this.queueRerender(row + actualLineRow, column + c);
                 }
               }
             }
 
+            let alignedLine: string | string[];
+
             if (alignHorizontally === 0) {
-              currentText[actualLineRow] = multiCodePointSupport
-                ? spacifyChars(getMultiCodePointCharacters(line))
-                : line;
+              alignedLine = line;
             } else {
               const lineWidth = textWidth(line);
 
@@ -192,15 +192,25 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               const lacksLeft = Math.round(lackingSpace * alignHorizontally);
               const lacksRight = lackingSpace - lacksLeft;
 
-              let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
-
-              if (multiCodePointSupport) {
-                // FIXME: add variableCharWidthSupport option and spacify when it's set to true
-                alignedLine = spacifyChars(getMultiCodePointCharacters(alignedLine));
-              }
-
-              currentText[actualLineRow] = alignedLine as string;
+              alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
             }
+
+            if (multiCodePointSupport) {
+              alignedLine = getMultiCodePointCharacters(alignedLine);
+            }
+
+            if (Array.isArray(alignedLine)) {
+              for (let i = 0; i < alignedLine.length; ++i) {
+                const char = alignedLine[i];
+                const charWidth = textWidth(char);
+
+                for (let j = 1; j < charWidth; ++j) {
+                  alignedLine.splice(++i, 0, "");
+                }
+              }
+            }
+
+            currentText[actualLineRow] = alignedLine as string;
           }
 
           while (currentText.length > height) {
@@ -227,22 +237,36 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               line = cropToWidth(line, width);
             }
 
-            if (alignHorizontally === 0) {
-              currentText[i + lacksTop] = line;
-            } else {
-              const lineWidth = textWidth(line);
+            const lineWidth = textWidth(line);
+            const lackingSpace = width - lineWidth;
 
-              const lackingSpace = width - lineWidth;
+            let alignedLine: string | string[];
+
+            if (alignHorizontally === 0) {
+              alignedLine = line + " ".repeat(lackingSpace);
+            } else {
               const lacksLeft = Math.round(lackingSpace * alignHorizontally);
               const lacksRight = lackingSpace - lacksLeft;
 
-              let alignedLine: string | string[] = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
-              if (multiCodePointSupport) {
-                alignedLine = spacifyChars(getMultiCodePointCharacters(alignedLine));
-              }
-
-              currentText[i + lacksTop] = alignedLine;
+              alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
             }
+
+            if (multiCodePointSupport) {
+              alignedLine = getMultiCodePointCharacters(alignedLine);
+            }
+
+            if (Array.isArray(alignedLine)) {
+              for (let i = 0; i < alignedLine.length; ++i) {
+                const char = alignedLine[i];
+                const charWidth = textWidth(char);
+
+                for (let j = 1; j < charWidth; ++j) {
+                  alignedLine.splice(++i, 0, "");
+                }
+              }
+            }
+
+            currentText[i + lacksTop] = alignedLine;
           }
 
           this.#text = currentText;
@@ -391,10 +415,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             continue;
           }
 
-          const char = text[column - columnStart];
-          if (!char) continue;
-
-          canvas.draw(row, column, style(char));
+          canvas.draw(row, column, style(text[column - columnStart]));
         }
 
         rerenderColumns.clear();
@@ -404,10 +425,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             continue;
           }
 
-          const char = text[column - columnStart];
-          if (!char) continue;
-
-          canvas.draw(row, column, style(char));
+          canvas.draw(row, column, style(text[column - columnStart]));
         }
       }
     } else {
@@ -431,9 +449,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               continue;
             }
 
-            const char = line[column - columnStart] ?? "";
-
-            canvas.draw(row, column, style(char));
+            canvas.draw(row, column, style(line[column - columnStart]));
           }
 
           rerenderColumns.clear();
@@ -443,9 +459,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
               continue;
             }
 
-            const char = line[column - columnStart] ?? "";
-
-            canvas.draw(row, column, style(char));
+            canvas.draw(row, column, style(line[column - columnStart]));
           }
         }
       }
