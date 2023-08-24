@@ -16,8 +16,8 @@ import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivi
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
 
-export interface TextPainterOptions<TextType extends string | string[]> extends PainterOptions {
-  text: TextType | Signal<TextType>;
+export interface TextPainterOptions extends PainterOptions {
+  text: string[] | Signal<string[]>;
   rectangle: Rectangle | SignalOfObject<Rectangle>;
 
   alignVertically?: number | Signal<number>;
@@ -32,8 +32,8 @@ export interface TextPainterOptions<TextType extends string | string[]> extends 
 /**
  * DrawObject that's responsible for rendering rectangles (boxes).
  */
-export class TextPainter<TextType extends string | string[]> extends Painter<"text"> {
-  text: Signal<TextType>;
+export class TextPainter extends Painter<"text"> {
+  text: Signal<string[]>;
 
   alignVertically: Signal<number>;
   alignHorizontally: Signal<number>;
@@ -42,16 +42,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
-  #textSubscription: Subscription<TextType>;
+  #textSubscription: Subscription<string[]>;
   #textUpdateEffect: Effect;
 
   #text?:
-    // Single line text, no newlines
-    | string
-    // Single line text with `multiCodePointSupport` enabled
-    // Multiline text with `multiCodePointSupport` disabled
+    // Text with `multiCodePointSupport` disabled
     | string[]
-    // Multiline text with `multiCodePointSupport` enabled
+    // Text with `multiCodePointSupport` enabled
     | string[][];
 
   #columnStart: number;
@@ -60,7 +57,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
   #rowStart: number;
   #rowRange: number;
 
-  constructor(options: TextPainterOptions<TextType>) {
+  constructor(options: TextPainterOptions) {
     super("text", options);
 
     this.text = signalify(options.text);
@@ -88,7 +85,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       }
     };
 
-    const updateText = (text: TextType) => {
+    const updateText = (text: string[]) => {
       const alignVertically = this.alignVertically.peek();
       const alignHorizontally = this.alignHorizontally.peek();
 
@@ -101,126 +98,24 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
       const { objectsUnder } = this;
 
-      if (typeof text === "string") {
-        if (text.includes("\n")) {
-          throw new Error("TextPainter doesn't support newlines with string TextType, use array string instead");
-        }
+      const currentText = this.#text as string[] | string[][] | undefined;
 
-        const currentText = this.#text as string | undefined;
-        if (text === currentText) {
-          return;
-        }
+      if (!overwriteRectangle) {
+        jinkReactiveObject(rectangle);
+        rectangle.height = height = text.length;
+        rectangle.width = width = text.reduce((p, n) => {
+          const w = textWidth(n);
+          return p > w ? p : w;
+        }, 0);
+        unjinkReactiveObject(rectangle);
+      }
 
-        if (!overwriteRectangle) {
-          jinkReactiveObject(rectangle);
-          rectangle.height = height = 1;
-          rectangle.width = width = textWidth(text);
-          unjinkReactiveObject(rectangle);
-        }
+      if (currentText) {
+        const textLength = text.length;
 
-        if (currentText && currentText !== text) {
-          const maxLength = Math.max(text.length, currentText.length);
-          for (let c = 0; c < maxLength; ++c) {
-            if (text[c] !== currentText[c]) {
-              this.queueRerender(row, column + c);
-            }
-          }
-        }
-
-        this.#text = text;
-      } else {
-        const currentText = this.#text as string[] | string[][] | undefined;
-
-        if (!overwriteRectangle) {
-          jinkReactiveObject(rectangle);
-          rectangle.height = height = text.length;
-          rectangle.width = width = text.reduce((p, n) => {
-            const w = textWidth(n);
-            return p > w ? p : w;
-          }, 0);
-          unjinkReactiveObject(rectangle);
-        }
-
-        if (currentText) {
-          const textLength = text.length;
-
-          let lacksTop = 0;
-          if (textLength !== height) {
-            lacksTop = Math.round((height - textLength) * alignVertically);
-            const lacksBottom = height - textLength - lacksTop;
-
-            const wholeSpaceWidth = " ".repeat(width);
-            for (let i = 0; i < lacksTop; ++i) {
-              currentText[i] = wholeSpaceWidth;
-            }
-
-            for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
-              currentText[i] = wholeSpaceWidth;
-            }
-          }
-
-          for (let [r, line] of text.entries()) {
-            const actualLineRow = r + lacksTop;
-            const currentLine = currentText[actualLineRow];
-
-            if (overwriteRectangle) {
-              line = cropToWidth(line, width);
-            }
-
-            if (line !== currentLine) {
-              const maxLength = Math.max(line.length, currentLine.length);
-
-              for (let c = 0; c < maxLength; ++c) {
-                if (line[c] !== currentLine[c]) {
-                  for (const objectUnder of objectsUnder) {
-                    objectUnder.queueRerender(row, column);
-                  }
-
-                  this.queueRerender(row + actualLineRow, column + c);
-                }
-              }
-            }
-
-            let alignedLine: string | string[];
-
-            if (alignHorizontally === 0) {
-              alignedLine = line;
-            } else {
-              const lineWidth = textWidth(line);
-
-              const lackingSpace = width - lineWidth;
-              const lacksLeft = Math.round(lackingSpace * alignHorizontally);
-              const lacksRight = lackingSpace - lacksLeft;
-
-              alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
-            }
-
-            if (multiCodePointSupport) {
-              alignedLine = getMultiCodePointCharacters(alignedLine);
-            }
-
-            if (Array.isArray(alignedLine)) {
-              for (let i = 0; i < alignedLine.length; ++i) {
-                const char = alignedLine[i];
-                const charWidth = textWidth(char);
-
-                for (let j = 1; j < charWidth; ++j) {
-                  alignedLine.splice(++i, 0, "");
-                }
-              }
-            }
-
-            currentText[actualLineRow] = alignedLine as string;
-          }
-
-          while (currentText.length > height) {
-            currentText.pop();
-          }
-        } else {
-          const currentText: string[] | string[][] = [];
-
-          const textLength = text.length;
-          const lacksTop = Math.round((height - textLength) * alignVertically);
+        let lacksTop = 0;
+        if (textLength !== height) {
+          lacksTop = Math.round((height - textLength) * alignVertically);
           const lacksBottom = height - textLength - lacksTop;
 
           const wholeSpaceWidth = " ".repeat(width);
@@ -231,46 +126,118 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
           for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
             currentText[i] = wholeSpaceWidth;
           }
+        }
 
-          for (let [i, line] of text.entries()) {
-            if (overwriteRectangle) {
-              line = cropToWidth(line, width);
-            }
+        for (let [r, line] of text.entries()) {
+          const actualLineRow = r + lacksTop;
+          const currentLine = currentText[actualLineRow];
 
-            const lineWidth = textWidth(line);
-            const lackingSpace = width - lineWidth;
-
-            let alignedLine: string | string[];
-
-            if (alignHorizontally === 0) {
-              alignedLine = line + " ".repeat(lackingSpace);
-            } else {
-              const lacksLeft = Math.round(lackingSpace * alignHorizontally);
-              const lacksRight = lackingSpace - lacksLeft;
-
-              alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
-            }
-
-            if (multiCodePointSupport) {
-              alignedLine = getMultiCodePointCharacters(alignedLine);
-            }
-
-            if (Array.isArray(alignedLine)) {
-              for (let i = 0; i < alignedLine.length; ++i) {
-                const char = alignedLine[i];
-                const charWidth = textWidth(char);
-
-                for (let j = 1; j < charWidth; ++j) {
-                  alignedLine.splice(++i, 0, "");
-                }
-              }
-            }
-
-            currentText[i + lacksTop] = alignedLine;
+          if (overwriteRectangle) {
+            line = cropToWidth(line, width);
           }
 
-          this.#text = currentText;
+          if (line !== currentLine) {
+            const maxLength = Math.max(line.length, currentLine.length);
+
+            for (let c = 0; c < maxLength; ++c) {
+              if (line[c] !== currentLine[c]) {
+                for (const objectUnder of objectsUnder) {
+                  objectUnder.queueRerender(row, column);
+                }
+
+                this.queueRerender(row + actualLineRow, column + c);
+              }
+            }
+          }
+
+          let alignedLine: string | string[];
+          const lineWidth = textWidth(line);
+          const lackingSpace = width - lineWidth;
+
+          if (alignHorizontally === 0) {
+            alignedLine = line + " ".repeat(lackingSpace);
+          } else {
+            const lacksLeft = Math.round(lackingSpace * alignHorizontally);
+            const lacksRight = lackingSpace - lacksLeft;
+
+            alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+          }
+
+          if (multiCodePointSupport) {
+            alignedLine = getMultiCodePointCharacters(alignedLine);
+          }
+
+          if (Array.isArray(alignedLine)) {
+            for (let i = 0; i < alignedLine.length; ++i) {
+              const char = alignedLine[i];
+              const charWidth = textWidth(char);
+
+              for (let j = 1; j < charWidth; ++j) {
+                alignedLine.splice(++i, 0, "");
+              }
+            }
+          }
+
+          currentText[actualLineRow] = alignedLine as string;
         }
+
+        while (currentText.length > height) {
+          currentText.pop();
+        }
+      } else {
+        const currentText: string[] | string[][] = [];
+
+        const textLength = text.length;
+        const lacksTop = Math.round((height - textLength) * alignVertically);
+        const lacksBottom = height - textLength - lacksTop;
+
+        const wholeSpaceWidth = " ".repeat(width);
+        for (let i = 0; i < lacksTop; ++i) {
+          currentText[i] = wholeSpaceWidth;
+        }
+
+        for (let i = lacksTop + textLength; i < lacksTop + textLength + lacksBottom; ++i) {
+          currentText[i] = wholeSpaceWidth;
+        }
+
+        for (let [i, line] of text.entries()) {
+          if (overwriteRectangle) {
+            line = cropToWidth(line, width);
+          }
+
+          const lineWidth = textWidth(line);
+          const lackingSpace = width - lineWidth;
+
+          let alignedLine: string | string[];
+
+          if (alignHorizontally === 0) {
+            alignedLine = line + " ".repeat(lackingSpace);
+          } else {
+            const lacksLeft = Math.round(lackingSpace * alignHorizontally);
+            const lacksRight = lackingSpace - lacksLeft;
+
+            alignedLine = " ".repeat(lacksLeft) + line + " ".repeat(lacksRight);
+          }
+
+          if (multiCodePointSupport) {
+            alignedLine = getMultiCodePointCharacters(alignedLine);
+          }
+
+          if (Array.isArray(alignedLine)) {
+            for (let i = 0; i < alignedLine.length; ++i) {
+              const char = alignedLine[i];
+              const charWidth = textWidth(char);
+
+              for (let j = 1; j < charWidth; ++j) {
+                alignedLine.splice(++i, 0, "");
+              }
+            }
+          }
+
+          currentText[i + lacksTop] = alignedLine;
+        }
+
+        this.#text = currentText;
       }
     };
 
@@ -392,11 +359,13 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
   }
 
   paint(): void {
+    const text = this.#text;
+    if (!text) return;
+
     const { canvas, rerenderCells, omitCells, painted } = this;
 
     const rectangle = this.rectangle.peek();
     const style = this.style.peek();
-    const text = this.#text;
 
     const rowStart = this.#rowStart;
     const rowRange = this.#rowRange;
@@ -404,16 +373,19 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
     const columnStart = this.#columnStart;
     const columnRange = this.#columnRange;
 
-    if (typeof text === "string") {
-      const row = rowStart;
+    for (let row = rowStart; row < rowRange; ++row) {
+      if (!(row in rerenderCells) && painted) continue;
 
       const rerenderColumns = rerenderCells[row];
-      if (!rerenderColumns && painted) return;
+      if (!rerenderColumns && painted) break;
 
       const omitColumns = omitCells[row];
       if (omitColumns?.size === rectangle.width) {
-        return;
+        continue;
       }
+
+      const lineIndex = row - rowStart;
+      const line = text[lineIndex];
 
       if (painted) {
         for (const column of rerenderColumns) {
@@ -421,7 +393,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             continue;
           }
 
-          canvas.draw(row, column, style(text[column - columnStart]));
+          canvas.draw(row, column, style(line[column - columnStart]));
         }
 
         rerenderColumns.clear();
@@ -431,42 +403,7 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
             continue;
           }
 
-          canvas.draw(row, column, style(text[column - columnStart]));
-        }
-      }
-    } else {
-      for (let row = rowStart; row < rowRange; ++row) {
-        if (!(row in rerenderCells) && painted) continue;
-
-        const rerenderColumns = rerenderCells[row];
-        if (!rerenderColumns && painted) break;
-
-        const omitColumns = omitCells[row];
-        if (omitColumns?.size === rectangle.width) {
-          continue;
-        }
-
-        const lineIndex = row - rowStart;
-        const line = text![lineIndex];
-
-        if (painted) {
-          for (const column of rerenderColumns) {
-            if (column < columnStart || column >= columnRange || omitColumns?.has(column)) {
-              continue;
-            }
-
-            canvas.draw(row, column, style(line[column - columnStart]));
-          }
-
-          rerenderColumns.clear();
-        } else {
-          for (let column = columnStart; column < columnRange; ++column) {
-            if (omitColumns?.has(column)) {
-              continue;
-            }
-
-            canvas.draw(row, column, style(line[column - columnStart]));
-          }
+          canvas.draw(row, column, style(line[column - columnStart]));
         }
       }
     }
