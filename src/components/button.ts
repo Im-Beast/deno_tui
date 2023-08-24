@@ -2,15 +2,16 @@
 import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 
-import type { BoxPainter } from "../canvas/painters/box.ts";
 import { Label, LabelAlign, LabelRectangle } from "./label.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
+import { splitToArray } from "../utils/strings.ts";
+import { Computed } from "../signals/computed.ts";
 
-const centerAlign: LabelAlign = {
-  horizontal: "center",
-  vertical: "center",
-};
+import { TextPainter } from "../canvas/painters/text.ts";
+import type { BoxPainter } from "../canvas/painters/box.ts";
+
+const centerAlign: LabelAlign = { horizontal: "center", vertical: "center" };
 
 export interface ButtonOptions extends ComponentOptions {
   label?: {
@@ -43,34 +44,55 @@ export interface ButtonOptions extends ComponentOptions {
  * ```
  */
 export class Button extends Box {
-  declare drawnObjects: { box: BoxPainter };
-  declare subComponents: { label?: Label };
+  declare drawnObjects: { box: BoxPainter; text?: TextPainter };
+
   label: {
     text: Signal<string>;
     align: Signal<LabelAlign>;
   };
+
+  textLines?: string;
 
   constructor(options: ButtonOptions) {
     super(options);
 
     let { label } = options;
 
-    if (!label) {
-      label = { text: "", align: centerAlign };
-    }
-
+    label ??= { text: "", align: centerAlign };
     label.text = signalify(label.text);
     label.align = signalify(label.align ?? centerAlign);
 
     this.label = label as this["label"];
-    this.label.text.subscribe(() => {
-      this.#updateLabelSubcomponent();
-    });
   }
 
   draw(): void {
     super.draw();
-    this.#updateLabelSubcomponent();
+
+    const currentText = this.label.text.peek();
+    const textLines: string[] = currentText.split("\n");
+
+    const text = new TextPainter({
+      canvas: this.tui.canvas,
+      view: this.view,
+      style: this.style,
+      zIndex: this.zIndex,
+      rectangle: this.rectangle,
+      alignHorizontally: 0.5,
+      alignVertically: 0.5,
+      multiCodePointSupport: true,
+      overwriteRectangle: true,
+      text: new Computed(() => {
+        const text = this.label.text.value;
+        splitToArray(text, "\n", textLines);
+        return textLines;
+      }),
+    });
+
+    this.drawnObjects.text = text;
+
+    if (currentText) {
+      text.draw();
+    }
   }
 
   interact(method: "mouse" | "keyboard"): void {

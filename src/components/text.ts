@@ -9,6 +9,7 @@ export interface TextOptions extends ComponentOptions {
   overwriteWidth?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
+// TODO: deprecate text because label is superior now
 
 /**
  * Component for creating single-line, non interactive text
@@ -57,7 +58,7 @@ export interface TextOptions extends ComponentOptions {
  * ```
  */
 export class Text extends Component {
-  declare drawnObjects: { text: TextPainter<string> };
+  declare drawnObjects: { text: TextPainter };
 
   text: Signal<string>;
   overwriteRectangle: Signal<boolean>;
@@ -74,7 +75,7 @@ export class Text extends Component {
     const text = new TextPainter({
       canvas: this.tui.canvas,
       view: this.view,
-      text: this.text,
+      text: [this.text.value],
       style: this.style,
       zIndex: this.zIndex,
       rectangle: this.rectangle,

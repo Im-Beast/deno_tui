@@ -431,10 +431,10 @@ const moveButton = new Button({
   rectangle: {
     column: 2,
     row: 16,
-    width: 18,
-    height: 6,
+    width: 6,
+    height: 2,
   },
-  label: { text: "🔥🔥🔥 movey\n🥵\n｢｣､･ｦｧ\n🥵🥵🥵\nme\n１２３" },
+  label: { text: "move\nme" },
   theme: {
     base: crayon.bgGreen,
     focused: crayon.bgLightGreen,
@@ -501,7 +501,7 @@ tui.canvas.on("render", () => {
 const fps = new Signal(60);
 let lastRender = 0;
 
-const performanceStats = new Text({
+const performanceStats = new Label({
   parent: tui,
   rectangle: { column: 0, row: 0, width: 0, height: 0 },
   theme: baseTheme,
