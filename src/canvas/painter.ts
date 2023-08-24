@@ -83,8 +83,7 @@ export class Painter<Type extends string = string> {
     };
 
     if (this.view.value) {
-      // FIXME: this needs to be done after first canvas render
-      queueMicrotask(() => {
+      this.canvas.on("render", () => {
         new Effect(() => {
           const view = this.view.value;
           // FIXME: they might not get watched if view wasnt set by default
@@ -112,7 +111,7 @@ export class Painter<Type extends string = string> {
             updateObjects.push(objectUnder);
           }
         });
-      });
+      }, true);
     }
   }
 

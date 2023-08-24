@@ -27,6 +27,8 @@ export interface TextPainterOptions<TextType extends string | string[]> extends 
   multiCodePointSupport?: boolean | Signal<boolean>;
 }
 
+// FIXME: when text is rendered outside of visible canvas boundaries it overflows over starting columns
+
 /**
  * DrawObject that's responsible for rendering rectangles (boxes).
  */
