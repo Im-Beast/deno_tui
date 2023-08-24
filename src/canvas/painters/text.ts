@@ -2,8 +2,6 @@
 import { Painter, PainterOptions } from "../painter.ts";
 import { Signal, SignalOfObject } from "../../signals/mod.ts";
 
-// FIXME: it renders even when object isn't drawn
-
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
 import { Dependency, Subscription } from "../../signals/types.ts";
@@ -42,6 +40,8 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
   multiCodePointSupport: Signal<boolean>;
 
   #rectangleSubscription: Subscription<Rectangle>;
+  #textSubscription: Subscription<TextType>;
+  #textUpdateEffect: Effect;
 
   #text?:
     // Single line text, no newlines
@@ -272,14 +272,15 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
       }
     };
 
-    this.text.subscribe(updateText);
-    updateText(this.text.peek());
+    this.#textSubscription = updateText;
+    this.#textSubscription(this.text.peek());
 
     this.#columnStart = 0;
     this.#columnRange = 0;
     this.#rowStart = 0;
     this.#rowRange = 0;
-    new Effect((cause) => {
+
+    this.#textUpdateEffect = new Effect((cause) => {
       const textSignal = this.text;
       const _text = textSignal.value;
       const size = this.canvas.size.value;
@@ -330,11 +331,16 @@ export class TextPainter<TextType extends string | string[]> extends Painter<"te
 
   draw(): void {
     this.rectangle.subscribe(this.#rectangleSubscription);
+    this.text.subscribe(this.#textSubscription);
+    this.#textUpdateEffect.resume();
+    this.#textSubscription(this.text.peek());
     super.draw();
   }
 
   erase(): void {
     this.rectangle.unsubscribe(this.#rectangleSubscription);
+    this.text.unsubscribe(this.#textSubscription);
+    this.#textUpdateEffect.pause();
     super.erase();
   }
 

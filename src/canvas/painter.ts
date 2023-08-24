@@ -80,16 +80,10 @@ export class Painter<Type extends string = string> {
       this.painted = false;
       this.updated = false;
       updateObjects.push(this);
-
-      /*
-      TODO: check if this is actually needed
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.updated = false;
-        updateObjects.push(objectUnder);
-      } */
     };
 
     if (this.view.value) {
+      // FIXME: this needs to be done after first canvas render
       queueMicrotask(() => {
         new Effect(() => {
           const view = this.view.value;
