@@ -148,7 +148,7 @@ export class TextPainter extends Painter<"text"> {
             line = cropToWidth(line, width);
           }
 
-          if (line !== currentLine) {
+          if (currentLine && line !== currentLine) {
             const maxLength = Math.max(line.length, currentLine.length);
 
             for (let c = 0; c < maxLength; ++c) {
@@ -159,6 +159,14 @@ export class TextPainter extends Painter<"text"> {
 
                 this.queueRerender(row + actualLineRow, column + c);
               }
+            }
+          } else if (!currentLine) {
+            for (let c = 0; c < line.length; ++c) {
+              for (const objectUnder of objectsUnder) {
+                objectUnder.queueRerender(row, column);
+              }
+
+              this.queueRerender(row + actualLineRow, column + c);
             }
           }
 
