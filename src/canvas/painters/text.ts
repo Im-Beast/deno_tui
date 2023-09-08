@@ -16,6 +16,18 @@ import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivi
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
 
+export enum VerticalAlign {
+  Top = 0,
+  Middle = 0.5,
+  Bottom = 1,
+}
+
+export enum HorizontalAlign {
+  Left = 0,
+  Center = 0.5,
+  Right = 1,
+}
+
 export interface TextPainterOptions extends PainterOptions {
   text: string[] | Signal<string[]>;
   rectangle: Rectangle | SignalOfObject<Rectangle>;
