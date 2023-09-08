@@ -117,6 +117,7 @@ export class Input extends Box {
 
     super(options as ComponentOptions);
 
+    // FIXME: This might be signal
     this.theme.value ??= this.theme;
     this.theme.placeholder ??= this.theme.value;
 

@@ -5,6 +5,7 @@ import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
 
 import { signalify } from "../utils/signals.ts";
 import { splitToArray } from "../utils/strings.ts";
+import { Rectangle } from "../types.ts";
 
 /**
  * Type that describes position and size of Label
@@ -19,16 +20,30 @@ export type LabelRectangle = {
 
 /** Type that describes text positioning in label */
 export interface LabelAlign {
-  vertical: "top" | "center" | "bottom";
-  horizontal: "left" | "center" | "right";
+  vertical: number;
+  horizontal: number;
 }
 
-export interface LabelOptions extends Omit<ComponentOptions, "rectangle"> {
+export interface LabelOptions<Prepared extends boolean> extends Omit<ComponentOptions, "rectangle"> {
   text: string | Signal<string>;
-  rectangle: LabelRectangle | SignalOfObject<LabelRectangle>;
+  rectangle: Prepared extends true ? (Rectangle | SignalOfObject<Rectangle>)
+    : (LabelRectangle | SignalOfObject<LabelRectangle>);
   align?: LabelAlign | SignalOfObject<LabelAlign>;
   multiCodePointSupport?: boolean | Signal<boolean>;
   overwriteRectangle?: boolean | Signal<boolean>;
+}
+
+export function prepareLabelOptions(options: LabelOptions<false>): LabelOptions<true> {
+  let rectangle = options.rectangle;
+
+  if (rectangle instanceof Signal) {
+    rectangle = rectangle.value;
+  }
+
+  rectangle.width ??= 0;
+  rectangle.height ??= 0;
+
+  return options as unknown as LabelOptions<true>;
 }
 
 /**
@@ -91,15 +106,19 @@ export class Label extends Component {
   overwriteRectangle: Signal<boolean>;
   multiCodePointSupport: Signal<boolean>;
 
-  constructor(options: LabelOptions) {
-    super(options as ComponentOptions);
+  constructor(options: LabelOptions<false>) {
+    super(prepareLabelOptions(options));
 
     this.text = signalify(options.text);
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
-    this.align = signalify(options.align ?? { vertical: "top", horizontal: "left" }, { deepObserve: true });
-
-    // FIXME: alignment and stuff needs to be reimplemented
+    this.align = signalify(
+      options.align ?? {
+        vertical: 0,
+        horizontal: 0,
+      },
+      { deepObserve: true },
+    );
 
     const textLines: string[] = [];
     this.#textLines = new Computed(() => {
@@ -121,8 +140,8 @@ export class Label extends Component {
       text: this.#textLines,
       overwriteRectangle: this.overwriteRectangle,
       multiCodePointSupport: this.multiCodePointSupport,
-      alignHorizontally: 0.5,
-      alignVertically: 0.5,
+      alignHorizontally: new Computed(() => this.align.value.horizontal),
+      alignVertically: new Computed(() => this.align.value.vertical),
     });
 
     this.drawnObjects.text = text;

@@ -19,7 +19,7 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { Component, Rectangle } from "../mod.ts";
+import { Component, HorizontalAlign, Rectangle, VerticalAlign } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed, Signal } from "../src/signals/mod.ts";
 
@@ -205,8 +205,8 @@ new ProgressBar({
 new Label({
   parent: tui,
   align: {
-    horizontal: "center",
-    vertical: "center",
+    horizontal: HorizontalAlign.Center,
+    vertical: VerticalAlign.Middle,
   },
   rectangle: {
     column: 17,
@@ -303,6 +303,7 @@ new TextBox({
       base: crayon.bgLightBlue,
     },
   },
+  placeholder: "hello\nasdasd\nworld!",
   lineNumbering: true,
   lineHighlighting: true,
   rectangle: {
