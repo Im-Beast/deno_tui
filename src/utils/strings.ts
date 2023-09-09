@@ -8,6 +8,35 @@
 export const UNICODE_CHAR_REGEXP =
   /\ud83c[\udffb-\udfff](?=\ud83c[\udffb-\udfff])|(?:(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40(?:\udc65|\udc73|\udc77)\udb40(?:\udc6e|\udc63|\udc6c)\udb40(?:\udc67|\udc74|\udc73)\udb40\udc7f)|[^\ud800-\udfff][\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]?|[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?(?:\u200d(?:[^\ud800-\udfff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?)*/g;
 
+const empty: string[] = [];
+/** Converts given text to array of strings which consist of sequences which represent a single character */
+export function getMultiCodePointCharacters(text: string): string[] {
+  if (!text) return empty;
+  const matched = text.match(UNICODE_CHAR_REGEXP);
+
+  if (matched?.includes("\x1b")) {
+    const arr: string[] = [];
+    let i = 0;
+    let ansi = false;
+    for (const char of matched) {
+      arr[i] ??= "";
+      arr[i] += char;
+
+      if (char === "\x1b") {
+        ansi = true;
+      } else if (ansi) {
+        if (char === "m") ansi = false;
+      } else {
+        ++i;
+      }
+    }
+
+    return arr;
+  }
+
+  return matched ?? empty;
+}
+
 /** Strips string of all its styles */
 export function stripStyles(string: string): string {
   let stripped = "";
