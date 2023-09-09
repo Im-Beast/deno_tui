@@ -139,7 +139,7 @@ export class Slider extends Box {
         const normalizedValue = normalize(value, min, max);
 
         if (horizontal) {
-          const thumbSize = this.adjustThumbSize.value ? Math.round((width) / (max - min)) : 1;
+          const thumbSize = this.adjustThumbSize.value ? Math.round(width / (max - min)) : 1;
 
           thumbRectangle.column = Math.min(
             column + width - thumbSize,
@@ -149,7 +149,7 @@ export class Slider extends Box {
           thumbRectangle.width = thumbSize;
           thumbRectangle.height = height;
         } else {
-          const thumbSize = this.adjustThumbSize.value ? Math.round((height) / (max - min)) : 1;
+          const thumbSize = this.adjustThumbSize.value ? Math.round(height / (max - min)) : 1;
 
           thumbRectangle.column = column;
           thumbRectangle.row = Math.min(
