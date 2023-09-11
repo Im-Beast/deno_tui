@@ -17,15 +17,27 @@ export function getMultiCodePointCharacters(text: string): string[] {
   if (matched?.includes("\x1b")) {
     const arr: string[] = [];
     let i = 0;
-    let ansi = false;
+    let ansi = 0;
+    let lastStyle = "";
     for (const char of matched) {
       arr[i] ??= "";
-      arr[i] += char;
+      arr[i] += lastStyle + char;
 
       if (char === "\x1b") {
-        ansi = true;
+        ++ansi;
+        lastStyle += "\x1b";
       } else if (ansi) {
-        if (char === "m") ansi = false;
+        lastStyle += char;
+
+        if (ansi === 3 && char === "m" && lastStyle[lastStyle.length - 2] === "0") {
+          lastStyle = "";
+        }
+
+        if (char === "m") {
+          ansi = 0;
+        } else {
+          ++ansi;
+        }
       } else {
         ++i;
       }
