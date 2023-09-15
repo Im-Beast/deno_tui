@@ -1,22 +1,23 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 import { TextPainter } from "../canvas/painters/text.ts";
-import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 
-import { signalify } from "../utils/signals.ts";
-import { detectMultiCodePointCharactersUsage, splitToArray } from "../utils/strings.ts";
+import { signalify, unsignalify } from "../utils/signals.ts";
+import { doesUseMultiCodePointCharacters, splitToArray } from "../utils/strings.ts";
 import { Rectangle } from "../types.ts";
+import { doesOverwriteRectangle } from "../utils/painter.ts";
 
 /**
  * Type that describes position and size of Label
  * When `width` or `height` isn't set, they gets automatically calculated depending of given value text width and amount of lines
  */
-export type LabelRectangle = {
+export interface LabelRectangle {
   column: number;
   row: number;
   width?: number;
   height?: number;
-};
+}
 
 /** Type that describes text positioning in label */
 export interface LabelAlign {
@@ -26,19 +27,15 @@ export interface LabelAlign {
 
 export interface LabelOptions<Prepared extends boolean> extends Omit<ComponentOptions, "rectangle"> {
   text: string | Signal<string>;
-  rectangle: Prepared extends true ? (Rectangle | SignalOfObject<Rectangle>)
-    : (LabelRectangle | SignalOfObject<LabelRectangle>);
-  align?: LabelAlign | SignalOfObject<LabelAlign>;
+  rectangle: Prepared extends true ? (Rectangle | Signal<Rectangle>)
+    : (LabelRectangle | Signal<LabelRectangle>);
+  align?: LabelAlign | Signal<LabelAlign>;
   multiCodePointSupport?: boolean | Signal<boolean>;
   overwriteRectangle?: boolean | Signal<boolean>;
 }
 
 export function prepareLabelOptions(options: LabelOptions<false>): LabelOptions<true> {
-  let rectangle = options.rectangle;
-
-  if (rectangle instanceof Signal) {
-    rectangle = rectangle.value;
-  }
+  const rectangle = unsignalify(options.rectangle);
 
   rectangle.width ??= 0;
   rectangle.height ??= 0;
@@ -106,13 +103,17 @@ export class Label extends Component {
   overwriteRectangle: Signal<boolean>;
   multiCodePointSupport: Signal<boolean>;
 
-  constructor(options: LabelOptions<false>) {
+  constructor(options: LabelOptions<false>);
+  constructor(options: LabelOptions<true>);
+  constructor(options: LabelOptions<boolean>) {
     super(prepareLabelOptions(options));
 
     this.text = signalify(options.text);
-    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
+    this.overwriteRectangle = signalify(
+      options.overwriteRectangle ?? doesOverwriteRectangle(this.rectangle),
+    );
     this.multiCodePointSupport = signalify(
-      options.multiCodePointSupport ?? detectMultiCodePointCharactersUsage(this.text.peek()),
+      options.multiCodePointSupport ?? doesUseMultiCodePointCharacters(this.text.peek()),
     );
     this.align = signalify(
       options.align ?? {

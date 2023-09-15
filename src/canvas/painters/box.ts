@@ -1,6 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Painter, PainterOptions } from "../painter.ts";
-import { Signal, SignalOfObject } from "../../signals/mod.ts";
+import { Signal } from "../../signals/mod.ts";
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
@@ -8,7 +8,7 @@ import { Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 
 export interface BoxPainterOptions extends PainterOptions {
-  rectangle: Rectangle | SignalOfObject<Rectangle>;
+  rectangle: Rectangle | Signal<Rectangle>;
   filler?: string | Signal<string>;
 }
 

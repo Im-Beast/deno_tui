@@ -5,7 +5,7 @@ import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { Subscription } from "../signals/types.ts";
 import { Effect } from "../signals/effect.ts";
@@ -14,7 +14,7 @@ export interface PainterOptions {
   canvas: Canvas;
 
   view?: View | Signal<View | undefined>;
-  style: Style | SignalOfObject<Style>;
+  style: Style | Signal<Style>;
   zIndex: number | Signal<number>;
 }
 

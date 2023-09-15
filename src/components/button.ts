@@ -2,21 +2,25 @@
 import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 
-import { Label, LabelAlign, LabelRectangle } from "./label.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { LabelAlign } from "./label.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { splitToArray } from "../utils/strings.ts";
 import { Computed } from "../signals/computed.ts";
 
 import { TextPainter } from "../canvas/painters/text.ts";
 import type { BoxPainter } from "../canvas/painters/box.ts";
+import { HorizontalAlign, VerticalAlign } from "../../mod.ts";
 
-const centerAlign: LabelAlign = { horizontal: "center", vertical: "center" };
+const centerAlign: LabelAlign = {
+  horizontal: HorizontalAlign.Center,
+  vertical: VerticalAlign.Middle,
+};
 
 export interface ButtonOptions extends ComponentOptions {
   label?: {
     text: string | Signal<string>;
-    align?: LabelAlign | SignalOfObject<LabelAlign>;
+    align?: LabelAlign | Signal<LabelAlign>;
   };
 }
 
@@ -79,8 +83,6 @@ export class Button extends Box {
       rectangle: this.rectangle,
       alignHorizontally: 0.5,
       alignVertically: 0.5,
-      multiCodePointSupport: true,
-      overwriteRectangle: true,
       text: new Computed(() => {
         const text = this.label.text.value;
         splitToArray(text, "\n", textLines);
@@ -103,33 +105,5 @@ export class Button extends Box {
       : "focused";
 
     super.interact(method);
-  }
-
-  #updateLabelSubcomponent(): void {
-    if (!this.label.text.value) {
-      this.subComponents.label?.destroy();
-      return;
-    }
-
-    if (this.subComponents.label) {
-      return;
-    }
-
-    const label = new Label({
-      parent: this,
-      theme: this.theme,
-      zIndex: this.zIndex,
-      rectangle: this.rectangle as Signal<LabelRectangle>,
-      overwriteRectangle: true,
-      text: this.label.text,
-      align: this.label.align,
-      multiCodePointSupport: true,
-    });
-
-    label.state = this.state;
-    label.style = this.style;
-
-    label.subComponentOf = this;
-    this.subComponents.label = label;
   }
 }

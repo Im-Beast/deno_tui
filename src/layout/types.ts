@@ -1,10 +1,10 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import type { Signal, SignalOfObject } from "../signals/signal.ts";
+import type { Signal } from "../signals/signal.ts";
 import type { Rectangle } from "../types.ts";
 
 export interface LayoutOptions<T extends string> {
   /** Position and size of Layout */
-  rectangle: Rectangle | SignalOfObject<Rectangle>;
+  rectangle: Rectangle | Signal<Rectangle>;
   /** Arrangement of elements on layout */
   pattern: T[] | Signal<T[]>;
   /** Horizontal gap between elements */

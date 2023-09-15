@@ -5,7 +5,7 @@ import { Theme } from "../theme.ts";
 import { DeepPartial } from "../types.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 
 import { BoxPainter } from "../canvas/painters/box.ts";
 import { TextPainter } from "../canvas/painters/text.ts";
@@ -33,7 +33,7 @@ export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
   password?: boolean | Signal<boolean>;
   placeholder?: string | Signal<string | undefined>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-  rectangle: InputRectangle | SignalOfObject<InputRectangle>;
+  rectangle: InputRectangle | Signal<InputRectangle>;
   theme: DeepPartial<InputTheme, "cursor">;
 }
 

@@ -1,6 +1,6 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Painter, PainterOptions } from "../painter.ts";
-import { Signal, SignalOfObject } from "../../signals/mod.ts";
+import { Signal } from "../../signals/mod.ts";
 
 import type { Rectangle } from "../../types.ts";
 import { signalify } from "../../utils/signals.ts";
@@ -8,7 +8,7 @@ import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 import {
   cropToWidth,
-  detectMultiCodePointCharactersUsage,
+  doesUseMultiCodePointCharacters,
   getMultiCodePointCharacters,
   reapplyCharacterStyles,
   textWidth,
@@ -16,6 +16,7 @@ import {
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
+import { doesOverwriteRectangle } from "../../utils/painter.ts";
 
 export enum VerticalAlign {
   Top = 0,
@@ -31,7 +32,7 @@ export enum HorizontalAlign {
 
 export interface TextPainterOptions extends PainterOptions {
   text: string[] | Signal<string[]>;
-  rectangle: Rectangle | SignalOfObject<Rectangle>;
+  rectangle: Rectangle | Signal<Rectangle>;
 
   alignVertically?: number | Signal<number>;
   alignHorizontally?: number | Signal<number>;
@@ -79,9 +80,10 @@ export class TextPainter extends Painter<"text"> {
     this.alignHorizontally = signalify(options.alignHorizontally ?? 0);
 
     this.multiCodePointSupport = signalify(
-      options.multiCodePointSupport ?? detectMultiCodePointCharactersUsage(this.text.peek()),
+      options.multiCodePointSupport ?? doesUseMultiCodePointCharacters(this.text.peek()),
     );
-    this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
+
+    this.overwriteRectangle = signalify(options.overwriteRectangle ?? doesOverwriteRectangle(options.rectangle));
 
     const { updateObjects } = this.canvas;
 

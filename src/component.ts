@@ -8,7 +8,7 @@ import { SortedArray } from "./utils/sorted_array.ts";
 import { Painter } from "./canvas/painter.ts";
 import { View } from "./view.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
-import { Computed, Signal, SignalOfObject } from "./signals/mod.ts";
+import { Computed, Signal } from "./signals/mod.ts";
 import { signalify } from "./utils/signals.ts";
 
 export interface ComponentOptions {
@@ -17,8 +17,8 @@ export interface ComponentOptions {
   parent: Component | Tui;
   zIndex: number | Signal<number>;
   visible?: boolean | Signal<boolean>;
-  rectangle: Rectangle | SignalOfObject<Rectangle>;
-  view?: View | undefined | SignalOfObject<View | undefined>;
+  rectangle: Rectangle | Signal<Rectangle>;
+  view?: View | undefined | Signal<View | undefined>;
 }
 
 /** Type defining last interaction component experienced */
@@ -42,7 +42,7 @@ export class Component extends EventEmitter<
   state: Signal<ComponentState>;
   view: Signal<View | undefined>;
   zIndex: Signal<number>;
-  rectangle: SignalOfObject<Rectangle>;
+  rectangle: Signal<Rectangle>;
   style: Signal<Style>;
 
   tui: Tui;
