@@ -8,20 +8,18 @@
 export const UNICODE_CHAR_REGEXP =
   /\ud83c[\udffb-\udfff](?=\ud83c[\udffb-\udfff])|(?:(?:\ud83c\udff4\udb40\udc67\udb40\udc62\udb40(?:\udc65|\udc73|\udc77)\udb40(?:\udc6e|\udc63|\udc6c)\udb40(?:\udc67|\udc74|\udc73)\udb40\udc7f)|[^\ud800-\udfff][\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]?|[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?(?:\u200d(?:[^\ud800-\udfff]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff])[\ufe0e\ufe0f]?(?:[\u0300-\u036f\ufe20-\ufe2f\u20d0-\u20ff\u1ab0-\u1aff\u1dc0-\u1dff]|\ud83c[\udffb-\udfff])?)*/g;
 
-export function usesMultiCodePointCharacters(text: string | string[]): boolean {
-  if (!text) {
-    return false;
-  }
-
-  if (Array.isArray(text)) {
+export function detectMultiCodePointCharactersUsage(text: string | string[]): boolean {
+  if (!text) return false;
+  else if (text.includes("\x1b")) return true;
+  else if (Array.isArray(text)) {
     for (const line of text) {
       if (getMultiCodePointCharacters(line).length === line.length) {
         return true;
       }
     }
+
     return false;
   }
-
   return getMultiCodePointCharacters(text).length === text.length;
 }
 
@@ -31,52 +29,102 @@ export function getMultiCodePointCharacters(text: string): string[] {
   if (!text) return empty;
   const matched = text.match(UNICODE_CHAR_REGEXP);
 
-  if (matched?.includes("\x1b")) {
-    const arr: string[] = [];
-    let i = 0;
-    let ansi = 0;
-    let lastStyle = "";
-    for (const char of matched) {
-      arr[i] ??= "";
-      arr[i] += lastStyle + char;
-
-      if (char === "\x1b") {
-        ++ansi;
-        lastStyle += "\x1b";
-      } else if (ansi) {
-        lastStyle += char;
-
-        if (ansi === 3 && char === "m" && lastStyle[lastStyle.length - 2] === "0") {
-          lastStyle = "";
-        }
-
-        if (char === "m") {
-          ansi = 0;
-        } else {
-          ++ansi;
-        }
-      } else {
-        ++i;
-      }
-    }
-
-    return arr;
-  }
-
   return matched ?? empty;
 }
 
-/** Strips string of all its styles */
-export function stripStyles(string: string): string {
+/**
+ * Reapplies style for each character
+ * If given an array it does modifications on that array instead of creating a new one
+ *
+ * @example
+ * ```ts
+ * console.log(repplyCharacterStyles("\x1b[32mHi")); // "\x1b[32mH\x1b[32mi"
+ * ```
+ *
+ * @example
+ * ```ts
+ * const arr = ["\x1b[32mH", "i"];
+ * console.log(repplyCharacterStyles(arr)); // ["\x1b[32mH", "\x1b[32mi"];
+ * console.log(arr);  // ["\x1b[32mH", "\x1b[32mi"];
+ * ```
+ */
+export function reapplyCharacterStyles(text: string[]): string[] {
+  // Heuristic for skipping reapplying when text doesn't include introducer
+  if (!text.includes("\x1b")) {
+    return text;
+  }
+
+  let i = 0;
+  let ansi = 0;
+  let lastStyle = "";
+  let flushStyle = false;
+
+  for (const char of text) {
+    if (char === "\x1b") {
+      // possible start of an ansi sequence
+      ++ansi;
+    } else if (ansi === 1) {
+      // confirm whether ansi sequence has been started
+      if (char === "[") {
+        lastStyle += "\x1b" + char;
+        ++ansi;
+      } else {
+        ansi = 0;
+      }
+    } else if (ansi > 1) {
+      lastStyle += char;
+
+      const isFinalByte = isFinalAnsiByte(char);
+
+      if (isFinalByte) {
+        flushStyle = true;
+
+        // End of ansi sequence
+        if (ansi === 3 && lastStyle[lastStyle.length - 2] === "0") {
+          // Style is "\x1b[0m" – no need to store the last style when all of them got cleared
+          lastStyle = "";
+        }
+
+        ansi = 0;
+      } else {
+        // Part of an ansi sequence
+        ++ansi;
+      }
+    } else {
+      if (flushStyle) {
+        text[i] = lastStyle + char;
+      }
+
+      ++i;
+    }
+  }
+
+  if (text.length > i) {
+    while (text.length > i) {
+      text.pop();
+    }
+  }
+
+  return text;
+}
+
+export function isFinalAnsiByte(character: string): boolean {
+  const codePoint = character.charCodeAt(0);
+  // don't include 0x70–0x7E range because its considered "private"
+  return codePoint >= 0x40 && codePoint < 0x70;
+}
+
+/** Strips text of all its styles */
+export function stripStyles(text: string): string {
   let stripped = "";
   let ansi = false;
-  const len = string.length;
+  const len = text.length;
   for (let i = 0; i < len; ++i) {
-    const char = string[i];
+    const char = text[i];
     if (char === "\x1b") {
       ansi = true;
       i += 2; // [ "\x1b" "[" "X" "m" ] <-- shortest ansi sequence
-    } else if (char === "m" && ansi) {
+    } else if (ansi && isFinalAnsiByte(char)) {
       ansi = false;
     } else if (!ansi) {
       stripped += char;
@@ -85,9 +133,9 @@ export function stripStyles(string: string): string {
   return stripped;
 }
 
-/** Inserts {value} into {string} on given {index} */
-export function insertAt(string: string, index: number, value: string): string {
-  return string.slice(0, index) + value + string.slice(index);
+/** Inserts {value} into {text} on given {index} */
+export function insertAt(text: string, index: number, value: string): string {
+  return text.slice(0, index) + value + text.slice(index);
 }
 
 /** Returns real {text} width */
@@ -102,7 +150,7 @@ export function textWidth(text: string, start = 0): number {
     if (char === "\x1b") {
       ansi = true;
       i += 2; // [ "\x1b" "[" "X" "m" ] <-- shortest ansi sequence
-    } else if (char === "m" && ansi) {
+    } else if (ansi && isFinalAnsiByte(char)) {
       ansi = false;
     } else if (!ansi) {
       width += characterWidth(char);

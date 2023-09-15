@@ -8,9 +8,10 @@ import { Dependency, Subscription } from "../../signals/types.ts";
 import { Effect } from "../../signals/effect.ts";
 import {
   cropToWidth,
+  detectMultiCodePointCharactersUsage,
   getMultiCodePointCharacters,
+  reapplyCharacterStyles,
   textWidth,
-  usesMultiCodePointCharacters,
 } from "../../utils/strings.ts";
 import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivity.ts";
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
@@ -78,7 +79,7 @@ export class TextPainter extends Painter<"text"> {
     this.alignHorizontally = signalify(options.alignHorizontally ?? 0);
 
     this.multiCodePointSupport = signalify(
-      options.multiCodePointSupport ?? usesMultiCodePointCharacters(this.text.peek()),
+      options.multiCodePointSupport ?? detectMultiCodePointCharactersUsage(this.text.peek()),
     );
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
 
@@ -184,7 +185,9 @@ export class TextPainter extends Painter<"text"> {
           }
 
           if (multiCodePointSupport) {
-            alignedLine = getMultiCodePointCharacters(alignedLine);
+            alignedLine = reapplyCharacterStyles(
+              getMultiCodePointCharacters(alignedLine),
+            );
           }
 
           if (Array.isArray(alignedLine)) {

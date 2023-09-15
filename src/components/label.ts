@@ -4,7 +4,7 @@ import { TextPainter } from "../canvas/painters/text.ts";
 import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
 
 import { signalify } from "../utils/signals.ts";
-import { splitToArray } from "../utils/strings.ts";
+import { detectMultiCodePointCharactersUsage, splitToArray } from "../utils/strings.ts";
 import { Rectangle } from "../types.ts";
 
 /**
@@ -111,7 +111,9 @@ export class Label extends Component {
 
     this.text = signalify(options.text);
     this.overwriteRectangle = signalify(options.overwriteRectangle ?? false);
-    this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
+    this.multiCodePointSupport = signalify(
+      options.multiCodePointSupport ?? detectMultiCodePointCharactersUsage(this.text.peek()),
+    );
     this.align = signalify(
       options.align ?? {
         vertical: 0,

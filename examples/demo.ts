@@ -508,8 +508,8 @@ const performanceStats = new Label({
   theme: baseTheme,
   text: new Computed(() =>
     `\
-FPS: ${fps.value.toFixed(2)}\
- | Components: ${tui.components.size}\
+${crayon.bgRed.green(`FPS: ${fps.value.toFixed(2)}`)}\
+ | ${crayon.yellow(`Components: ${tui.components.size}`)}\
  | Drawn objects: ${tui.canvas.painters.length}\
  | Updated objects: ${tui.canvas.rerenderedObjects}\
  | Press CTRL+F to toggle Frame/Label visibility`
