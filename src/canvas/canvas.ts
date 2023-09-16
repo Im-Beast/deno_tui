@@ -173,9 +173,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
     let lastColumn = -1;
 
     const { rerenderQueue } = this;
-    const size = this.size.peek();
+    const { rows } = this.size.peek();
 
-    for (let row = 0; row < size.rows; ++row) {
+    // TODO: try to attach moveCursor while rendering in Painter instead of there
+    for (let row = 0; row < rows; ++row) {
       const columns = rerenderQueue[row];
       if (!columns?.size) continue;
 
