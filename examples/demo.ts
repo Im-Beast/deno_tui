@@ -19,7 +19,7 @@ import { ProgressBar } from "../src/components/progressbar.ts";
 
 import { Theme } from "../src/theme.ts";
 import { View } from "../src/view.ts";
-import { Component, Rectangle } from "../mod.ts";
+import { Component, HorizontalAlign, Rectangle, VerticalAlign } from "../mod.ts";
 import { TextBox } from "../src/components/textbox.ts";
 import { Computed, Signal } from "../src/signals/mod.ts";
 
@@ -205,8 +205,8 @@ new ProgressBar({
 new Label({
   parent: tui,
   align: {
-    horizontal: "center",
-    vertical: "center",
+    horizontal: HorizontalAlign.Center,
+    vertical: VerticalAlign.Middle,
   },
   rectangle: {
     column: 17,
@@ -303,6 +303,7 @@ new TextBox({
       base: crayon.bgLightBlue,
     },
   },
+  placeholder: "hello\nasdasd\nworld!",
   lineNumbering: true,
   lineHighlighting: true,
   rectangle: {
@@ -443,9 +444,33 @@ const moveButton = new Button({
   zIndex: 2,
 });
 
+const moveButton2 = new Button({
+  parent: tui,
+  rectangle: {
+    column: 2,
+    row: 16,
+    width: 18,
+    height: 2,
+  },
+  label: { text: "ｈｅｌｌｏ\nｔｈｅｒｅ" },
+  theme: {
+    base: crayon.bgGreen,
+    focused: crayon.bgLightGreen,
+    active: crayon.bgMagenta,
+  },
+  zIndex: 2,
+});
+
 moveButton.on("mousePress", (event) => {
   if (!event.drag) return;
   const rectangle = moveButton.rectangle.value;
+  rectangle.column += event.movementX;
+  rectangle.row += event.movementY;
+});
+
+moveButton2.on("mousePress", (event) => {
+  if (!event.drag) return;
+  const rectangle = moveButton2.rectangle.value;
   rectangle.column += event.movementX;
   rectangle.row += event.movementY;
 });
@@ -456,6 +481,8 @@ new Text({
   rectangle: {
     column: 2,
     row: 13,
+    width: 0,
+    height: 0,
   },
   theme: baseTheme,
   text: "wopa",
@@ -499,17 +526,16 @@ tui.canvas.on("render", () => {
 const fps = new Signal(60);
 let lastRender = 0;
 
-const performanceStats = new Text({
+const performanceStats = new Label({
   parent: tui,
-  rectangle: { column: 0, row: 0 },
-  theme: baseTheme,
+  rectangle: { column: 0, row: 0, width: 0, height: 0 },
   text: new Computed(() =>
     `\
-FPS: ${fps.value.toFixed(2)}\
- | Components: ${tui.components.size}\
- | Drawn objects: ${tui.canvas.drawnObjects.length}\
+${crayon.bgRed.green(`FPS: ${fps.value.toFixed(2)}`)}\
+ | ${crayon.yellow(`Components: ${tui.components.size}`)}\
+ | Drawn objects: ${tui.canvas.painters.length}\
  | Updated objects: ${tui.canvas.rerenderedObjects}\
- | Press CTRL+F to toggle Frame/Label visibility`
+ | Press ${crayon.lightBlue.bold("CTRL+F")} to toggle Frame/Label visibility`
   ),
   zIndex: 0,
 });

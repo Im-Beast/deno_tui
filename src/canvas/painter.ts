@@ -1,25 +1,20 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../utils/numbers.ts";
 
-// FIXME: rename to painters, drawobjects sounds cringe
-
 import type { Style } from "../theme.ts";
 import type { Canvas } from "./canvas.ts";
 import type { Offset, Rectangle } from "../types.ts";
 import { View } from "../view.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { Subscription } from "../signals/types.ts";
 import { Effect } from "../signals/effect.ts";
 
-export interface DrawObjectOptions {
+export interface PainterOptions {
   canvas: Canvas;
 
-  omitCells?: number[];
-  omitCellsPointer?: number;
-
   view?: View | Signal<View | undefined>;
-  style: Style | SignalOfObject<Style>;
+  style?: Style | Signal<Style> | Signal<Style | undefined>;
   zIndex: number | Signal<number>;
 }
 
@@ -29,13 +24,13 @@ let id = 0;
  * Base DrawObject which works as a skeleton for creating
  * draw objects which actually do something
  */
-export class DrawObject<Type extends string = string> {
+export class Painter<Type extends string = string> {
   id: number;
   type: Type;
 
   canvas: Canvas;
 
-  style: Signal<Style>;
+  style: Signal<Style | undefined>;
   zIndex: Signal<number>;
 
   view: Signal<View | undefined>;
@@ -44,19 +39,19 @@ export class DrawObject<Type extends string = string> {
   rectangle!: Signal<Rectangle>;
   previousRectangle?: Rectangle;
 
-  objectsUnder: Set<DrawObject>;
+  objectsUnder: Set<Painter>;
 
   omitCells: Set<number>[];
   rerenderCells: Set<number>[];
 
-  rendered: boolean;
+  painted: boolean;
   outOfBounds: boolean;
   updated: boolean;
   moved: boolean;
 
-  #styleSubscription: Subscription<Style>;
+  #styleSubscription: Subscription<Style | undefined>;
 
-  constructor(type: Type, options: DrawObjectOptions) {
+  constructor(type: Type, options: PainterOptions) {
     this.id = id++;
     this.type = type;
 
@@ -69,7 +64,7 @@ export class DrawObject<Type extends string = string> {
 
     this.objectsUnder = new Set();
 
-    this.rendered = false;
+    this.painted = false;
     this.outOfBounds = false;
     this.canvas.updateObjects.push(this);
     this.updated = true;
@@ -77,23 +72,18 @@ export class DrawObject<Type extends string = string> {
 
     this.view = signalify(options.view);
     this.zIndex = signalify(options.zIndex);
-    this.style = signalify(options.style);
+    this.style = signalify<Style | undefined>(options.style as Style);
 
     const { updateObjects } = this.canvas;
 
     this.#styleSubscription = () => {
-      this.rendered = false;
+      this.painted = false;
       this.updated = false;
       updateObjects.push(this);
-
-      for (const objectUnder of this.objectsUnder) {
-        objectUnder.updated = false;
-        updateObjects.push(objectUnder);
-      }
     };
 
     if (this.view.value) {
-      queueMicrotask(() => {
+      this.canvas.on("render", () => {
         new Effect(() => {
           const view = this.view.value;
           // FIXME: they might not get watched if view wasnt set by default
@@ -121,14 +111,14 @@ export class DrawObject<Type extends string = string> {
             updateObjects.push(objectUnder);
           }
         });
-      });
+      }, true);
     }
   }
 
   draw(): void {
     this.style.subscribe(this.#styleSubscription);
 
-    this.rendered = false;
+    this.painted = false;
 
     const { objectsUnder } = this;
     const { updateObjects } = this.canvas;
@@ -143,17 +133,17 @@ export class DrawObject<Type extends string = string> {
       updateObjects.push(objectUnder);
     }
 
-    this.canvas.drawnObjects.push(this);
+    this.canvas.painters.push(this);
   }
 
   erase(): void {
     this.style.unsubscribe(this.#styleSubscription);
 
-    const { drawnObjects } = this.canvas;
+    const { painters } = this.canvas;
 
-    drawnObjects.remove(this);
+    painters.remove(this);
 
-    for (const object of drawnObjects) {
+    for (const object of painters) {
       object.objectsUnder.delete(this);
     }
 
@@ -184,19 +174,10 @@ export class DrawObject<Type extends string = string> {
   }
 
   queueRerender(row: number, column: number): void {
-    const viewRectangle = this.view.peek()?.rectangle?.peek();
     if (row < 0 || column < 0) return;
-    const { columns, rows } = this.canvas.size.peek();
-    if (row >= rows || column >= columns) return;
 
-    if (
-      viewRectangle && (
-        row < viewRectangle.row || column < viewRectangle.column ||
-        row >= viewRectangle.row + viewRectangle.height || column >= viewRectangle.column + viewRectangle.width
-      )
-    ) return;
-
-    (this.rerenderCells[row] ??= new Set()).add(column);
+    this.rerenderCells[row] ??= new Set();
+    this.rerenderCells[row].add(column);
   }
 
   updatePreviousRectangle(): void {
@@ -250,6 +231,7 @@ export class DrawObject<Type extends string = string> {
   }
 
   updateOutOfBounds(): void {
+    // TODO: Make views work as Drawable's
     const { columns, rows } = this.canvas.size.peek();
     const { column, row, width, height } = this.rectangle.peek();
 
@@ -271,21 +253,5 @@ export class DrawObject<Type extends string = string> {
     }
   }
 
-  update(): void {
-  }
-
-  render(): void {
-    const { column, row, width, height } = this.rectangle.peek();
-
-    const rowRange = row + height;
-    const columnRange = column + width;
-    for (let r = row; r < rowRange; ++r) {
-      for (let c = column; c < columnRange; ++c) {
-        this.queueRerender(r, c);
-      }
-    }
-    this.rerender();
-  }
-
-  rerender(): void {}
+  paint(): void {}
 }

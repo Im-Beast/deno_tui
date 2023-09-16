@@ -5,20 +5,20 @@ import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 
 import type { Rectangle } from "./types.ts";
 import { SortedArray } from "./utils/sorted_array.ts";
-import { DrawObject } from "./canvas/draw_object.ts";
+import { Painter } from "./canvas/painter.ts";
 import { View } from "./view.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
-import { Computed, Signal, SignalOfObject } from "./signals/mod.ts";
+import { Computed, Signal } from "./signals/mod.ts";
 import { signalify } from "./utils/signals.ts";
 
 export interface ComponentOptions {
   tui?: Tui;
-  theme: Partial<Theme>;
+  theme?: Partial<Theme>;
   parent: Component | Tui;
   zIndex: number | Signal<number>;
   visible?: boolean | Signal<boolean>;
-  rectangle: Rectangle | SignalOfObject<Rectangle>;
-  view?: View | undefined | SignalOfObject<View | undefined>;
+  rectangle: Rectangle | Signal<Rectangle>;
+  view?: View | undefined | Signal<View | undefined>;
 }
 
 /** Type defining last interaction component experienced */
@@ -42,14 +42,14 @@ export class Component extends EventEmitter<
   state: Signal<ComponentState>;
   view: Signal<View | undefined>;
   zIndex: Signal<number>;
-  rectangle: SignalOfObject<Rectangle>;
-  style: Signal<Style>;
+  rectangle: Signal<Rectangle>;
+  style: Signal<Style | undefined>;
 
   tui: Tui;
-  theme: Theme;
+  theme?: Theme;
   parent: Component | Tui;
   children: SortedArray<Component>;
-  drawnObjects: Record<string, DrawObject | DrawObject[]>;
+  drawnObjects: Record<string, Painter | Painter[]>;
   subComponents: Record<string, Component>;
   lastInteraction: Interaction;
 
@@ -97,7 +97,7 @@ export class Component extends EventEmitter<
     this.theme = hierarchizeTheme(options.theme);
     this.style = new Computed(() => {
       const state = this.state.value;
-      return this.theme[state];
+      return this.theme?.[state];
     });
 
     tui.on("keyPress", (event) => {

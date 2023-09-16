@@ -1,8 +1,8 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 
 import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
@@ -69,10 +69,10 @@ export interface FrameOptions extends ComponentOptions {
  */
 export class Frame extends Component {
   declare drawnObjects: {
-    top: TextObject;
-    bottom: TextObject;
-    left: BoxObject;
-    right: BoxObject;
+    top: TextPainter;
+    bottom: TextPainter;
+    left: BoxPainter;
+    right: BoxPainter;
   };
 
   charMap: Signal<FrameUnicodeCharactersType>;
@@ -89,15 +89,17 @@ export class Frame extends Component {
 
     const { canvas } = this.tui;
 
-    const topRectangle = { column: 0, row: 0 };
-    const top = new TextObject({
+    const topRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const topText: string[] = [];
+    const top = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
       zIndex: this.zIndex,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { topLeft, horizontal, topRight } = this.charMap.value;
-        return topLeft + horizontal.repeat(this.rectangle.value.width) + topRight;
+        topText[0] = topLeft + horizontal.repeat(this.rectangle.value.width) + topRight;
+        return topText;
       }),
       rectangle: new Computed(() => {
         const { column, row } = this.rectangle.value;
@@ -107,15 +109,17 @@ export class Frame extends Component {
       }),
     });
 
-    const bottomRectangle = { column: 0, row: 0 };
-    const bottom = new TextObject({
+    const bottomRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const bottomText: string[] = [];
+    const bottom = new TextPainter({
       canvas,
       view: this.view,
       style: this.style,
       zIndex: this.zIndex,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
-        return bottomLeft + horizontal.repeat(this.rectangle.value.width) + bottomRight;
+        bottomText[0] = bottomLeft + horizontal.repeat(this.rectangle.value.width) + bottomRight;
+        return bottomText;
       }),
       rectangle: new Computed(() => {
         const { column, row, height } = this.rectangle.value;
@@ -128,7 +132,7 @@ export class Frame extends Component {
     const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const left = new BoxObject({
+    const left = new BoxPainter({
       canvas,
       view: this.view,
       style: this.style,
@@ -144,7 +148,7 @@ export class Frame extends Component {
     });
 
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const right = new BoxObject({
+    const right = new BoxPainter({
       canvas,
       view: this.view,
       style: this.style,

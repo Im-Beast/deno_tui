@@ -5,10 +5,10 @@ import { Theme } from "../theme.ts";
 import { DeepPartial } from "../types.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 
 import { clamp } from "../utils/numbers.ts";
 import { signalify } from "../utils/signals.ts";
@@ -33,7 +33,7 @@ export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
   password?: boolean | Signal<boolean>;
   placeholder?: string | Signal<string | undefined>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-  rectangle: InputRectangle | SignalOfObject<InputRectangle>;
+  rectangle: InputRectangle | Signal<InputRectangle>;
   theme: DeepPartial<InputTheme, "cursor">;
 }
 
@@ -93,9 +93,9 @@ export interface InputOptions extends Omit<ComponentOptions, "rectangle"> {
  */
 export class Input extends Box {
   declare drawnObjects: {
-    box: BoxObject;
-    text: TextObject;
-    cursor: TextObject;
+    box: BoxPainter;
+    text: TextPainter;
+    cursor: TextPainter;
   };
   declare theme: InputTheme;
 
@@ -117,6 +117,7 @@ export class Input extends Box {
 
     super(options as ComponentOptions);
 
+    // FIXME: This might be signal
     this.theme.value ??= this.theme;
     this.theme.placeholder ??= this.theme.value;
 
@@ -179,8 +180,9 @@ export class Input extends Box {
 
     const { canvas } = this.tui;
 
-    const textRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-    const text = new TextObject({
+    const textRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const textText = [""];
+    const text = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -188,7 +190,7 @@ export class Input extends Box {
       style: new Computed(() =>
         this.theme[!this.text.value && this.placeholder ? "placeholder" : "value"][this.state.value]
       ),
-      value: new Computed(() => {
+      text: new Computed(() => {
         const password = this.password.value;
         const placeholder = this.placeholder.value;
         const cursorPosition = this.cursorPosition.value;
@@ -196,13 +198,16 @@ export class Input extends Box {
         const { width } = this.rectangle.value;
 
         if (!value && placeholder) {
-          return cropToWidth(placeholder, width);
+          textText[0] = cropToWidth(placeholder, width);
+          return textText;
         }
 
         const offsetX = cursorPosition - width + 1;
-        return password
+        textText[0] = password
           ? "*".repeat(Math.min(value.length, width))
           : cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition) : value, width);
+
+        return textText;
       }),
       rectangle: new Computed(() => {
         const { row, column } = this.rectangle.value;
@@ -212,17 +217,19 @@ export class Input extends Box {
       }),
     });
 
-    const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
-    const cursor = new TextObject({
+    const cursorRectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursorValue = [""];
+    const cursor = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
       multiCodePointSupport: this.multiCodePointSupport,
-      value: new Computed(() => {
+      text: new Computed(() => {
         const value = this.text.value;
         const placeholder = this.placeholder.value;
         const cursorPosition = this.cursorPosition.value;
-        return (value ? value[cursorPosition] : placeholder?.[cursorPosition]) ?? " ";
+        cursorValue[0] = (value ? value[cursorPosition] : placeholder?.[cursorPosition]) ?? " ";
+        return cursorValue;
       }),
       style: new Computed(() => this.theme.cursor[this.state.value]),
       rectangle: new Computed(() => {

@@ -1,5 +1,5 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { BoxObject, Canvas } from "./canvas/mod.ts";
+import { BoxPainter, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";
 import { InputEventRecord } from "./input_reader/mod.ts";
@@ -46,7 +46,7 @@ export class Tui extends EventEmitter<
   style?: Style;
   children: Component[];
   components: Set<Component>;
-  drawnObjects: { background?: BoxObject };
+  drawnObjects: { background?: BoxPainter };
   refreshRate: number;
 
   #nextUpdateTimeout?: number;
@@ -112,7 +112,7 @@ export class Tui extends EventEmitter<
 
       background?.erase();
 
-      const box = new BoxObject({
+      const box = new BoxPainter({
         canvas,
         rectangle: this.rectangle,
         style,

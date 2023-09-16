@@ -1,15 +1,15 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
-export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
+export interface TextOptions extends ComponentOptions {
   text: string | Signal<string>;
   overwriteWidth?: boolean | Signal<boolean>;
   multiCodePointSupport?: boolean | Signal<boolean>;
-  rectangle: TextRectangle | SignalOfObject<TextRectangle>;
 }
+// TODO: deprecate text because label is superior now
 
 /**
  * Component for creating single-line, non interactive text
@@ -58,7 +58,7 @@ export interface TextOptions extends Omit<ComponentOptions, "rectangle"> {
  * ```
  */
 export class Text extends Component {
-  declare drawnObjects: { text: TextObject };
+  declare drawnObjects: { text: TextPainter };
 
   text: Signal<string>;
   overwriteRectangle: Signal<boolean>;
@@ -72,15 +72,15 @@ export class Text extends Component {
   }
 
   draw(): void {
-    const text = new TextObject({
+    const text = new TextPainter({
       canvas: this.tui.canvas,
       view: this.view,
-      value: this.text,
+      text: [this.text.value],
       style: this.style,
       zIndex: this.zIndex,
-      rectangle: this.rectangle as unknown as Signal<TextRectangle>,
+      rectangle: this.rectangle,
       multiCodePointSupport: this.multiCodePointSupport,
-      overwriteRectangle: this.overwriteRectangle,
+      // overwriteRectangle: this.overwriteRectangle,
     });
 
     this.drawnObjects.text = text;

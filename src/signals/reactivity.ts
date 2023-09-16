@@ -5,11 +5,13 @@ export type Reactive<T> = T & {
   [IS_REACTIVE]: true;
   [ORIGINAL_REF]: T;
   [CONNECTED_SIGNAL]: Signal<T>;
+  [JINK]: boolean;
 };
 
 export const IS_REACTIVE = Symbol("reactive");
 export const ORIGINAL_REF = Symbol("original_ref");
 export const CONNECTED_SIGNAL = Symbol("connected_signal");
+export const JINK = Symbol("jink");
 
 export function isReactive<T extends object>(input: T): input is Reactive<T> {
   return IS_REACTIVE in input;
@@ -29,6 +31,18 @@ export function getOriginalRef<T extends object>(input: T | Reactive<T>): T {
   }
 
   throw "Failed to get original referenec as input isn't reactive";
+}
+
+export function jinkReactiveObject<T extends object>(input: T | Reactive<T>): void {
+  if (isReactive(input)) {
+    input[JINK] = true;
+  }
+}
+
+export function unjinkReactiveObject<T extends object>(input: T | Reactive<T>): void {
+  if (isReactive(input)) {
+    input[JINK] = false;
+  }
 }
 
 /**
@@ -278,11 +292,12 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
     return new Proxy(object, proxyHandler);
   }
 
-  const interceptor = {} as T;
+  const interceptor = {} as Reactive<T>;
   Object.defineProperties(interceptor, {
     [IS_REACTIVE]: { value: true },
     [ORIGINAL_REF]: { value: object },
     [CONNECTED_SIGNAL]: { value: signal },
+    [JINK]: { writable: true, value: false },
   });
 
   for (const property in object) {
@@ -292,7 +307,9 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
         return object[property];
       },
       set(value) {
-        if (object[property] !== (object[property] = value)) {
+        if (interceptor[JINK]) {
+          return;
+        } else if (object[property] !== (object[property] = value)) {
           signal.propagate();
         }
       },

@@ -8,8 +8,8 @@ import { SortedArray } from "../utils/sorted_array.ts";
 import { rectangleIntersection } from "../utils/numbers.ts";
 
 import type { ConsoleSize, Stdout } from "../types.ts";
-import { DrawObject } from "./draw_object.ts";
-import { Signal, SignalOfObject } from "../signals/mod.ts";
+import { Painter } from "./painter.ts";
+import { Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 
 const textEncoder = new TextEncoder();
@@ -18,7 +18,7 @@ const textEncoder = new TextEncoder();
 export interface CanvasOptions {
   /** Stdout to which canvas will render frameBuffer */
   stdout: Stdout;
-  size: ConsoleSize | SignalOfObject<ConsoleSize>;
+  size: ConsoleSize | Signal<ConsoleSize>;
 }
 
 /** Map that contains events that {Canvas} can dispatch */
@@ -26,19 +26,23 @@ export type CanvasEventMap = {
   render: EmitterEvent<[]>;
 };
 
+interface Drawable {
+  draw(row: number, column: number, data: string): void;
+}
+
 /**
  * Object, which stores data about currently rendered objects.
  *
  * It is responsible for outputting to stdout.
  */
-export class Canvas extends EventEmitter<CanvasEventMap> {
+export class Canvas extends EventEmitter<CanvasEventMap> implements Drawable {
   stdout: Stdout;
   size: Signal<ConsoleSize>;
   rerenderedObjects?: number;
-  frameBuffer: (string | Uint8Array)[][];
+  frameBuffer: string[][];
   rerenderQueue: Set<number>[];
-  drawnObjects: SortedArray<DrawObject>;
-  updateObjects: DrawObject[];
+  painters: SortedArray<Painter>;
+  updateObjects: Painter[];
   resizeNeeded: boolean;
 
   constructor(options: CanvasOptions) {
@@ -47,7 +51,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     this.frameBuffer = [];
     this.rerenderQueue = [];
     this.stdout = options.stdout;
-    this.drawnObjects = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
+    this.painters = new SortedArray((a, b) => a.zIndex.peek() - b.zIndex.peek() || a.id - b.id);
     this.updateObjects = [];
     this.resizeNeeded = false;
 
@@ -58,20 +62,28 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     });
   }
 
+  draw(row: number, column: number, data: string): void {
+    this.frameBuffer[row] ??= [];
+    this.rerenderQueue[row] ??= new Set();
+
+    this.frameBuffer[row][column] = data;
+    this.rerenderQueue[row].add(column);
+  }
+
   resize() {
     const { columns, rows } = this.size.peek();
 
-    for (const drawObject of this.drawnObjects) {
+    for (const drawObject of this.painters) {
       const { column, row } = drawObject.rectangle.peek();
       if (column >= columns || row >= rows) continue;
 
-      drawObject.rendered = false;
+      drawObject.painted = false;
       drawObject.updated = false;
       this.updateObjects.push(drawObject);
     }
   }
 
-  updateIntersections(object: DrawObject): void {
+  updateIntersections(object: Painter): void {
     const { omitCells, objectsUnder } = object;
 
     const zIndex = object.zIndex.peek();
@@ -83,7 +95,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
     objectsUnder.clear();
 
-    for (const object2 of this.drawnObjects) {
+    for (const object2 of this.painters) {
       if (object === object2 || object2.outOfBounds) continue;
 
       const zIndex2 = object2.zIndex.peek();
@@ -99,12 +111,14 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
 
       if (!intersection) continue;
 
+      const rowStart = intersection.row;
       const rowRange = intersection.row + intersection.height;
+      const columnStart = intersection.column;
       const columnRange = intersection.column + intersection.width;
-      for (let row = intersection.row; row < rowRange; ++row) {
+      for (let row = rowStart; row < rowRange; ++row) {
         const omitColumns = omitCells[row] ??= new Set();
 
-        for (let column = intersection.column; column < columnRange; ++column) {
+        for (let column = columnStart; column < columnRange; ++column) {
           omitColumns.add(column);
         }
       }
@@ -130,7 +144,6 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
       if (object.updated) continue;
       object.updated = true;
       ++i;
-      object.update();
 
       object.updateMovement();
       object.updatePreviousRectangle();
@@ -146,12 +159,7 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
         object.moved = false;
       }
 
-      if (object.rendered) {
-        object.rerender();
-      } else {
-        object.render();
-        object.rendered = true;
-      }
+      object.paint();
     }
 
     this.rerenderedObjects = i;
@@ -165,9 +173,10 @@ export class Canvas extends EventEmitter<CanvasEventMap> {
     let lastColumn = -1;
 
     const { rerenderQueue } = this;
-    const size = this.size.peek();
+    const { rows } = this.size.peek();
 
-    for (let row = 0; row < size.rows; ++row) {
+    // TODO: try to attach moveCursor while rendering in Painter instead of there
+    for (let row = 0; row < rows; ++row) {
       const columns = rerenderQueue[row];
       if (!columns?.size) continue;
 

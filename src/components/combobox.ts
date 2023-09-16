@@ -1,11 +1,11 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { Computed, Signal, SignalOfObject } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { Button, ButtonOptions } from "./button.ts";
 
 export interface ComboBoxOptions<Items extends string[] = string[]> extends Omit<ButtonOptions, "label"> {
   placeholder?: string;
-  items: Items | SignalOfObject<Items>;
+  items: Items | Signal<Items>;
   selectedItem?: number | undefined | Signal<number | undefined>;
 }
 

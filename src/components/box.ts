@@ -1,5 +1,5 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
-import { BoxObject } from "../canvas/box.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
 import { Component } from "../component.ts";
 
 /**
@@ -23,12 +23,12 @@ import { Component } from "../component.ts";
  * ```
  */
 export class Box extends Component {
-  declare drawnObjects: { box: BoxObject };
+  declare drawnObjects: { box: BoxPainter };
 
   draw(): void {
     super.draw();
 
-    const box = new BoxObject({
+    const box = new BoxPainter({
       canvas: this.tui.canvas,
       view: this.view,
       style: this.style,

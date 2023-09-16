@@ -1,8 +1,8 @@
 // Copyright 2023 Im-Beast. All rights reserved. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 
 import type { DeepPartial, Rectangle } from "../types.ts";
 import { Theme } from "../theme.ts";
@@ -105,15 +105,15 @@ export class Table extends Component {
   declare theme: TableTheme;
   declare drawnObjects: {
     frame: [
-      top: TextObject,
-      bottom: TextObject,
-      spacer: TextObject,
-      left: BoxObject,
-      right: BoxObject,
+      top: TextPainter,
+      bottom: TextPainter,
+      spacer: TextPainter,
+      left: BoxPainter,
+      right: BoxPainter,
     ];
 
-    header: TextObject;
-    data: TextObject[];
+    header: TextPainter;
+    data: TextPainter[];
   };
 
   data: Signal<string[][]>;
@@ -215,8 +215,9 @@ export class Table extends Component {
     const { drawnObjects } = this;
 
     // Drawing header cells
-    const headerRectangle = { column: 0, row: 0 };
-    const header = new TextObject({
+    const headerRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const headerText = [""];
+    const header = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -227,7 +228,7 @@ export class Table extends Component {
         headerRectangle.row = row + 1;
         return headerRectangle;
       }),
-      value: new Computed(() => {
+      text: new Computed(() => {
         // associate computed with this.data
         this.data.value;
 
@@ -238,7 +239,8 @@ export class Table extends Component {
           value += header.title + " ".repeat(header.width + 1 - textWidth(header.title));
         }
 
-        return value;
+        headerText[0] = value;
+        return headerText;
       }),
     });
 
@@ -252,8 +254,9 @@ export class Table extends Component {
     // Drawing frame
     const frameStyleSignal = new Computed(() => this.theme.frame[this.state.value]);
 
-    const topRectangle = { column: 0, row: 0 };
-    const top = new TextObject({
+    const topRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const topText = [""];
+    const top = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -264,14 +267,16 @@ export class Table extends Component {
         topRectangle.row = row;
         return topRectangle;
       }),
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { topLeft, horizontal, topRight } = this.charMap.value;
-        return topLeft + horizontal.repeat(this.rectangle.value.width - 2) + topRight;
+        topText[0] = topLeft + horizontal.repeat(this.rectangle.value.width - 2) + topRight;
+        return topText;
       }),
     });
 
-    const bottomRectangle = { column: 0, row: 0 };
-    const bottom = new TextObject({
+    const bottomRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const bottomText = [""];
+    const bottom = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -282,16 +287,17 @@ export class Table extends Component {
         bottomRectangle.row = row + height - 1;
         return bottomRectangle;
       }),
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
-        return bottomLeft + horizontal.repeat(this.rectangle.value.width - 2) + bottomRight;
+        bottomText[0] = bottomLeft + horizontal.repeat(this.rectangle.value.width - 2) + bottomRight;
+        return bottomText;
       }),
     });
 
     const verticalCharMapSignal = new Computed(() => this.charMap.value.vertical);
 
     const leftRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const left = new BoxObject({
+    const left = new BoxPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -307,7 +313,7 @@ export class Table extends Component {
     });
 
     const rightRectangle = { column: 0, row: 0, width: 1, height: 0 };
-    const right = new BoxObject({
+    const right = new BoxPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
@@ -322,8 +328,9 @@ export class Table extends Component {
       }),
     });
 
-    const middleRectangle = { column: 0, row: 0 };
-    const spacer = new TextObject({
+    const middleRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const middleText = [""];
+    const spacer = new TextPainter({
       canvas,
       zIndex: this.zIndex,
       style: frameStyleSignal,
@@ -333,9 +340,10 @@ export class Table extends Component {
         middleRectangle.row = row + 2;
         return middleRectangle;
       }),
-      value: new Computed(() => {
+      text: new Computed(() => {
         const { leftHorizontal, horizontal, rightHorizontal } = this.charMap.value;
-        return leftHorizontal + horizontal.repeat(this.rectangle.value.width - 2) + rightHorizontal;
+        middleText[0] = leftHorizontal + horizontal.repeat(this.rectangle.value.width - 2) + rightHorizontal;
+        return middleText;
       }),
     });
 
@@ -363,8 +371,9 @@ export class Table extends Component {
     const { drawnObjects } = this;
 
     for (let i = drawnObjects.data.length; i < this.rectangle.peek().height - 4; ++i) {
-      const textRectangle = { column: 0, row: 0 };
-      const text = new TextObject({
+      const textRectangle = { column: 0, row: 0, width: 0, height: 0 };
+      const textText = [""];
+      const text = new TextPainter({
         canvas,
         view: this.view,
         zIndex: this.zIndex,
@@ -375,7 +384,7 @@ export class Table extends Component {
           const style = this.style.value;
           return (i + offsetRow) === selectedRow ? selectedRowStyle : style;
         }),
-        value: new Computed(() => {
+        text: new Computed(() => {
           const dataRow = this.data.value[i + this.offsetRow.value];
           const headers = this.headers.value;
 
@@ -388,7 +397,8 @@ export class Table extends Component {
           }
 
           string += " ".repeat(this.rectangle.value.width - textWidth(string) - 2);
-          return string;
+          textText[0] = string;
+          return textText;
         }),
         rectangle: new Computed(() => {
           const { column, row } = this.rectangle.value;

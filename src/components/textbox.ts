@@ -2,16 +2,17 @@
 import { Box } from "./box.ts";
 import { ComponentOptions } from "../component.ts";
 
-import { BoxObject } from "../canvas/box.ts";
-import { TextObject, TextRectangle } from "../canvas/text.ts";
+import { BoxPainter } from "../canvas/painters/box.ts";
+import { TextPainter } from "../canvas/painters/text.ts";
 import { Theme } from "../theme.ts";
-import { DeepPartial } from "../types.ts";
-import { cropToWidth, insertAt } from "../utils/strings.ts";
+import { DeepPartial, Rectangle } from "../types.ts";
+import { cropToWidth, insertAt, splitToArray } from "../utils/strings.ts";
 import { clamp } from "../utils/numbers.ts";
-import { Computed, Effect, Signal } from "../signals/mod.ts";
+import { Computed, Signal } from "../signals/mod.ts";
 import { signalify } from "../utils/signals.ts";
 import { KeyPressEvent } from "../input_reader/types.ts";
 
+/** Position of TextBox cursor */
 export interface CursorPosition {
   x: number;
   y: number;
@@ -24,10 +25,12 @@ export interface TextBoxTheme extends Theme {
   lineNumbers: Theme;
   /** Style for currently selected text row */
   highlightedLine: Theme;
+  placeholder: Theme;
 }
 
 export interface TextBoxOptions extends ComponentOptions {
   text?: string | Signal<string>;
+  placeholder?: string | Signal<string | undefined>;
   validator?: RegExp | Signal<RegExp>;
   theme: DeepPartial<TextBoxTheme, "cursor">;
   multiCodePointSupport?: boolean | Signal<boolean>;
@@ -86,16 +89,18 @@ export interface TextBoxOptions extends ComponentOptions {
  */
 export class TextBox extends Box {
   declare drawnObjects: {
-    box: BoxObject;
-    lines: TextObject[];
-    lineNumbers: TextObject[];
-    cursor: TextObject;
+    box: BoxPainter;
+    text: TextPainter;
+    lineNumbers: TextPainter;
+    cursor: TextPainter;
   };
   declare theme: TextBoxTheme;
 
   #textLines: Computed<string[]>;
+  #placeholderLines: Computed<string[]>;
 
   text: Signal<string>;
+  placeholder: Signal<string | undefined>;
   lineNumbering: Signal<boolean>;
   lineHighlighting: Signal<boolean>;
   cursorPosition: Signal<CursorPosition>;
@@ -111,15 +116,29 @@ export class TextBox extends Box {
     this.cursorPosition = new Signal({ x: 0, y: 0 }, { deepObserve: true });
 
     this.text = signalify(options.text ?? "");
+    this.placeholder = signalify(options.placeholder);
     this.lineNumbering = signalify(options.lineNumbering ?? false);
     this.lineHighlighting = signalify(options.lineHighlighting ?? false);
     this.multiCodePointSupport = signalify(options.multiCodePointSupport ?? false);
 
-    // FIXME: This creates unnecessary arrays each time it runs
-    this.#textLines = new Computed(() => this.text.value.split("\n"));
+    const placeholderLines: string[] = [];
+    this.#placeholderLines = new Computed(() => {
+      const placeholder = this.placeholder.value;
+      if (placeholder) {
+        splitToArray(placeholder, "\n", placeholderLines);
+      } else {
+        while (placeholderLines.length) {
+          placeholderLines.pop();
+        }
+      }
+      return placeholderLines;
+    });
 
-    new Effect(() => {
-      this.#updateLineDrawObjects();
+    const textLines: string[] = [];
+    this.#textLines = new Computed(() => {
+      const text = this.text.value;
+      splitToArray(text, "\n", textLines);
+      return textLines;
     });
 
     this.on(
@@ -166,6 +185,7 @@ export class TextBox extends Box {
               textLines[cursorPosition.y] = textLine.slice(0, cursorPosition.x - 1) + textLine.slice(cursorPosition.x);
               cursorPosition.x = clamp(cursorPosition.x - 1, 0, textLine.length);
             }
+
             break;
           case "delete":
             textLines[cursorPosition.y] = textLine.slice(0, cursorPosition.x) + textLine.slice(cursorPosition.x + 1);
@@ -188,6 +208,7 @@ export class TextBox extends Box {
           default:
             if (key.length > 1) return;
             character = key;
+            break;
         }
 
         cursorPosition.y = clamp(cursorPosition.y, 0, textLines.length);
@@ -209,21 +230,49 @@ export class TextBox extends Box {
     const { canvas } = this.tui;
     const { drawnObjects } = this;
 
-    drawnObjects.lineNumbers = [];
-    drawnObjects.lines = [];
-
-    this.#updateLineDrawObjects();
-
-    const cursorRectangle: TextRectangle = { column: 0, row: 0, width: 1 };
-    const cursor = new TextObject({
+    const lineNumberRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const lineNumbersText = [""];
+    const lineNumbers = new TextPainter({
       canvas,
       view: this.view,
       zIndex: this.zIndex,
       multiCodePointSupport: this.multiCodePointSupport,
-      value: new Computed(() => {
+      style: new Computed(() => this.theme.lineNumbers[this.state.value]),
+      text: new Computed(() => {
+        const { height } = this.rectangle.value;
+        const cursorPosition = this.cursorPosition.value;
+
+        for (let offset = 0; offset < height; ++offset) {
+          const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0) + 1;
+          const maxLineNumber = this.#textLines.value.length;
+
+          lineNumbersText[offset] = `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");
+        }
+
+        return lineNumbersText;
+      }),
+      rectangle: new Computed(() => {
+        const { row, column } = this.rectangle.value;
+        lineNumberRectangle.column = column;
+        lineNumberRectangle.row = row /*+ offset*/;
+        return lineNumberRectangle;
+      }),
+    });
+
+    drawnObjects.lineNumbers = lineNumbers;
+
+    const cursorRectangle: Rectangle = { column: 0, row: 0, width: 1, height: 1 };
+    const cursorText = [""];
+    const cursor = new TextPainter({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      multiCodePointSupport: this.multiCodePointSupport,
+      text: new Computed(() => {
         const cursorPosition = this.cursorPosition.value;
         const value = this.#textLines.value[cursorPosition.y];
-        return value?.[cursorPosition.x] ?? " ";
+        cursorText[0] = value?.[cursorPosition.x] ?? " ";
+        return cursorText;
       }),
       style: new Computed(() => this.theme.cursor[this.state.value]),
       rectangle: new Computed(() => {
@@ -233,7 +282,7 @@ export class TextBox extends Box {
         cursorRectangle.row = row + Math.min(cursorPosition.y, height - 1);
 
         if (this.lineNumbering.value) {
-          const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
+          const lineNumbersWidth = this.drawnObjects.lineNumbers.rectangle.peek().width;
           cursorRectangle.column = column + lineNumbersWidth + Math.min(cursorPosition.x, width - lineNumbersWidth - 1);
         } else {
           cursorRectangle.column = column + Math.min(cursorPosition.x, width - 1);
@@ -244,121 +293,142 @@ export class TextBox extends Box {
     });
 
     drawnObjects.cursor = cursor;
+
+    const lineRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const textText = [""];
+    const text = new TextPainter({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      multiCodePointSupport: this.multiCodePointSupport,
+      style: new Computed(() => {
+        const theme = this.theme.value;
+        const state = this.state.value;
+        const textLines = this.text.value;
+
+        if (textLines.length <= 1 && !textLines[0]) {
+          // TODO: return placeholder theme
+          // return theme.placeholder[state];
+        }
+
+        return theme[state];
+      }),
+      text: new Computed(() => {
+        const cursorPosition = this.cursorPosition.value;
+        const textLines = this.#textLines.value;
+        const placeholderLines = this.#placeholderLines.value;
+        let { width, height } = this.rectangle.value;
+
+        let currentLines = textLines;
+        let offsetX: number;
+        if (currentLines.length <= 1 && !currentLines[0]) {
+          currentLines = placeholderLines;
+          offsetX = -width;
+        } else {
+          offsetX = cursorPosition.x - width;
+        }
+
+        while (currentLines.length < textText.length) {
+          textText.pop();
+        }
+
+        if (this.lineNumbering.value) {
+          const lineNumbersWidth = this.drawnObjects.lineNumbers.rectangle.peek().width;
+          width -= lineNumbersWidth;
+          offsetX += lineNumbersWidth;
+        }
+
+        const offsetY = Math.max(cursorPosition.y - height + 1, 0);
+
+        for (let offset = 0; offset < currentLines.length; ++offset) {
+          const value = currentLines[offset + offsetY]?.replace("\t", " ");
+          textText[offset] = cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value, width);
+        }
+        return textText;
+      }),
+      rectangle: new Computed(() => {
+        // associate computed with this.lineNumbering and this.#textLines
+        this.lineNumbering.value;
+        this.#textLines.value;
+
+        const { row, column } = this.rectangle.value;
+        lineRectangle.column = column;
+        lineRectangle.row = row /*+ offset*/;
+
+        if (this.lineNumbering.value) {
+          const lineNumbersWidth = this.drawnObjects.lineNumbers.rectangle.peek().width;
+          lineRectangle.column += lineNumbersWidth;
+        }
+
+        return lineRectangle;
+      }),
+    });
+
+    const selectedLineText = [""];
+    const selectedLineRectangle = { column: 0, row: 0, width: 0, height: 0 };
+    const selectedLine = new TextPainter({
+      canvas,
+      view: this.view,
+      zIndex: this.zIndex,
+      multiCodePointSupport: this.multiCodePointSupport,
+      style: new Computed(() => this.theme.highlightedLine[this.state.value]),
+      text: new Computed(() => {
+        const cursorPosition = this.cursorPosition.value;
+        const textLines = this.#textLines.value;
+        const placeholderLines = this.#placeholderLines.value;
+        let { width } = this.rectangle.value;
+
+        let currentLines = textLines;
+        let offsetX: number;
+        if (currentLines.length <= 1 && !currentLines[0]) {
+          currentLines = placeholderLines;
+          offsetX = -width;
+        } else {
+          offsetX = cursorPosition.x - width;
+        }
+
+        if (this.lineNumbering.value) {
+          const lineNumbersWidth = this.drawnObjects.lineNumbers.rectangle.peek().width;
+          width -= lineNumbersWidth;
+          offsetX += lineNumbersWidth;
+        }
+
+        const value = currentLines[cursorPosition.y]?.replace("\t", " ") ?? "";
+        selectedLineText[0] = cropToWidth(
+          offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value,
+          width,
+        ).padEnd(width, " ");
+
+        return selectedLineText;
+      }),
+      rectangle: new Computed(() => {
+        // associate computed with this.lineNumbering, this.#textLines and this.cursorPosition
+        this.lineNumbering.value;
+        this.#textLines.value;
+        this.cursorPosition.value;
+
+        const { column } = this.rectangle.value;
+
+        selectedLineRectangle.column = column;
+        selectedLineRectangle.row = cursorRectangle.row;
+
+        if (this.lineNumbering.value) {
+          const lineNumbersWidth = this.drawnObjects.lineNumbers.rectangle.peek().width;
+          selectedLineRectangle.column += lineNumbersWidth;
+        }
+
+        return selectedLineRectangle;
+      }),
+    });
+
     cursor.draw();
+    text.draw();
+    lineNumbers.draw();
+    selectedLine.draw();
   }
 
   interact(method: "keyboard" | "mouse"): void {
     this.state.value = "focused";
     super.interact(method);
-  }
-
-  #updateLineDrawObjects(): void {
-    const { lineNumbers, lines } = this.drawnObjects;
-
-    const { height } = this.rectangle.value;
-    const lineNumbering = this.lineNumbering.value;
-
-    if (!lines) return;
-    const { canvas } = this.tui;
-    const elements = lines.length;
-
-    for (let offset = 0; offset < Math.max(height, elements); ++offset) {
-      const lineNumber = lineNumbers[offset];
-      if (!lineNumber && lineNumbering) {
-        const lineNumberRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-        const lineNumber = new TextObject({
-          canvas,
-          view: this.view,
-          zIndex: this.zIndex,
-          multiCodePointSupport: this.multiCodePointSupport,
-          style: new Computed(() => this.theme.lineNumbers[this.state.value]),
-          value: new Computed(() => {
-            const { height } = this.rectangle.value;
-            const cursorPosition = this.cursorPosition.value;
-
-            const lineNumber = offset + Math.max(cursorPosition.y - height + 1, 0) + 1;
-            const maxLineNumber = this.#textLines.value.length;
-
-            return `${lineNumber}`.padEnd(`${maxLineNumber}`.length, " ");
-          }),
-          rectangle: new Computed(() => {
-            const { row, column } = this.rectangle.value;
-            lineNumberRectangle.column = column;
-            lineNumberRectangle.row = row + offset;
-            return lineNumberRectangle;
-          }),
-        });
-
-        lineNumbers[offset] = lineNumber;
-        lineNumber.draw();
-      } else if (lineNumber && !lineNumbering) {
-        lineNumber.erase();
-        delete lineNumbers[offset];
-      }
-
-      const line = lines[offset];
-      if (!line) {
-        const lineRectangle: TextRectangle = { column: 0, row: 0, width: 0 };
-        const line = new TextObject({
-          canvas,
-          view: this.view,
-          zIndex: this.zIndex,
-          multiCodePointSupport: this.multiCodePointSupport,
-          style: new Computed(() => {
-            // associate computed with this.text
-            this.text.value;
-
-            const state = this.state.value;
-            const highlightLine = this.lineHighlighting.value;
-            const cursorPosition = this.cursorPosition.value;
-
-            const offsetY = Math.max(cursorPosition.y - this.rectangle.value.height + 1, 0);
-            const currentLine = offsetY + offset;
-
-            if (highlightLine && cursorPosition.y === currentLine) {
-              return this.theme.highlightedLine[state];
-            } else return this.theme.value[state];
-          }),
-          value: new Computed(() => {
-            const cursorPosition = this.cursorPosition.value;
-
-            let { width, height } = this.rectangle.value;
-            if (this.lineNumbering.value) {
-              const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
-              width -= lineNumbersWidth;
-            }
-
-            const offsetX = cursorPosition.x - width + 1;
-            const offsetY = Math.max(cursorPosition.y - height + 1, 0);
-
-            const value = this.#textLines.value[offset + offsetY]?.replace("\t", " ") ?? "";
-
-            return cropToWidth(offsetX > 0 ? value.slice(offsetX, cursorPosition.x) : value, width).padEnd(width, " ");
-          }),
-          rectangle: new Computed(() => {
-            // associate computed with this.lineNumbering and this.#textLines
-            this.lineNumbering.value;
-            this.#textLines.value;
-
-            const { row, column } = this.rectangle.value;
-            lineRectangle.column = column;
-            lineRectangle.row = row + offset;
-
-            if (this.lineNumbering.value) {
-              const lineNumbersWidth = this.drawnObjects.lineNumbers[0].rectangle.peek().width;
-              lineRectangle.column += lineNumbersWidth;
-            }
-
-            return lineRectangle;
-          }),
-        });
-
-        lines[offset] = line;
-        line.draw();
-      } else if (offset >= height) {
-        line.erase();
-        delete lines[offset];
-      }
-    }
   }
 }
