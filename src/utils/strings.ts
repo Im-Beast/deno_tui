@@ -84,6 +84,7 @@ export function reapplyCharacterStyles(text: string[]): string[] {
         if (ansi === 3 && lastStyle[lastStyle.length - 2] === "0") {
           // Style is "\x1b[0m" – no need to store the last style when all of them got cleared
           lastStyle = "";
+          flushStyle = false;
         }
 
         ansi = 0;
@@ -94,6 +95,8 @@ export function reapplyCharacterStyles(text: string[]): string[] {
     } else {
       if (flushStyle) {
         text[i] = lastStyle + char + "\x1b[0m";
+      } else {
+        text[i] = char;
       }
 
       ++i;
