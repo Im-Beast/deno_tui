@@ -93,7 +93,7 @@ export function reapplyCharacterStyles(text: string[]): string[] {
       }
     } else {
       if (flushStyle) {
-        text[i] = lastStyle + char;
+        text[i] = lastStyle + char + "\x1b[0m";
       }
 
       ++i;
