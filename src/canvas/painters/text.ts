@@ -19,8 +19,6 @@ import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../u
 import { Computed } from "../../signals/computed.ts";
 import { doesOverwriteRectangle } from "../../utils/painter.ts";
 
-// TODO: make style optional as styling  strings is now supported
-
 export enum VerticalAlign {
   Top = 0,
   Middle = 0.5,
@@ -157,7 +155,7 @@ export class TextPainter extends Painter<"text"> {
           const maxLength = Math.max(line.length, currentLine.length);
           for (let c = 0; c < maxLength; ++c) {
             for (const objectUnder of objectsUnder) {
-              objectUnder.queueRerender(row, column);
+              objectUnder.queueRerender(row, column + c);
             }
 
             this.queueRerender(row + actualLineRow, column + c);
