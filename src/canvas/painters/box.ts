@@ -32,7 +32,9 @@ export class BoxPainter extends Painter<"box"> {
 
     this.rectangle = signalify(options.rectangle);
     this.filler = signalify(options.filler ?? " ");
-    this.#filler = this.style.peek()(this.filler.peek());
+
+    const filler = this.filler.peek();
+    this.#filler = this.style.peek()?.(filler) ?? filler;
 
     const { updateObjects } = this.canvas;
     this.#rectangleSubscription = () => {
@@ -50,13 +52,14 @@ export class BoxPainter extends Painter<"box"> {
     new Effect(() => {
       const style = this.style.value;
       const filler = this.filler.value;
-      this.#filler = style(filler);
+      this.#filler = style?.(filler) ?? filler;
     });
 
     this.#columnStart = 0;
     this.#columnRange = 0;
     this.#rowStart = 0;
     this.#rowRange = 0;
+
     new Effect(() => {
       const size = this.canvas.size.value;
       const rectangle = this.rectangle.value;

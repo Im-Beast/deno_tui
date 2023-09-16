@@ -13,7 +13,7 @@ import { signalify } from "./utils/signals.ts";
 
 export interface ComponentOptions {
   tui?: Tui;
-  theme: Partial<Theme>;
+  theme?: Partial<Theme>;
   parent: Component | Tui;
   zIndex: number | Signal<number>;
   visible?: boolean | Signal<boolean>;
@@ -43,10 +43,10 @@ export class Component extends EventEmitter<
   view: Signal<View | undefined>;
   zIndex: Signal<number>;
   rectangle: Signal<Rectangle>;
-  style: Signal<Style>;
+  style: Signal<Style | undefined>;
 
   tui: Tui;
-  theme: Theme;
+  theme?: Theme;
   parent: Component | Tui;
   children: SortedArray<Component>;
   drawnObjects: Record<string, Painter | Painter[]>;
@@ -97,7 +97,7 @@ export class Component extends EventEmitter<
     this.theme = hierarchizeTheme(options.theme);
     this.style = new Computed(() => {
       const state = this.state.value;
-      return this.theme[state];
+      return this.theme?.[state];
     });
 
     tui.on("keyPress", (event) => {

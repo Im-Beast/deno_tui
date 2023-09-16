@@ -112,6 +112,19 @@ export function reapplyCharacterStyles(text: string[]): string[] {
   return text;
 }
 
+export function normalizeArrayLengthCharactersWidth(characters: string[]): string[] {
+  let width = 0;
+  for (const char of characters) {
+    width += textWidth(char);
+  }
+
+  while (characters.length < width) {
+    characters.push("");
+  }
+
+  return characters;
+}
+
 export function isFinalAnsiByte(character: string): boolean {
   const codePoint = character.charCodeAt(0);
   // don't include 0x70–0x7E range because its considered "private"

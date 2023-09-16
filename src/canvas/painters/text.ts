@@ -10,6 +10,7 @@ import {
   cropToWidth,
   doesUseMultiCodePointCharacters,
   getMultiCodePointCharacters,
+  normalizeArrayLengthCharactersWidth,
   reapplyCharacterStyles,
   textWidth,
 } from "../../utils/strings.ts";
@@ -17,6 +18,8 @@ import { jinkReactiveObject, unjinkReactiveObject } from "../../signals/reactivi
 import { fitsInRectangle, rectangleEquals, rectangleIntersection } from "../../utils/numbers.ts";
 import { Computed } from "../../signals/computed.ts";
 import { doesOverwriteRectangle } from "../../utils/painter.ts";
+
+// TODO: make style optional as styling  strings is now supported
 
 export enum VerticalAlign {
   Top = 0,
@@ -151,26 +154,13 @@ export class TextPainter extends Painter<"text"> {
             line = cropToWidth(line, width);
           }
 
-          if (currentLine && line !== currentLine) {
-            const maxLength = Math.max(line.length, currentLine.length);
-
-            for (let c = 0; c < maxLength; ++c) {
-              if (line[c] !== currentLine[c]) {
-                for (const objectUnder of objectsUnder) {
-                  objectUnder.queueRerender(row, column);
-                }
-
-                this.queueRerender(row + actualLineRow, column + c);
-              }
+          const maxLength = Math.max(line.length, currentLine.length);
+          for (let c = 0; c < maxLength; ++c) {
+            for (const objectUnder of objectsUnder) {
+              objectUnder.queueRerender(row, column);
             }
-          } else if (!currentLine) {
-            for (let c = 0; c < line.length; ++c) {
-              for (const objectUnder of objectsUnder) {
-                objectUnder.queueRerender(row, column);
-              }
 
-              this.queueRerender(row + actualLineRow, column + c);
-            }
+            this.queueRerender(row + actualLineRow, column + c);
           }
 
           let alignedLine: string | string[];
@@ -187,20 +177,11 @@ export class TextPainter extends Painter<"text"> {
           }
 
           if (multiCodePointSupport) {
-            alignedLine = reapplyCharacterStyles(
-              getMultiCodePointCharacters(alignedLine),
+            alignedLine = normalizeArrayLengthCharactersWidth(
+              reapplyCharacterStyles(
+                getMultiCodePointCharacters(alignedLine),
+              ),
             );
-          }
-
-          if (Array.isArray(alignedLine)) {
-            for (let i = 0; i < alignedLine.length; ++i) {
-              const char = alignedLine[i];
-              const charWidth = textWidth(char);
-
-              for (let j = 1; j < charWidth; ++j) {
-                alignedLine.splice(++i, 0, "");
-              }
-            }
           }
 
           currentText[actualLineRow] = alignedLine as string;
@@ -210,6 +191,7 @@ export class TextPainter extends Painter<"text"> {
           currentText.pop();
         }
       } else {
+        // TODO: Try to make that if-else statement one statement, there's too much repeating code here
         const currentText: string[] | string[][] = [];
 
         const textLength = text.length;
@@ -245,18 +227,9 @@ export class TextPainter extends Painter<"text"> {
           }
 
           if (multiCodePointSupport) {
-            alignedLine = getMultiCodePointCharacters(alignedLine);
-          }
-
-          if (Array.isArray(alignedLine)) {
-            for (let i = 0; i < alignedLine.length; ++i) {
-              const char = alignedLine[i];
-              const charWidth = textWidth(char);
-
-              for (let j = 1; j < charWidth; ++j) {
-                alignedLine.splice(++i, 0, "");
-              }
-            }
+            alignedLine = normalizeArrayLengthCharactersWidth(
+              reapplyCharacterStyles(getMultiCodePointCharacters(alignedLine)),
+            );
           }
 
           currentText[i + lacksTop] = alignedLine;
@@ -418,7 +391,8 @@ export class TextPainter extends Painter<"text"> {
             continue;
           }
 
-          canvas.draw(row, column, style(line[column - columnStart]));
+          const char = line[column - columnStart];
+          canvas.draw(row, column, style?.(char) ?? char);
         }
 
         rerenderColumns.clear();
@@ -428,7 +402,8 @@ export class TextPainter extends Painter<"text"> {
             continue;
           }
 
-          canvas.draw(row, column, style(line[column - columnStart]));
+          const char = line[column - columnStart];
+          canvas.draw(row, column, style?.(char) ?? char);
         }
       }
     }

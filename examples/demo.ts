@@ -444,9 +444,33 @@ const moveButton = new Button({
   zIndex: 2,
 });
 
+const moveButton2 = new Button({
+  parent: tui,
+  rectangle: {
+    column: 2,
+    row: 16,
+    width: 18,
+    height: 2,
+  },
+  label: { text: "ｈｅｌｌｏ\nｔｈｅｒｅ" },
+  theme: {
+    base: crayon.bgGreen,
+    focused: crayon.bgLightGreen,
+    active: crayon.bgMagenta,
+  },
+  zIndex: 2,
+});
+
 moveButton.on("mousePress", (event) => {
   if (!event.drag) return;
   const rectangle = moveButton.rectangle.value;
+  rectangle.column += event.movementX;
+  rectangle.row += event.movementY;
+});
+
+moveButton2.on("mousePress", (event) => {
+  if (!event.drag) return;
+  const rectangle = moveButton2.rectangle.value;
   rectangle.column += event.movementX;
   rectangle.row += event.movementY;
 });
@@ -505,14 +529,13 @@ let lastRender = 0;
 const performanceStats = new Label({
   parent: tui,
   rectangle: { column: 0, row: 0, width: 0, height: 0 },
-  theme: baseTheme,
   text: new Computed(() =>
     `\
 ${crayon.bgRed.green(`FPS: ${fps.value.toFixed(2)}`)}\
  | ${crayon.yellow(`Components: ${tui.components.size}`)}\
  | Drawn objects: ${tui.canvas.painters.length}\
  | Updated objects: ${tui.canvas.rerenderedObjects}\
- | Press CTRL+F to toggle Frame/Label visibility`
+ | Press ${crayon.lightBlue.bold("CTRL+F")} to toggle Frame/Label visibility`
   ),
   zIndex: 0,
 });

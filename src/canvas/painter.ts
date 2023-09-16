@@ -14,7 +14,7 @@ export interface PainterOptions {
   canvas: Canvas;
 
   view?: View | Signal<View | undefined>;
-  style: Style | Signal<Style>;
+  style?: Style | Signal<Style> | Signal<Style | undefined>;
   zIndex: number | Signal<number>;
 }
 
@@ -30,7 +30,7 @@ export class Painter<Type extends string = string> {
 
   canvas: Canvas;
 
-  style: Signal<Style>;
+  style: Signal<Style | undefined>;
   zIndex: Signal<number>;
 
   view: Signal<View | undefined>;
@@ -49,7 +49,7 @@ export class Painter<Type extends string = string> {
   updated: boolean;
   moved: boolean;
 
-  #styleSubscription: Subscription<Style>;
+  #styleSubscription: Subscription<Style | undefined>;
 
   constructor(type: Type, options: PainterOptions) {
     this.id = id++;
@@ -72,7 +72,7 @@ export class Painter<Type extends string = string> {
 
     this.view = signalify(options.view);
     this.zIndex = signalify(options.zIndex);
-    this.style = signalify(options.style);
+    this.style = signalify<Style | undefined>(options.style as Style);
 
     const { updateObjects } = this.canvas;
 
