@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { Computable, Computed } from "./computed.ts";
 import { Dependency } from "./types.ts";
 import { Flusher } from "./flusher.ts";

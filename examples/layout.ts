@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { crayon } from "https://deno.land/x/crayon@3.3.3/mod.ts";
 
 import { Tui } from "../src/tui.ts";

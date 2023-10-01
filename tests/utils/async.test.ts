@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 
 import { sleep } from "../../src/utils/async.ts";
 import { assertAlmostEquals } from "../deps.ts";

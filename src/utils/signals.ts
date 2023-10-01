@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { Signal, SignalOptions } from "../signals/mod.ts";
 
 /** Creates signal from input if it's not already a signal */

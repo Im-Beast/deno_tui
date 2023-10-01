@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { BoxObject, Canvas } from "./canvas/mod.ts";
 import { Component } from "./component.ts";
 import { EmitterEvent, EventEmitter } from "./event_emitter.ts";

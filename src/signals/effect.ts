@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { optimizeDependencies, trackDependencies } from "./dependency_tracking.ts";
 import type { Dependant, Dependency } from "./types.ts";
 

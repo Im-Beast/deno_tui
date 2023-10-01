@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { ComponentOptions } from "../component.ts";
 import { Box } from "./box.ts";
 

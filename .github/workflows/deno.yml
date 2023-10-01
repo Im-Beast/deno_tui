@@ -42,7 +42,7 @@ jobs:
           deno run -A --no-check https://deno.land/x/anzu@1.0.0/src/cli.ts \
            -i ./ "/.+\.ts/" \
            -e "deps.ts" \
-           -l "// Copyright 2023 Im-Beast. All rights reserved. MIT license." \
+           -l "// Copyright 2023 Im-Beast. MIT license." \
            -p
 
       - name: Push changes

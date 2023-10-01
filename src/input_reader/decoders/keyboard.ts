@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 /** Decode code sequence to {KeyPress} object. */
 import type { Alphabet, Key, KeyPressEvent } from "../types.ts";
 

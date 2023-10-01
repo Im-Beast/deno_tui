@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import type { Dependant, Dependency } from "./types.ts";
 
 export let activeSignals: Set<Dependency> | undefined;

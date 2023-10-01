@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 
 // TODO; on style change, dont update intersections, just clear current ones
 import { EmitterEvent, EventEmitter } from "../event_emitter.ts";

@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 export * from "./src/component.ts";
 export * from "./src/controls.ts";
 export * from "./src/event_emitter.ts";

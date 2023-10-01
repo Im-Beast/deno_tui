@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { Component, ComponentOptions } from "../component.ts";
 
 import { BoxObject } from "../canvas/box.ts";

@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 
 /** Function that's supposed to return styled text given string as parameter */
 export type Style = (text: string) => string;

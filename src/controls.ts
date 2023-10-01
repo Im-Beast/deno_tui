@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { Component } from "./component.ts";
 import { Tui } from "./tui.ts";
 import { DISABLE_MOUSE, ENABLE_MOUSE } from "./utils/ansi_codes.ts";
