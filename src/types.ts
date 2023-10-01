@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 
 /** Type for Standard Output – where data gets written */
 export type Stdout = typeof Deno.stdout;

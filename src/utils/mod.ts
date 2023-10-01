@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 export * from "./ansi_codes.ts";
 export * from "./async.ts";
 export * from "./numbers.ts";

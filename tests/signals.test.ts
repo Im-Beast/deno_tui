@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { Computed, Effect, Signal } from "../src/signals/mod.ts";
 import { IS_REACTIVE } from "../src/signals/reactivity.ts";
 import { assertArrayIncludes, assertEquals, assertThrows } from "./deps.ts";

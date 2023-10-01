@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 import { TextObject, TextRectangle } from "../canvas/text.ts";
 import { Component, ComponentOptions } from "../component.ts";
 import { Signal, SignalOfObject } from "../signals/mod.ts";

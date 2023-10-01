@@ -1,4 +1,4 @@
-// Copyright 2023 Im-Beast. All rights reserved. MIT license.
+// Copyright 2023 Im-Beast. MIT license.
 
 /**
  * Regexp that allows for extracting unicode sequences that are supposed to represent single character
