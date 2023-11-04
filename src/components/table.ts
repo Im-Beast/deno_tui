@@ -377,6 +377,7 @@ export class Table extends Component {
         }),
         value: new Computed(() => {
           const dataRow = this.data.value[i + this.offsetRow.value];
+          if (!dataRow) return "";
           const headers = this.headers.value;
 
           let string = "";
