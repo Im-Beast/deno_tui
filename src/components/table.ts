@@ -187,7 +187,7 @@ export class Table extends Component {
           break;
       }
 
-      selectedRow.value = clamp(selectedRow.peek(), 0, lastDataRow - 1);
+      selectedRow.value = clamp(selectedRow.peek(), 0, lastDataRow);
       offsetRow.value = clamp(selectedRow.peek() - ~~((height - 4) / 2), 0, lastDataRow - height + 5);
     });
 
