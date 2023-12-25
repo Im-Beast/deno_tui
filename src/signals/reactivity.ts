@@ -256,7 +256,9 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
   if (Array.isArray(object)) {
     makeArrayMethodsReactive(object, signal);
     if (!watchObjectIndex) return object;
-  } else {
+  } else if (!Object.getOwnPropertyDescriptor(object, IS_REACTIVE)
+  && !Object.getOwnPropertyDescriptor(object, ORIGINAL_REF)
+  && !Object.getOwnPropertyDescriptor(object, CONNECTED_SIGNAL)) {
     Object.defineProperties(object, {
       [IS_REACTIVE]: { value: true },
       [ORIGINAL_REF]: { value: object },
