@@ -11,11 +11,13 @@ export const IS_REACTIVE = Symbol("reactive");
 export const ORIGINAL_REF = Symbol("original_ref");
 export const CONNECTED_SIGNAL = Symbol("connected_signal");
 
-export function isReactive<T extends object>(input: T): input is Reactive<T> {
-  return IS_REACTIVE in input;
+export function isReactive<T>(input: T): input is Reactive<T> {
+  return input instanceof Object && IS_REACTIVE in input;
 }
 
-export function getConnectedSignal<T extends object>(input: T | Reactive<T>): Signal<T> {
+export function getConnectedSignal<T extends object>(
+  input: T | Reactive<T>,
+): Signal<T> {
   if (isReactive(input)) {
     return input[CONNECTED_SIGNAL];
   }
@@ -116,7 +118,10 @@ export function makeMapMethodsReactive<T extends Map<unknown, unknown>, S>(
  *
  * When set gets in any way updated `propagate` method gets called on provided signal.
  */
-export function makeSetMethodsReactive<T extends Set<unknown>, S>(set: T, signal: Signal<S>): T {
+export function makeSetMethodsReactive<T extends Set<unknown>, S>(
+  set: T,
+  signal: Signal<S>,
+): T {
   Object.defineProperties(set, {
     [IS_REACTIVE]: { value: true },
     [ORIGINAL_REF]: { value: set },
@@ -248,7 +253,11 @@ export function makeArrayMethodsReactive<T extends Array<unknown>, S>(
  *
  * @returns new object, not direct reference to given object
  */
-export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>, watchObjectIndex = false): T {
+export function makeObjectPropertiesReactive<T, S>(
+  object: T,
+  signal: Signal<S>,
+  watchObjectIndex = false,
+): T {
   if (typeof object !== "object") {
     throw new Error("parameter object needs to be typeof 'object'");
   }
@@ -256,11 +265,7 @@ export function makeObjectPropertiesReactive<T, S>(object: T, signal: Signal<S>,
   if (Array.isArray(object)) {
     makeArrayMethodsReactive(object, signal);
     if (!watchObjectIndex) return object;
-  } else if (
-    !Object.getOwnPropertyDescriptor(object, IS_REACTIVE) &&
-    !Object.getOwnPropertyDescriptor(object, ORIGINAL_REF) &&
-    !Object.getOwnPropertyDescriptor(object, CONNECTED_SIGNAL)
-  ) {
+  } else if (!isReactive(object)) {
     Object.defineProperties(object, {
       [IS_REACTIVE]: { value: true },
       [ORIGINAL_REF]: { value: object },
