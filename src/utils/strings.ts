@@ -80,40 +80,68 @@ export function textWidth(text: string, start = 0): number {
   let width = 0;
   let ansi = false;
   const len = text.length;
-  for (let i = start; i < len; ++i) {
+  loop: for (let i = start; i < len; ++i) {
     const char = text[i];
-    if (char === "\x1b") {
-      ansi = true;
-      i += 2; // [ "\x1b" "[" "X" "m" ] <-- shortest ansi sequence
-    } else if (char === "m" && ansi) {
-      ansi = false;
-    } else if (!ansi) {
-      width += characterWidth(char);
+
+    switch (char) {
+      case "\x1b":
+        ansi = true;
+        i += 2;
+        break;
+      case "\n":
+        break loop;
+      default:
+        if (!ansi) {
+          width += characterWidth(char);
+        } else if (isFinalAnsiByte(char)) {
+          ansi = false;
+        }
+        break;
     }
   }
 
   return width;
 }
+
 /** Crops {text} to given {width} */
 export function cropToWidth(text: string, width: number): string {
-  const stripped = stripStyles(text);
-  const letter = stripped[width];
+  let cropped = "";
+  let croppedWidth = 0;
+  let ansi = 0;
 
-  if (textWidth(text) <= width) return text;
+  const len = text.length;
+  for (let i = 0; i < len; ++i) {
+    const char = text[i];
 
-  text = text.slice(0, text.lastIndexOf(letter));
-  if (textWidth(text) <= width) return text;
+    if (char === "\x1b") {
+      ansi = 1;
+    } else if (ansi >= 3 && isFinalAnsiByte(char)) {
+      ansi = 0;
+    } else if (ansi > 0) {
+      ansi += 1;
+    } else {
+      const charWidth = characterWidth(char);
 
-  const start = text.indexOf(letter);
-  const knownPart = text.slice(0, start);
-  const knownWidth = textWidth(knownPart);
-  if (knownWidth === width) return knownPart;
+      if (croppedWidth + charWidth > width) {
+        if (croppedWidth + 1 === width) {
+          cropped += " ";
+        }
+        break;
+      } else {
+        croppedWidth += charWidth;
+      }
+    }
 
-  do {
-    const index = text.lastIndexOf(letter);
-    text = text.slice(0, index);
-  } while ((knownWidth + textWidth(text, start)) > width);
-  return text;
+    cropped += char;
+  }
+
+  return cropped;
+}
+
+export function isFinalAnsiByte(character: string): boolean {
+  const codePoint = character.charCodeAt(0);
+  // don't include 0x70–0x7E range because its considered "private"
+  return codePoint >= 0x40 && codePoint < 0x70;
 }
 
 /**
