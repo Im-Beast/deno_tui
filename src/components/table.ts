@@ -266,7 +266,7 @@ export class Table extends Component {
       }),
       value: new Computed(() => {
         const { topLeft, horizontal, topRight } = this.charMap.value;
-        return topLeft + horizontal.repeat(this.rectangle.value.width - 2) + topRight;
+        return topLeft + horizontal.repeat(Math.max(this.rectangle.value.width - 2, 0)) + topRight;
       }),
     });
 
@@ -284,7 +284,7 @@ export class Table extends Component {
       }),
       value: new Computed(() => {
         const { bottomLeft, horizontal, bottomRight } = this.charMap.value;
-        return bottomLeft + horizontal.repeat(this.rectangle.value.width - 2) + bottomRight;
+        return bottomLeft + horizontal.repeat(Math.max(this.rectangle.value.width - 2, 0)) + bottomRight;
       }),
     });
 
@@ -335,7 +335,7 @@ export class Table extends Component {
       }),
       value: new Computed(() => {
         const { leftHorizontal, horizontal, rightHorizontal } = this.charMap.value;
-        return leftHorizontal + horizontal.repeat(this.rectangle.value.width - 2) + rightHorizontal;
+        return leftHorizontal + horizontal.repeat(Math.max(this.rectangle.value.width - 2, 0)) + rightHorizontal;
       }),
     });
 
