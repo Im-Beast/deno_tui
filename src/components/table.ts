@@ -235,7 +235,9 @@ export class Table extends Component {
         let value = "";
 
         for (const header of headers) {
-          value += header.title + " ".repeat(header.width + 1 - textWidth(header.title));
+          // Ensures non-negative numbers
+          const endPadding = Math.max(0, header.width + 1 - textWidth(header.title));
+          value += header.title + " ".repeat(endPadding);
         }
 
         return value;
