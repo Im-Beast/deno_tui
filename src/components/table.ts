@@ -393,7 +393,7 @@ export class Table extends Component {
             prevData = dataCell;
           }
 
-          const endPadding = Math.max(0, this.rectangle.value.width - textWidth(string) - 2);          
+          const endPadding = Math.max(0, this.rectangle.value.width - textWidth(string) - 2);
           string += " ".repeat(endPadding);
           return string;
         }),
