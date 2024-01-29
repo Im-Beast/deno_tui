@@ -385,12 +385,16 @@ export class Table extends Component {
           let string = "";
           let prevData = "";
           for (const [j, dataCell] of dataRow.entries()) {
-            if (j !== 0) string += " ".repeat(headers[j - 1].width - textWidth(prevData) + 1);
+            if (j !== 0) {
+              const padding = Math.max(0, headers[j - 1].width - textWidth(prevData) + 1);
+              string += " ".repeat(padding);
+            }
             string += dataCell;
             prevData = dataCell;
           }
 
-          string += " ".repeat(this.rectangle.value.width - textWidth(string) - 2);
+          const endPadding = Math.max(0, this.rectangle.value.width - textWidth(string) - 2);          
+          string += " ".repeat(endPadding);
           return string;
         }),
         rectangle: new Computed(() => {
