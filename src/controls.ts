@@ -100,10 +100,10 @@ export function handleKeyboardControls(tui: Tui): void {
  * Enable handling of controlling Tui using mouse
  */
 export function handleMouseControls(tui: Tui): void {
-  const { rid } = tui.stdout;
-  Deno.writeSync(rid, textEncoder.encode(ENABLE_MOUSE));
+  const { stdout } = tui;
+  stdout.writeSync(textEncoder.encode(ENABLE_MOUSE));
   tui.on("destroy", () => {
-    Deno.writeSync(rid, textEncoder.encode(DISABLE_MOUSE));
+    stdout.writeSync(textEncoder.encode(DISABLE_MOUSE));
   });
 
   tui.on("mousePress", ({ x, y, drag, shift, meta, ctrl, release }) => {

@@ -123,7 +123,7 @@ export class Tui extends EventEmitter<
       box.draw();
     }
 
-    Deno.writeSync(stdout.rid, textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
+    stdout.write(textEncoder.encode(USE_SECONDARY_BUFFER + HIDE_CURSOR));
 
     const updateStep = () => {
       canvas.render();
@@ -141,7 +141,7 @@ export class Tui extends EventEmitter<
       this.stdin.setRaw(false);
     } catch { /**/ }
 
-    Deno.writeSync(this.stdout.rid, textEncoder.encode(USE_PRIMARY_BUFFER + SHOW_CURSOR));
+    this.stdout.write(textEncoder.encode(USE_PRIMARY_BUFFER + SHOW_CURSOR));
 
     for (const component of this.components) {
       component.destroy();
